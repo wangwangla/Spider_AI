@@ -2,18 +2,34 @@ package com.spider.card;
 
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Group;
+import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
+import com.spider.SpiderGame;
+import com.spider.asset.AssetUtil;
 
 import java.lang.reflect.Array;
 
 public class Card extends Group {
     private int z_index;
     private boolean visible;
-    private Image img, imgBack;
+    private Image img, imgBack,imageMask;
     private int suit;//花色 1 2 3 4
     private int point;//点数 1-13
     private boolean show;//是否已翻开
 
+    public Card(int suit, int point) {
+        this(suit, point, false);
+    }
+
+    public Card(Card card) {
+        this.suit = card.suit;
+        this.point = card.point;
+        this.show = card.show;
+        this.z_index = card.z_index;
+        this.visible = card.visible;
+        this.img = card.img;
+        this.imgBack = card.imgBack;
+    }
     public Card(int suit, int point, boolean show) {
         this.suit = suit;
         this.point = point;
@@ -33,19 +49,6 @@ public class Card extends Group {
         this.point = point;
     }
 
-    public Card(int suit, int point) {
-        this(suit, point, false);
-    }
-
-    public Card(Card card) {
-        this.suit = card.suit;
-        this.point = card.point;
-        this.show = card.show;
-        this.z_index = card.z_index;
-        this.visible = card.visible;
-        this.img = card.img;
-        this.imgBack = card.imgBack;
-    }
 
     public void setShow(boolean show) {
         this.show = show;
@@ -120,5 +123,38 @@ public class Card extends Group {
     private Vector2 position = new Vector2();
     public Vector2 getPosition() {
         return position.set(getX(),getY());
+    }
+
+    @Override
+    public String toString() {
+        return "Card{" +
+                "z_index=" + z_index +
+                ", visible=" + visible +
+                ", img=" + img +
+                ", imgBack=" + imgBack +
+                ", suit=" + suit +
+                ", point=" + point +
+                ", show=" + show +
+                ", position=" + position +
+                '}';
+    }
+
+    public void initCard() {
+        int imageIndex = (suit - 1) * 13 + getPoint() - 1;
+        img = new Image(SpiderGame.getAssetUtil()
+                .loadTexture("Resource/card/CARD"+imageIndex+".png"));
+        imgBack = new Image(SpiderGame.getAssetUtil().loadTexture(
+                "Resource/cardback.png"));
+//        img.setVisible(false);
+//        imgBack.setVisible(false);
+        addActor(img);
+        addActor(imgBack);
+        setSize(img.getWidth(),img.getHeight());
+        if (isShow()){
+            img.setVisible(true);
+            imgBack.setVisible(false);
+        }
+        img.setTouchable(Touchable.disabled);
+        imgBack.setTouchable(Touchable.disabled);
     }
 }

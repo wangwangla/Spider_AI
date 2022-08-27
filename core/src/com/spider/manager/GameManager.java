@@ -1,76 +1,198 @@
 package com.spider.manager;
 
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.scenes.scene2d.Actor;
+import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
+import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
 import com.spider.action.Action;
 import com.spider.action.Deal;
 import com.spider.card.Card;
 import com.spider.config.Configuration;
+import com.spider.constant.Constant;
+import com.spider.log.NLog;
 import com.spider.pocker.Pocker;
 
 public class GameManager {
     private Pocker pocker;
-    private Array<Array<Action>> record;
+    private Array<Array<Action>> record = new Array<Array<Action>>();
     private Array<Image> vecImageEmpty;
-    private boolean idCardEmpty;
-    private boolean idCardBack;
-    private boolean idCard1;
-    private boolean idCardMask;
+    private String idCardEmpty;
+    private String idCardBack;
+    private String idCard1;
+    private String idCardMask;
     private Configuration config;
+    private boolean bOnThread;
+    private boolean bStopThread;
+    private Group cardGroup;
+    private Group finishGroup;
+    private Group sendCardGroup;
+//            cardGroup,finishGroup,sendCardGroup
+    public GameManager(Group cardGroup, Group finishGroup, Group sendCardGroup){
+        config = new Configuration();
+        this.cardGroup = cardGroup;
+        this.finishGroup = finishGroup;
+        this.sendCardGroup = sendCardGroup;
+    }
 
-
-    public void newGame(boolean isRandom,int suitNum){
-        int seed = (int) System.currentTimeMillis();
-        if (isRandom){
-            suitNum = 1;
-            seed = (int) (Math.random() * 100);
-        }else {
-            //使用传进来的值
-        }
+    public void newGame(int suitNum){
+        int seed = (int) (Math.random() * 100);
+        NLog.e("seed is %s",seed);
         record.clear();
         pocker = new Pocker();
-        Action action = new Deal(suitNum,seed,false,1);
+        Deal action = new Deal(suitNum,seed,false,1);
         action.Do(pocker);
-
-        if (idCardEmpty && idCardBack && idCard1 && idCardMask){
+        if (idCardEmpty!=null && idCardBack!=null &&
+                idCard1!=null && idCardMask!=null){
             initialImage();
         }
+        setPos();
         if (pocker.isHasGUI()){
-            if (config.isEnableAnimation())
+            if (config.isEnableAnimation()) {
                 action.startAnimation(bOnThread, bStopThread);
-            else
-            {
-                RefreshPaint();
+            } else {
                 bOnThread = false;
             }
         }
+    }
+
+    public void setPos(){
+        int index = 0;
+        float worldWidth = Constant.worldWidth;
+        float v = worldWidth / 10.0F;
+        for (Array<Card> cards : pocker.getDesk()) {
+            index ++;
+            float offSetY = 0;
+            for (Card card : cards) {
+                card.setPosition((index-1)* v,offSetY, Align.left);
+                offSetY -= 10;
+            }
+        }
+        index=0;
+        for (Array<Card> cards : pocker.getCorner()) {
+            index ++;
+            for (Card card : cards) {
+                card.setPosition((index-1)*10,0,Align.bottom);
+            }
+        }
+        index = 0;
+        for (Array<Card> cards : pocker.getFinished()) {
+            index++;
+            for (Card card : cards) {
+                card.setPosition((index-1)*10,0,Align.bottom);
+            }
         }
     }
 
-
-    void initialImage() {
+    public void initialImage() {
         //每张牌加入图片
         for (Array<Card> cards : pocker.getDesk()) {
             for (Card card : cards) {
-                int imageIndex = (card.getSuit() - 1) * 13 + card.getPoint() - 1;
-                Image imgCard = new Image(idCard1 + imageIndex, idCardMask));
-                Image imgCardBack = new Image(idCardBack, idCardMask));
-                card.setImage(imgCard, imgCardBack);
+                card.initCard();
+                cardGroup.addActor(card);
             }
         }
-
         //角落牌加入图片
-        for (Array<Card> cards : poker.getCorner()) {
+        for (Array<Card> cards : pocker.getCorner()) {
             for (Card card : cards) {
-                int imageIndex = (card.getSuit() - 1) * 13 + card.getPoint() - 1;
-                Image imgCard = new TImage(GetModuleHandle(NULL), idCard1 + imageIndex, idCardMask);
-                Image imgCardBack = new TImage(GetModuleHandle(NULL), idCardBack, idCardMask);
-                card.setImage(imgCard, imgCardBack);
+                card.initCard();
+                sendCardGroup.addActor(card);
             }
         }
         pocker.setHasGUI(true);
     }
+
+    public boolean touchDown(Actor target) {
+        if(target == null){
+            return false;
+        }
+        if (!(target instanceof Card)){
+            return false;
+        }
+        if (!pocker.isHasGUI())
+            return false;
+
+        clickPocker.setI(-1);
+        clickPocker.setJ(-1);
+        //取得按下的牌编号
+        GetIndexFromPoint(target);
+        //没有牌
+        if (clickPocker.i == -1)
+            return false;
+        int num = pocker.getDesk().get(clickPocker.i).size - clickPocker.j;
+        //不能够拾取
+        if (canPick(poker, deskIndex, num))
+        return false;
+
+        //开始拖动设置
+
+        dragInfo.vecCard.clear();
+        for (int i = 0; i < num; ++i)
+        {
+            //拖动组设置z-index，加入牌指针及相对坐标
+            auto& card = poker->desk[deskIndex][cardIndex + i];
+            card.SetZIndex(999);
+            dragInfo.vecCard.push_back({ &card,card.GetPos() - pt });
+        }
+
+        dragInfo.bOnDrag = true;
+        dragInfo.orig = deskIndex;
+        dragInfo.num = num;
+        dragInfo.cardIndex = cardIndex;
+
+        return true;
+    }
+
+
+    class ClickPocker{
+        private int i;
+        private int j;
+
+        public void setI(int i) {
+            this.i = i;
+        }
+
+        public void setJ(int j) {
+            this.j = j;
+        }
+
+        public int getI() {
+            return i;
+        }
+
+        public int getJ() {
+            return j;
+        }
+    }
+
+    private ClickPocker clickPocker = new ClickPocker();
+
+    public void GetIndexFromPoint(Object object) {
+        if (pocker == null)
+            return;
+
+        for (int i = 0; i < pocker.getDesk().size; ++i) {
+            for (int j = 0; j < pocker.getDesk().get(i).size; ++j) {
+                Card card = pocker.getDesk().get(i).get(j);
+                if (card == object) {
+                    clickPocker.setI(i);
+                    clickPocker.setJ(j);
+                }
+            }
+        }
+//        for (int i = 0; i < pocker.getDesk().size; ++i) {
+//            for (int j = 0; j < pocker.getDesk().get(i).size; ++j) {
+//                Card card = pocker.getDesk().get(i).get(j);
+//                Actor hit = card.hit(pt.x, pt.y, true);
+//                if (hit!=null){
+//                    clickPocker.setI(i);
+//                    clickPocker.setJ(j);
+//                }
+//            }
+//        }
+    }
+
     public void NewGame(boolean isRandom){
 
     }
@@ -198,7 +320,12 @@ public class GameManager {
 
     }
 
-    public void setGuiProperty() {
+    public void setGuiProperty(String idCardEmpty, String idCardBack,
+                               String idCard1, String idCardMask) {
+        this.idCardEmpty = idCardEmpty;
+        this.idCardBack = idCardBack;
+        this.idCard1 = idCard1;
+        this.idCardMask = idCardMask;
         //创建空牌位
         vecImageEmpty = new Array<Image>();
         for (int i = 0; i < 10; i++) {

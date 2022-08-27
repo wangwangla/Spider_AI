@@ -1,13 +1,14 @@
 package com.spider.action;
 
+import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.scenes.scene2d.actions.SequenceAction;
 import com.badlogic.gdx.utils.Array;
 import com.spider.card.Card;
+import com.spider.log.NLog;
 import com.spider.pocker.Pocker;
 
-import java.util.Collections;
 import java.util.Random;
 
 public class Deal extends Action{
@@ -39,8 +40,7 @@ public class Deal extends Action{
     //返回1维数组，各花色依次1-13点，共8*13=104张
     public Array<Card> genInitCard() {
         Array<Card> result = new Array<Card>();
-        switch (suitNum)
-        {
+        switch (suitNum) {
             case 1:
                 for (int i = 0; i < 8; ++i)
                     for (int j = 1; j <= 13; ++j)
@@ -65,6 +65,7 @@ public class Deal extends Action{
 
     public boolean Do(Pocker inpoker) {
         poker = inpoker;
+        poker.setHasGUI(true);
         poker.setSuitNum(suitNum);
         poker.setSeed(seed);
         //先清理
@@ -73,17 +74,17 @@ public class Deal extends Action{
         poker.getFinished().clear();
         //生成整齐牌
         Array<Card> cards = genInitCard();
+
+        cardPrint("shuffle pre",cards);
         //打乱
         Random random = new Random();
         random.setSeed(seed);
-//        random_shuffle(cards.begin(), cards.end(), [&](int i){return e() % i; });
-        cards.shuffle();
+        shuffle(cards);
+        cardPrint("shuffle after",cards);
         //发牌
         int pos = 0;
-
         //4摞6张的=24
-        for (int i = 0; i < 4; ++i)
-        {
+        for (int i = 0; i < 4; ++i) {
             Array<Card> deskOne = new Array<Card>();
             for (int j = 0; j < 6; ++j)
                 deskOne.add(cards.get(pos++));
@@ -91,8 +92,7 @@ public class Deal extends Action{
         }
 
         //6摞5张的=30
-        for (int i = 0; i < 6; ++i)
-        {
+        for (int i = 0; i < 6; ++i){
             Array<Card> deskOne = new Array<Card>();
             for (int j = 0; j < 5; ++j)
                 deskOne.add(cards.get(pos++));
@@ -100,8 +100,7 @@ public class Deal extends Action{
         }
 
         //5摞 待发区=50
-        for (int i = 0; i < 5; ++i)
-        {
+        for (int i = 0; i < 5; ++i) {
             Array<Card> cornerOne = new Array<Card>();
             for (int j = 0; j < 10; ++j)
                 cornerOne.add(cards.get(pos++));
@@ -112,16 +111,36 @@ public class Deal extends Action{
         for (Array<Card> cardArray : poker.getDesk()) {
             cardArray.get(cardArray.size-1).setShow(true);
         }
-
         poker.setScore(500);
         poker.setOperation(0);
-
         return true;
+    }
+
+    public void shuffle (Array<Card> array) {
+        Object [] items = array.toArray();
+        int size = items.length;
+        Random random = new Random();
+        random.setSeed(1);
+        for (int i = size - 1; i >= 0; i--) {
+            int ii = random.nextInt(i+1);
+            Object temp = items[i];
+            items[i] = items[ii];
+            items[ii] = temp;
+        }
+        array.clear();
+        for (Object item : items) {
+            array.add((Card) item);
+        }
+    }
+
+    private void cardPrint(String preShuffle,Array<Card> cards) {
+        for (Card card : cards) {
+            NLog.e("%s cards \n: %s",preShuffle,card);
+        }
     }
 
     public void startAnimation(boolean bOnAnimation,boolean bStopAnimation) {
         //刷新牌的最后位置
-//        SendMessage(hWnd, WM_SIZE, 0, 0);
         SequenceAction seq = new SequenceAction();
         Array<Array<Card>> corner = poker.getCorner();
         Array<Card> cards = corner.get(corner.size - 1);

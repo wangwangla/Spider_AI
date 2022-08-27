@@ -20,11 +20,11 @@ public class Pocker {
     private int operation;//操作次数
     private boolean hasGUI;//已加载图片
     //桌上套牌
-    private Array<Array<Card>> desk;//0为最里面
+    private Array<Array<Card>> desk = new Array<Array<Card>>();//0为最里面
     //发牌区
-    Array<Array<Card>> corner;//0为最里面
+    Array<Array<Card>> corner = new Array<Array<Card>>();//0为最里面
     //已完成套牌
-    Array<Array<Card>> finished;
+    Array<Array<Card>> finished = new Array<Array<Card>>();
 
     public int getSeed() {
         return seed;

@@ -23,5 +23,8 @@ public class Action {
         return "";
     }
 
+    public void startAnimation(boolean bOnAnimation,boolean bStopAnimation){
+
+    }
 
 }
