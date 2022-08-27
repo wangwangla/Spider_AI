@@ -1,9 +1,12 @@
 package com.spider.card;
 
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 
-public class Card {
+import java.lang.reflect.Array;
+
+public class Card extends Group {
     private int z_index;
     private boolean visible;
     private Image img, imgBack;
@@ -60,7 +63,7 @@ public class Card {
         return z_index;
     }
 
-    void SetPos(Vector2 vector2) {
+    public void SetPos(Vector2 vector2) {
         img.setPosition(vector2.x, vector2.y);
         imgBack.setPosition(vector2.x, vector2.y);
     }
@@ -70,7 +73,7 @@ public class Card {
 //        return img.getP;
 //    }
 
-    void SetImage(Image img, Image imgBack) {
+    public void setImage(Image img, Image imgBack) {
         this.img = img;
         this.imgBack = imgBack;
     }
@@ -112,5 +115,10 @@ public class Card {
 
     public boolean isShow() {
         return show;
+    }
+
+    private Vector2 position = new Vector2();
+    public Vector2 getPosition() {
+        return position.set(getX(),getY());
     }
 }

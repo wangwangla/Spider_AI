@@ -31,9 +31,90 @@ public class Configuration {
 
         }
     }
-    boolean enableAnimation;
-    boolean enableSound;
-//    using RecordType = std::vector<std::shared_ptr<Record>>;
+    private boolean enableAnimation;
+    private boolean enableSound;
+
+    public boolean isEnableAnimation() {
+        return enableAnimation;
+    }
+
+    public void setEnableAnimation(boolean enableAnimation) {
+        this.enableAnimation = enableAnimation;
+    }
+
+    public boolean isEnableSound() {
+        return enableSound;
+    }
+
+    public void setEnableSound(boolean enableSound) {
+        this.enableSound = enableSound;
+    }
+
+    public Array<Array<Record>> getRecord() {
+        return record;
+    }
+
+    public void setRecord(Array<Array<Record>> record) {
+        this.record = record;
+    }
+
+    public Array<HashMap<Integer, Record>> getSeedMap() {
+        return seedMap;
+    }
+
+    public void setSeedMap(Array<HashMap<Integer, Record>> seedMap) {
+        this.seedMap = seedMap;
+    }
+
+    public long getTime() {
+        return time;
+    }
+
+    public void setTime(long time) {
+        this.time = time;
+    }
+
+    public long getSeed() {
+        return seed;
+    }
+
+    public void setSeed(long seed) {
+        this.seed = seed;
+    }
+
+    public int getDiff() {
+        return diff;
+    }
+
+    public void setDiff(int diff) {
+        this.diff = diff;
+    }
+
+    public int getPrefixDiff() {
+        return prefixDiff;
+    }
+
+    public void setPrefixDiff(int prefixDiff) {
+        this.prefixDiff = prefixDiff;
+    }
+
+    public float getHighScore() {
+        return highScore;
+    }
+
+    public void setHighScore(float highScore) {
+        this.highScore = highScore;
+    }
+
+    public boolean isSolved() {
+        return solved;
+    }
+
+    public void setSolved(boolean solved) {
+        this.solved = solved;
+    }
+
+    //    using RecordType = std::vector<std::shared_ptr<Record>>;
     Array<Array<Record>> record;
 //    using RecordMap = std::unordered_map<unsigned int, std::shared_ptr<Record>>;
 //    std::vector<RecordMap> seedMap;

@@ -1,8 +1,14 @@
 package com.spider.action;
 
+import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.scenes.scene2d.actions.Actions;
+import com.badlogic.gdx.scenes.scene2d.actions.SequenceAction;
 import com.badlogic.gdx.utils.Array;
 import com.spider.card.Card;
 import com.spider.pocker.Pocker;
+
+import java.util.Collections;
+import java.util.Random;
 
 public class Deal extends Action{
     private int suitNum;
@@ -59,145 +65,137 @@ public class Deal extends Action{
 
     public boolean Do(Pocker inpoker) {
         poker = inpoker;
-
         poker.setSuitNum(suitNum);
         poker.setSeed(seed);
         //先清理
         poker.getDesk().clear();
         poker.getCorner().clear();
-        poker->finished.clear();
-
-        std::default_random_engine e;
-
+        poker.getFinished().clear();
         //生成整齐牌
-        auto cards = genInitCard();
-
+        Array<Card> cards = genInitCard();
         //打乱
-        e.seed(seed);
-        random_shuffle(cards.begin(), cards.end(), [&](int i){return e() % i; });
-
+        Random random = new Random();
+        random.setSeed(seed);
+//        random_shuffle(cards.begin(), cards.end(), [&](int i){return e() % i; });
+        cards.shuffle();
         //发牌
         int pos = 0;
 
         //4摞6张的=24
         for (int i = 0; i < 4; ++i)
         {
-            vector<Card> deskOne;
+            Array<Card> deskOne = new Array<Card>();
             for (int j = 0; j < 6; ++j)
-                deskOne.push_back(cards[pos++]);
-            poker->desk.push_back(deskOne);
+                deskOne.add(cards.get(pos++));
+            poker.getDesk().add(deskOne);
         }
 
         //6摞5张的=30
         for (int i = 0; i < 6; ++i)
         {
-            vector<Card> deskOne;
+            Array<Card> deskOne = new Array<Card>();
             for (int j = 0; j < 5; ++j)
-                deskOne.push_back(cards[pos++]);
-            poker->desk.push_back(deskOne);
+                deskOne.add(cards.get(pos++));
+            poker.getDesk().add(deskOne);
         }
 
         //5摞 待发区=50
         for (int i = 0; i < 5; ++i)
         {
-            vector<Card> cornerOne;
+            Array<Card> cornerOne = new Array<Card>();
             for (int j = 0; j < 10; ++j)
-                cornerOne.push_back(cards[pos++]);
-            poker->corner.push_back(cornerOne);
+                cornerOne.add(cards.get(pos++));
+            poker.getCorner().add(cornerOne);
         }
 
         //每摞最外的牌亮牌
-        for (auto &deskOne : poker->desk)
-        deskOne.back().show = true;
+        for (Array<Card> cardArray : poker.getDesk()) {
+            cardArray.get(cardArray.size-1).setShow(true);
+        }
 
-        poker->score = 500;
-        poker->operation = 0;
+        poker.setScore(500);
+        poker.setOperation(0);
 
         return true;
     }
 
-#ifndef _CONSOLE
-    void Deal::StartAnimation(HWND hWnd,bool &bOnAnimation,bool &bStopAnimation)
-    {
+    public void startAnimation(boolean bOnAnimation,boolean bStopAnimation) {
         //刷新牌的最后位置
-        SendMessage(hWnd, WM_SIZE, 0, 0);
-
-        shared_ptr<SequentialAnimation> seq(make_shared<SequentialAnimation>());
-        POINT ptStart = poker->corner.back().back().GetPos();
-
-        vector<AbstractAnimation*> vecFinal;
+//        SendMessage(hWnd, WM_SIZE, 0, 0);
+        SequenceAction seq = new SequenceAction();
+        Array<Array<Card>> corner = poker.getCorner();
+        Array<Card> cards = corner.get(corner.size - 1);
+        Card card = cards.get(cards.size - 1);
+        Vector2 ptStart = card.getPosition();
         for (int i = 0; i < 54; ++i)
         {
             int deskIndex = i % 10;
             int cardIndex = i / 10;
 
-            auto& card = poker->desk[deskIndex][cardIndex];
+            Array<Array<Card>> desk = poker.getDesk();
+            Array<Card> cards1 = desk.get(deskIndex);
+            card = cards1.get(cardIndex);
+//            card = poker->desk[deskIndex][cardIndex];
 
             //所有牌设置为不可见
-            card.SetVisible(false);
-
+            card.setVisible(false);
             //动画：设置z-index
-            seq->Add(new SettingAnimation<Card, int>(&card,0,&Card::SetZIndex,999-i));
-
+//            seq.addAction(new SettingAnimation<Card, int>(&card,0,&Card::SetZIndex,999-i));
+            card.setZIndex(999-i);
             //动画：设置为可见
-            seq->Add(new SettingAnimation<Card, bool>(&card,0,&Card::SetVisible,true));
-
+            seq.addAction(Actions.visible(true));
             //动画：从角落到指定位置
-            seq->Add(new ValueAnimation<Card,POINT>(&card,25,&Card::SetPos,ptStart,card.GetPos()));
+            seq.addAction(Actions.moveTo(card.getX(),card.getY(),0.25F));
 
             card.SetPos(ptStart);
 
             //动画：恢复z-index
-            seq->Add(new SettingAnimation<Card, int>(&card,0,&Card::SetZIndex,0));
+            card.setZIndex(0);
 
             //所有牌设置为背面
-            card.show = false;
+            card.setShow(false);
+
 
             //最后10张牌
-            if (cardIndex == poker->desk[deskIndex].size() - 1)
-            {
+            if (cardIndex == poker.getDesk().get(deskIndex).size - 1) {
                 //背面翻到不显示
-                vecFinal.push_back(new ValueAnimation<TImage, double>(&card.GetBackImage(),25,&TImage::SetIWidth,1.0,0.0));
-
-                //动画：显示牌正面
-                vecFinal.push_back(new SettingAnimation<Card, bool>(&card,0,&Card::SetShow,true));
-
-                //正面翻出来
-                vecFinal.push_back(new ValueAnimation<TImage, double>(&card.GetImage(),25,&TImage::SetIWidth,0.0,1.0));
+//                vecFinal.push_back(new ValueAnimation<TImage, double>(&card.GetBackImage(),25,&TImage::SetIWidth,1.0,0.0));
+//
+//                //动画：显示牌正面
+//                vecFinal.push_back(new SettingAnimation<Card, bool>(&card,0,&Card::SetShow,true));
+//
+//                //正面翻出来
+//                vecFinal.push_back(new ValueAnimation<TImage, double>(&card.GetImage(),25,&TImage::SetIWidth,0.0,1.0));
             }
         }
 
-        seq->Add(vecFinal);
+//        seq->Add(vecFinal);
 
-        if (enableSound)
-        {
-            //
-            int msAll = 25 * 54 + 50 * 10;
-            int times = msAll / 125 + 1;
-            auto play = [&]()
+//        if (enableSound) {
+
+//            int msAll = 25 * 54 + 50 * 10;
+//            int times = msAll / 125 + 1;
+//            auto play = [&]()
             {
-                PlaySound((LPCSTR)soundDeal, GetModuleHandle(NULL), SND_RESOURCE | SND_SYNC);
-            };
-            while (times--)
-            {
-                thread t(play);
-                t.detach();
-            }
+//                PlaySound((LPCSTR)soundDeal, GetModuleHandle(NULL), SND_RESOURCE | SND_SYNC);
+//            };
+//            while (times--)
+//            {
+//                thread t(play);
+//                t.detach();
+//            }
         }
 
         bOnAnimation = true;
-        seq->Start(hWnd, bStopAnimation);
+//        seq.Start(hWnd, bStopAnimation);
         bOnAnimation = false;
     }
-#endif
 
-    bool Deal::Redo(Poker* inpoker)
-    {
+    boolean redo(Pocker inpoker) {
         poker = inpoker;
-
-        poker->desk.clear();
-        poker->corner.clear();
-        poker->finished.clear();
+        poker.getDesk().clear();
+        poker.getCorner().clear();
+        poker.getFinished().clear();
 
         return true;
     }

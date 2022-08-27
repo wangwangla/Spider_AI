@@ -5,14 +5,22 @@ import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.utils.Array;
 import com.spider.action.Action;
 import com.spider.action.Deal;
+import com.spider.card.Card;
+import com.spider.config.Configuration;
 import com.spider.pocker.Pocker;
 
 public class GameManager {
     private Pocker pocker;
     private Array<Array<Action>> record;
     private Array<Image> vecImageEmpty;
+    private boolean idCardEmpty;
+    private boolean idCardBack;
+    private boolean idCard1;
+    private boolean idCardMask;
+    private Configuration config;
+
+
     public void newGame(boolean isRandom,int suitNum){
-        int suitNum = 1;
         int seed = (int) System.currentTimeMillis();
         if (isRandom){
             suitNum = 1;
@@ -20,13 +28,49 @@ public class GameManager {
         }else {
             //使用传进来的值
         }
-
         record.clear();
         pocker = new Pocker();
         Action action = new Deal(suitNum,seed,false,1);
         action.Do(pocker);
+
+        if (idCardEmpty && idCardBack && idCard1 && idCardMask){
+            initialImage();
+        }
+        if (pocker.isHasGUI()){
+            if (config.isEnableAnimation())
+                action.startAnimation(bOnThread, bStopThread);
+            else
+            {
+                RefreshPaint();
+                bOnThread = false;
+            }
+        }
+        }
     }
 
+
+    void initialImage() {
+        //每张牌加入图片
+        for (Array<Card> cards : pocker.getDesk()) {
+            for (Card card : cards) {
+                int imageIndex = (card.getSuit() - 1) * 13 + card.getPoint() - 1;
+                Image imgCard = new Image(idCard1 + imageIndex, idCardMask));
+                Image imgCardBack = new Image(idCardBack, idCardMask));
+                card.setImage(imgCard, imgCardBack);
+            }
+        }
+
+        //角落牌加入图片
+        for (Array<Card> cards : poker.getCorner()) {
+            for (Card card : cards) {
+                int imageIndex = (card.getSuit() - 1) * 13 + card.getPoint() - 1;
+                Image imgCard = new TImage(GetModuleHandle(NULL), idCard1 + imageIndex, idCardMask);
+                Image imgCardBack = new TImage(GetModuleHandle(NULL), idCardBack, idCardMask);
+                card.setImage(imgCard, imgCardBack);
+            }
+        }
+        pocker.setHasGUI(true);
+    }
     public void NewGame(boolean isRandom){
 
     }
