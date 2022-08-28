@@ -97,6 +97,10 @@ public class Pocker {
         hasGUI = false;
     }
 
+    public Pocker(Pocker pocker){
+
+    }
+
     //通过检测 已完成==8 返回是否已完成
     public boolean isFinished() {
         return finished.size == 8;

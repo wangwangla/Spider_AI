@@ -9,13 +9,20 @@ import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ArrayMap;
 import com.spider.action.Action;
 import com.spider.action.Deal;
+import com.spider.bean.AutoSolveResult;
 import com.spider.bean.DragInfo;
+import com.spider.bean.Node;
 import com.spider.card.Card;
 import com.spider.config.Configuration;
 import com.spider.constant.Constant;
 import com.spider.log.NLog;
 import com.spider.pMove.PMove;
 import com.spider.pocker.Pocker;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
 
 public class GameManager {
     private Pocker pocker;
@@ -421,4 +428,388 @@ public class GameManager {
         }
         hasLoadImage = true;
     }
+
+    private int MAX_PATH = 260;
+
+    private AutoSolveResult autoSolveResult;
+    public boolean AutoSolve(boolean playAnimation) {
+        bOnThread = true;
+        bStopThread = false;
+        HashSet<Pocker> states = new HashSet<Pocker>();
+        autoSolveResult.setCalc(0);
+        autoSolveResult.setSuccess(false);
+        autoSolveResult.setSuit(pocker.getSuitNum());
+        autoSolveResult.setSeed(pocker.getSeed());
+
+        //1花色时，200可以解出83/100个；500可以解出90/100个；1000可以解出92/100个；2000可以解出93/100个；8000可以解出98/100个
+        //2花色时，2000可以解出23/100个；8000可以解出32/100个；100000可以解出47/100个，耗时100min
+        //4花色时，100000解出0/100个，耗时132min
+        int calcLimited = 100000;
+
+        //480时栈溢出，所以必须小于480。不建议提高保留栈大小
+        int stackLimited = 400;
+        char sz[] = new char[MAX_PATH];
+//        GetWindowText(hWnd, sz, MAX_PATH);
+//        string origTitle(sz);
+        String origTitle = "";
+        DFS(autoSolveResult.isSuccess(),
+                autoSolveResult.getCalc(),
+                origTitle,
+                record,
+                states,
+                stackLimited,
+                calcLimited,
+                playAnimation);
+//        SetWindowText(hWnd, origTitle.c_str());
+//#else
+        //输出计算量
+//        cout << "Calculation:" << autoSolveResult.calc << endl;
+
+        if (autoSolveResult.isSuccess() == true) {
+            //输出步骤
+//            cout << "Finished. Step = " << record.size() << endl;
+//            for (int i = 0; i < record.size; ++i)
+//                cout << "[" << i << "] " << *record[i] << endl;
+        }
+        else
+        {
+            //输出失败原因
+            if (autoSolveResult.getCalc() >= calcLimited) {
+//                cout << "Calculation number >= " << calcLimited << endl;
+            } else {
+//                cout << "Call-stack depth >= " << stackLimited << endl;
+            }
+//            cout << "Fail." << endl;
+        }
+        bOnThread = false;
+        return autoSolveResult.isSuccess();
+    }
+
+
+    Array<Node> GetAllOperator(Array<Integer> emptyIndex,
+                               Pocker poker, HashSet<Pocker> states) {
+        Array<Node> actions = new Array<Node>();
+        for (int dest = 0; dest < poker.getDesk().size; ++dest) {
+            Array<Array<Card>> desk = poker.getDesk();
+            Array<Card> destCards = poker.getDesk().get(dest);
+            if (destCards.size<=0) {
+                emptyIndex.add(dest);
+                //当前牌堆为空
+                //遍历所有牌堆，把非空的加进来
+                for (int orig = 0; orig < poker.getDesk().size; ++orig) {
+                    Array<Card> cards = poker.getDesk().get(orig);
+                    if (cards.size<=0)
+                        continue;
+                    //得到可移动牌数量
+                    //至少会返回1
+                    int num = 1;
+                    while (true) {
+                        if (num > cards.size) {
+                            num--;
+                            break;
+                        }
+                        if (pMove.canPick(poker, orig, num))
+                        {
+                            num++;
+                        }
+					else
+                        {
+                            num--;
+                            break;
+                        }
+                    }
+
+                    //全部移到空位没有意义
+                    if (num == cards.size)
+                        continue;
+                    Pocker newPoker = new Pocker(poker);
+                    Action action = new PMove(orig, dest, num);
+                    action.Do(newPoker);
+                    List<Pocker> list = new ArrayList(states);
+                    if (newPoker == list.get(list.size()-1)) {
+                        actions.add(new Node(newPoker.GetValue(), newPoker, action));
+                    }
+                }
+            } else//dest牌堆非空
+            {
+                //最面上的牌
+                Card pCardDest = destCards.get(destCards.size-1);
+                //逐个牌堆遍历
+                for (int orig = 0; orig < poker.getDesk().size; ++orig) {
+                    Array<Card> origCards = poker.getDesk().get(orig);
+                    if (origCards.size<=0)
+                        continue;
+                    if (origCards.get(origCards.size-1).getPoint()
+                            >= pCardDest.getPoint())
+                        continue;
+                    int num = 0;
+                    //从最底下的牌遍历到最顶上
+                    for (int i = origCards.size-1; i >= 0; i--) {
+                        num++;
+                        Card it = origCards.get(i);
+                        //点数不符合，不能移动
+                        if (it.getPoint() >= pCardDest.getPoint()) {
+                            break;
+                        }
+                        //没有显示的牌，不能移动
+                        if (it.isShow() == false)
+                            break;
+
+                        //不是倒数第1个
+                        if (it != origCards.get(origCards.size-1)) {
+                            Card itDown = origCards.get(origCards.size-2);//上一张牌
+                            if (itDown.getPoint() + 1 != it.getPoint())//不连续则跳出，不能移动
+                                break;
+                        }
+
+                        //it ----> pCard，目标pCard比源it大1
+                        //不考虑花色，花色留给估值函数计算
+                        if (it.getPoint() + 1 == pCardDest.getPoint())//it->suit == pCard->suit &&
+                        {
+                            Pocker tempPoker = new Pocker(poker);
+                            Action action = new PMove(orig, dest, num);
+                            List<Pocker> tempList = new ArrayList(states);
+                            if (action.Do(tempPoker) &&
+                                    (tempPoker == tempList.get(tempList.size()-1)))
+                            actions.add(new Node(tempPoker.GetValue(),tempPoker,action));
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        //没有空位，且待发区还有牌
+        //加入发牌操作
+        if (emptyIndex.size<=0 && !(poker.getCorner().size<=0)){
+            Pocker newPoker = new Pocker(poker);
+            Action action = new ReleaseCorner(false);
+//            sAction action(new ReleaseCorner(config.enableSound, soundDeal));
+//#endif
+            action.Do(newPoker);
+            actions.add(new Node( poker.GetValue() - 100,newPoker,action ));
+        }
+        return actions;
+    }
+
+
+    boolean DFS(boolean success, int calc, String origTitle, Array<Action> record,
+                      HashSet<Pocker> states, int stackLimited, int calcLimited,
+                        boolean playAnimation) {
+        if (pocker.isFinished()) {
+            success = true;
+            return true;
+        }
+
+        //操作次数超出限制，计算量超出限制
+        if (calc >= calcLimited || bStopThread) {
+            return true;
+        }
+
+        if (pocker.getOperation() >= stackLimited) {
+            return false;
+        }
+        calc++;
+        Array<Integer> emptyIndex = new Array<Integer>();
+        Pocker tempPoker = new Pocker(pocker);
+        Array<Node> actions = GetAllOperator(emptyIndex, tempPoker, states);
+
+        //优化操作
+        if (emptyIndex.empty())
+            //没有空位
+            //去掉比当前评分还低的移牌
+            for (auto it = actions.begin(); it != actions.end();)
+            {
+                if (typeid(*it->action) == typeid(PMove) && it->value <= poker->GetValue())
+                {
+                    it = actions.erase(it);
+                }
+			else
+                it++;
+            }
+        else
+        {
+            //有空位
+            //如果待发区还有牌，则移牌到空位补空，因为有空位不能发牌
+            if (!(pocker.getCorner().size<=0)) {
+                //如果全是顺牌，则找一张最小的移过去
+                boolean AllIsOrdered = true;
+                Array<Array<Card>> desk = pocker.getDesk();
+                for (int i = 0; i < desk.size; i++) {
+                    for (int i1 = 0; i1 < desk.get(i).size; i1++) {
+                        if (desk.get(i).get(i1-1).getSuit() !=
+                                desk.get(i).get(i1).getSuit() ||
+                                desk.get(i).get(i1 - 1).getPoint() - 1
+                                        != desk.get(i).get(i1).getPoint())
+                        {
+                            AllIsOrdered = false;
+                            break;
+                        }
+
+                    }
+                }
+
+                if (AllIsOrdered) {
+                    //清空当前所有操作
+                    ReleaseActions(actions);
+                    int orig = 0;
+                    int minPoint = 14;
+                    //寻找最小的牌
+                    for (int i = 0; i < pocker.getDesk().size; ++i) {
+                        Array<Card> cards = pocker.getDesk().get(i);
+                        if (cards.size > 1 && cards.get(cards.size-1).getPoint() < minPoint)//牌数>=2，把上面的挪到旁边去
+                        {
+                            minPoint = cards.get(cards.size-1).getPoint();
+                            orig = i;
+                        }
+                    }
+
+                    if (minPoint == 14)//说明总牌数小于10张，强行发牌
+                    {
+                        Pocker newPoker = new Pocker(pocker);
+                        Action action = new ReleaseCorner(false);
+//                        shared_ptr<Action> action(new ReleaseCorner(config.enableSound, soundDeal));
+                        action.Do(newPoker);
+                        actions.add(new Node(pocker.GetValue() - 100,newPoker,action));
+                    }
+                    else
+                    {
+                        //只添加一个移牌补空位的操作
+                        Action action = new PMove(orig, emptyIndex.get(0), 1);
+                        Pocker newPoker = new Pocker(pocker));
+                        action.Do(newPoker);
+                        actions.add(new Node(newPoker.GetValue(),newPoker,action));
+                    }
+                }
+            }
+        }
+
+        actions.sort(new Comparator<Node>() {
+            @Override
+            public int compare(Node o1, Node o2) {
+                return o1.getValue()-o2.getValue();
+            }
+        });
+        //按照评估分大到小排序
+//        sort(actions.begin(), actions.end(), [](const Node& n1, const Node& n2) {return n1.value > n2.value; });
+
+        int round = -1;
+        //开始递归
+        for (Node it : actions) {
+
+//        for (auto it = actions.begin(); it != actions.end();)
+//        {
+//            auto& node = *it;
+
+//#define _PAUSE
+//#ifdef _PAUSE
+//            cout << *poker;
+
+            //可以的操作
+//            cout << "Action:" << endl;
+
+//            for (auto it2 = it; it2 != actions.end(); ++it2)
+//                cout << *it2->action << " value:" << it2->value << endl;
+//
+//            显示操作
+//            cout << string(20, '-');
+//            cout << "Calc=" << calc << " ";
+//            cout << "Do:" << *node.action << endl;
+//
+//            此处暂停
+            //按任意键则走一步，输入数字则直到stack==round才停下
+            if (pocker.getOperation() < round)
+            {
+                ;
+            }
+            else
+            {
+//                string s;
+//                cout << "input the destination operation number:" << endl;
+//                cout << ">>";
+                getline(cin, s);
+                if (s.empty())
+                    round = -1;
+                else
+                    round = stoi(s);
+            }
+#endif
+
+            //没出现过的状态
+            if (states.find(*node.poker) == states.end())
+            {
+                static bool bNounce = true;
+                static bool bStop = false;
+                node.action->Do(poker);
+
+#ifndef _CONSOLE
+                SetWindowText(hWnd, (origTitle + " (求解步骤=" + to_string(calc) + ")").c_str());
+                if (poker->hasGUI)
+                {
+
+                    if (playAnimation)
+                        node.action->StartAnimation(hWnd, bNounce, bStop);
+				else
+                    {
+                        OnSize(*pRcClient);
+                        InvalidateRect(hWnd, pRcClient, false);
+                        UpdateWindow(hWnd);
+                        Sleep(1);
+                    }
+                }
+#endif
+                //加入状态
+                states.insert(*node.poker);
+
+                //push记录
+                record.push_back(node.action);
+
+                if (DFS(success, calc, origTitle, record, states, stackLimited, calcLimited, playAnimation))
+                {
+                    //只有终止才会返回true，如果任意位置返回true，此处将逐级终止递归
+                    ReleaseActions(actions);
+                    return true;
+                }
+
+                node.action->Redo(poker);
+
+#ifndef _CONSOLE
+                if (poker->hasGUI)
+                {
+                    if (playAnimation)
+                        node.action->RedoAnimation(hWnd, bNounce, bStop);
+				else
+                    {
+                        OnSize(*pRcClient);
+                        InvalidateRect(hWnd, pRcClient, false);
+                        UpdateWindow(hWnd);
+                        Sleep(1);
+                    }
+                }
+#endif
+
+                //pop记录
+                record.pop_back();
+
+                it++;
+            }
+		else//已出现过的状态
+            {
+#ifdef _PRINT
+                cout << string(20, '-');
+                cout << "No-movement:" << endl;
+#endif
+                    //直接转到下一个操作
+                    it = actions.erase(it);
+            }
+        }
+
+        ReleaseActions(actions);
+        return false;
+    }
+
+    private void ReleaseActions(Array<Node> actions) {
+        actions.clear();
+    };
+
 }

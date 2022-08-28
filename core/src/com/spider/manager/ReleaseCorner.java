@@ -3,15 +3,24 @@ package com.spider.manager;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.utils.Array;
+import com.spider.action.Action;
 import com.spider.card.Card;
 import com.spider.pocker.Pocker;
 import com.spider.restore.Restore;
 
-public class ReleaseCorner {
+public class ReleaseCorner extends Action {
     private Restore restored;
     private Vector2 ptStart = new Vector2();
     private boolean success;
     private Pocker poker;
+
+    public ReleaseCorner(){
+
+    }
+
+    public ReleaseCorner(boolean success){
+        this.success = success;
+    }
 
     //释放一摞右下角，检查收牌情况
     public boolean Do(Pocker inpoker, Group cardGroup) {
