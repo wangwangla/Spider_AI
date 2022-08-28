@@ -4,6 +4,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.ScreenAdapter;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
@@ -16,6 +17,7 @@ import com.spider.constant.Constant;
 import com.spider.constant.ResourceConstant;
 import com.spider.log.NLog;
 import com.spider.manager.GameManager;
+import com.spider.manager.ReleaseCorner;
 
 public class GameScreen extends ScreenAdapter {
     private Stage stage;
@@ -73,6 +75,14 @@ public class GameScreen extends ScreenAdapter {
                 ResourceConstant.IDB_CARDMASK);
         manager.newGame(1);
 
+        final Vector2 tempV = new Vector2();
+        sendCardGroup.addListener(new ClickListener(){
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                super.clicked(event, x, y);
+                manager.faPai();
+            }
+        });
         stage.addListener(new ClickListener(){
             @Override
             public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
@@ -81,11 +91,17 @@ public class GameScreen extends ScreenAdapter {
             }
 
             @Override
-            public void clicked(InputEvent event, float x, float y) {
-                super.clicked(event, x, y);
-                System.out.println("---------------------");
+            public void touchDragged(InputEvent event, float x, float y, int pointer) {
+                super.touchDragged(event, x, y, pointer);
+                tempV.set(x,y);
+                manager.OnMouseMove(tempV);
+            }
 
-                manager.GetIndexFromPoint(event.getTarget());
+            @Override
+            public void touchUp(InputEvent event, float x, float y, int pointer, int button) {
+                super.touchUp(event, x, y, pointer, button);
+                tempV.set(x,y);
+                manager.OnLButtonUp(tempV);
             }
         });
     }
@@ -101,6 +117,7 @@ public class GameScreen extends ScreenAdapter {
         stage.addActor(image);
         image.setSize(Constant.worldWidth,Constant.worldHeight);
         image.setPosition(Constant.worldWidth/2,Constant.worldHeight/2, Align.center);
+
     }
 
     @Override

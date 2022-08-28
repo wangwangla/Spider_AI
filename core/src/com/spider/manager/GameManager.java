@@ -6,17 +6,20 @@ import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
+import com.badlogic.gdx.utils.ArrayMap;
 import com.spider.action.Action;
 import com.spider.action.Deal;
+import com.spider.bean.DragInfo;
 import com.spider.card.Card;
 import com.spider.config.Configuration;
 import com.spider.constant.Constant;
 import com.spider.log.NLog;
+import com.spider.pMove.PMove;
 import com.spider.pocker.Pocker;
 
 public class GameManager {
     private Pocker pocker;
-    private Array<Array<Action>> record = new Array<Array<Action>>();
+    private Array<Action> record = new Array<Action>();
     private Array<Image> vecImageEmpty;
     private String idCardEmpty;
     private String idCardBack;
@@ -28,12 +31,18 @@ public class GameManager {
     private Group cardGroup;
     private Group finishGroup;
     private Group sendCardGroup;
+    private PMove pMove;
+    private DragInfo dragInfo;
+    private ReleaseCorner corner ;
 //            cardGroup,finishGroup,sendCardGroup
     public GameManager(Group cardGroup, Group finishGroup, Group sendCardGroup){
         config = new Configuration();
         this.cardGroup = cardGroup;
         this.finishGroup = finishGroup;
         this.sendCardGroup = sendCardGroup;
+        this.dragInfo = new DragInfo();
+        this.pMove = new PMove();
+        this.corner = new ReleaseCorner();
     }
 
     public void newGame(int suitNum){
@@ -66,7 +75,7 @@ public class GameManager {
             float offSetY = 0;
             for (Card card : cards) {
                 card.setPosition((index-1)* v,offSetY, Align.left);
-                offSetY -= 10;
+                offSetY -= 20;
             }
         }
         index=0;
@@ -83,6 +92,16 @@ public class GameManager {
                 card.setPosition((index-1)*10,0,Align.bottom);
             }
         }
+
+        int zIndex=0;
+        for (Array<Card> array : pocker.getDesk()) {
+            for (Card card : array) {
+//                card.setZIndex(zIndex++);
+                card.setZIndex(zIndex++);
+            }
+        }
+
+        System.out.println("-------------------");
     }
 
     public void initialImage() {
@@ -103,6 +122,7 @@ public class GameManager {
         pocker.setHasGUI(true);
     }
 
+
     public boolean touchDown(Actor target) {
         if(target == null){
             return false;
@@ -122,26 +142,161 @@ public class GameManager {
             return false;
         int num = pocker.getDesk().get(clickPocker.i).size - clickPocker.j;
         //不能够拾取
-        if (canPick(poker, deskIndex, num))
-        return false;
-
+        if (!pMove.canPick(pocker, clickPocker.i, num))
+            return false;
         //开始拖动设置
-
-        dragInfo.vecCard.clear();
-        for (int i = 0; i < num; ++i)
-        {
+        dragInfo.getVecCard().clear();
+        for (int i = 0; i < num; ++i) {
             //拖动组设置z-index，加入牌指针及相对坐标
-            auto& card = poker->desk[deskIndex][cardIndex + i];
-            card.SetZIndex(999);
-            dragInfo.vecCard.push_back({ &card,card.GetPos() - pt });
+            Card card = pocker.getDesk().get(clickPocker.i).get(clickPocker.j + i);
+            card.toFront();
+            ArrayMap<Card,Vector2> arrayMap = new ArrayMap<Card, Vector2>();
+            arrayMap.put(card,card.getPosition());
+            dragInfo.getVecCard().add(arrayMap);
+        }
+        dragInfo.setbOnDrag(true);
+        dragInfo.setOrig(clickPocker.i);
+        dragInfo.setNum(num);
+        dragInfo.setCardIndex(clickPocker.j);
+        return true;
+    }
+
+
+    public void GiveUpDrag(){
+        dragInfo.setbOnDrag(false);
+        //恢复z-index
+        for (ArrayMap<Card, Vector2> arrayMap : dragInfo.getVecCard()) {
+            arrayMap.getKeyAt(0).setZIndex(0);
+        }
+//        for (auto& pr : dragInfo.vecCard)
+//        {
+//            pr.first->SetZIndex(0);
+//        }
+        dragInfo.getVecCard().clear();
+        //恢复位置并刷新
+//        OnSize(*pRcClient);
+//        InvalidateRect(hWnd, pRcClient, false);
+    }
+
+    private boolean hasLoadImage;
+
+    public boolean OnMouseMove(Vector2 pt) {
+        if (hasLoadImage == false)
+            return false;
+        if (dragInfo.isbOnDrag()) {
+            //没有按下左键，释放拖动
+            //抬起
+//            if (!(GetAsyncKeyState(VK_LBUTTON) & 0x8000)) {
+            if (false){
+                GiveUpDrag();
+            } else {
+                //移动拖动组
+                int index = 0;
+                for (ArrayMap<Card, Vector2> arrayMap : dragInfo.getVecCard()) {
+                    Vector2 position = arrayMap.getKeyAt(0).getPosition();
+                    position.add(pt);
+                    arrayMap.getKeyAt(0).setPosition(pt.x-cardGroup.getX(),pt.y-cardGroup.getY() - index*20);
+                    index++;
+                    NLog.e(" x %s,y %s",pt.x-cardGroup.getX(),pt.y-cardGroup.getY());
+                }
+//                for (auto& pr : dragInfo.vecCard)
+//                {
+//                    pr.first->SetPos(pt + pr.second);
+//
+//                }
+
+                //刷新
+//                InvalidateRect(hWnd, pRcClient, false);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean OnLButtonUp(Vector2 pt) {
+        if (dragInfo.isbOnDrag()) {
+            //取得拖动牌最顶上一张坐标
+            Vector2 ptUpCard = dragInfo.getVecCard().get(0).getKeyAt(0).getPosition();
+
+            //取得目标牌位号
+            int dest = GetDestIndex(pocker, ptUpCard, dragInfo.getOrig(), dragInfo.getNum());
+            //恢复拖动设置
+            dragInfo.setbOnDrag(false);
+            for (ArrayMap<Card, Vector2> arrayMap : dragInfo.getVecCard()) {
+                arrayMap.getKeyAt(0).setZIndex(0);
+            }
+//            for (auto& pr : dragInfo.vecCard)
+//            {
+//                pr.first->SetZIndex(0);
+//            }
+            dragInfo.getVecCard().clear();
+
+            //有目标牌位，且可以移动
+            if (dest != -1 && dest != dragInfo.getOrig()) {
+                Move(pocker,dragInfo.getOrig(),dest,dragInfo.getNum());
+                //进行移动
+//                Command("m " + to_string(dragInfo.orig) + " " + to_string(dest) + " " + to_string(dragInfo.num));
+
+//                OnSize(*pRcClient);
+//                InvalidateRect(hWnd, pRcClient, false);
+//                return true;
+            }else {
+            }
         }
 
-        dragInfo.bOnDrag = true;
-        dragInfo.orig = deskIndex;
-        dragInfo.num = num;
-        dragInfo.cardIndex = cardIndex;
+        setPos();
+//        OnSize(*pRcClient);
+//        InvalidateRect(hWnd, pRcClient, false);
+        return false;
+    }
 
-        return true;
+    public int GetDestIndex(Pocker pocker, Vector2 ptUpCard, int orig, int num){
+        //            auto GetDestIndex = [&](Poker* poker, RECT rectClient, POINT ptUpCard, int orig, int num)->int
+//            {
+        int dest = -1;
+        float Smax = -1;
+        for (int i = 0; i < 10; ++i) {
+            if (i == orig)//由于计算面积，自己和自己的面积必然最大，所以需要排除掉拖动源
+                continue;
+
+            Vector2 ptDest = new Vector2();//目标坐标
+            if (pocker.getDesk().get(i).size <= 0)
+                ptDest = GetCardEmptyPoint(i);
+            else {
+                Array<Card> array = pocker.getDesk().get(i);
+                ptDest = array.get(array.size - 1).getPosition();
+            }
+
+            float dx = Math.abs(ptUpCard.x - ptDest.x);//坐标之差
+            float dy = Math.abs(ptUpCard.y - ptDest.y);
+            float S = (cardWidth - dx) * (cardHeight - dy);//计算两个矩形的重合面积
+
+            //第一个判断条件是为了排除掉负负得正的情形
+            if (cardWidth - dx > 0 && S > Smax && pMove.canMove(pocker, orig, i, num)) {
+                //在被覆盖牌中，取得可以放置的，且被覆盖面积最大的一张作为拖动目的地
+                Smax = S;
+                dest = i;
+            }
+        }
+        return dest;
+    }
+
+    private float cardWidth = 71;
+    private float cardHeight = 96;
+    private float border = 10;
+
+    private Vector2 GetCardEmptyPoint(int index) {
+        //计算空牌位坐标
+        int cardGap = (int) ((Constant.worldWidth - cardWidth * 10) / 11);
+        //空牌位位置
+        float x = (int) (cardGap + index * (cardWidth + cardGap));
+        float y = (int) border;
+        return new Vector2(x,y);
+    }
+
+    public void faPai() {
+        corner.Do(pocker,cardGroup);
+        setPos();
     }
 
 
@@ -198,93 +353,35 @@ public class GameManager {
     }
 
     void NewGameSolved(){}
-//    boolean Move(Pocker poker){
+
+    boolean Move(Pocker poker,int orig,int dest,int num) {
 //
-//    }
-//    boolean CanPick(Poker* poker, std::istream& in);
-//    void ReleaseRecord();
-//
-//    bool AutoSolve(bool playAnimation);
-//
-//#ifndef _CONSOLE
-//    bool hasLoadImage;
-//    HWND hWnd;
-//	const RECT* pRcClient;
-//    int idCardEmpty, idCardBack, idCard1,idCardMask;
-//    std::vector<TImage*> vecImgCardEmpty;
-//	const int border = 10;
-//	const int xBorder = 15;//已完成牌堆的横向距离
-//	const int cardWidth = 71;
-//	const int cardHeight = 96;
-//	const int cardGapH = 10;
-//
-//    struct DragInfo
-//    {
-//        bool bOnDrag;
-//        int orig;
-//        int cardIndex;
-//        int num;
-//        std::vector<std::pair<Card*, POINT>> vecCard;
-//        DragInfo() :bOnDrag(false), orig(-1), cardIndex(-1), num(-1) {}
-//    } dragInfo;
-//    void GiveUpDrag();
-//    POINT GetCardEmptyPoint(RECT rect, int index);
-//    void GetIndexFromPoint(int& deskIndex, int& cardIndex, POINT pt);
-//    void InitialImage();
-//    void RefreshPaint();
+//        cout << "--move--" << endl << "input orig, dest, num: "; in >> orig >> dest >> num;
+//        cout << endl;
+//        cout << "Chose: "; poker->printCard(orig, num);
+//        cout << endl;
+//        cout << "canMove? ";
 //#else
-//    void ShowHelpInfo() const;
+//        in >> orig >> dest >> num;
 //#endif
-//    struct Node
-//    {
-//        int value;
-//        std::shared_ptr<Poker> poker;
-//        std::shared_ptr<Action> action;
-//    };
-//
-//    //emptyIndex传入空数组即可，调用完成会将空牌位索引加入
-//    //若某一操作后与states中已有的状态重合，则此操作不会加入actions
-//    std::vector<Manager::Node> GetAllOperator(std::vector<int>& emptyIndex, std::shared_ptr<Poker> poker, const std::unordered_set<Poker>& states);
-//    bool DFS(bool& success, int& calc, const std::string& origTitle, std::vector<std::shared_ptr<Action>>& record, std::unordered_set<Poker>& states, int stackLimited, int calcLimited, bool playAnimation);
-//    public:
-//    Manager();
-//    Manager(int suitNum);
-//    Manager(int suitNum, uint32_t seed);
-//	~Manager();
-//
-//    int GetPokerSuitNum() { return poker->suitNum; };
-//    int GetPokerOperation() { return poker->operation; };
-//    int GetPokerScore() { return poker->score; };
-//    uint32_t GetPokerSeed() { return poker->seed; };
-//    bool HasPoker() { return poker; };
-//    bool PokerCornerIsEmpty() { return poker->corner.empty(); }
-//    //const Poker* GetPoker() { return poker; }
-//
-//    struct AutoSolveResult
-//    {
-//        bool success;
-//        int calc;
-//        int suit;
-//        uint32_t seed;
-//    };
-//    AutoSolveResult autoSolveResult;
-//
-//    //命令：
-//    //new suit seed
-//    //newrandom suit
-//    //auto 显示动画
-//    bool Command(const std::string cmd);
-//    bool ReadIn(std::istream& in);
-//    bool CanRedo();
-//
-//    //
-//    private boolean bOnThread;
-//    private boolean bStopThread;
-//    public void SetSoundId(int idTip,int idNoTip,int idWin,int idDeal){
-//
-//    }
-//    public void SetTextOutputHWND(HWND hWnd);
-//    void SetGUIProperty(HWND hWnd,const RECT *rcClient, int idCardEmpty, int idCardBack, int idCard1,int idCardMask);
+        PMove action = new PMove(orig, dest, num);
+        boolean success = false;
+        if (success = action.Do(poker)) {
+            record.add(action);
+        }
+
+//#ifndef _CONSOLE
+//        if (success && poker->hasGUI)
+//        {
+//            if (config.enableAnimation)
+//                action->StartAnimationQuick(hWnd, bOnThread, bStopThread);
+//        }
+//#else
+//        cout << (success ? "success." : "failed.") << endl;
+//        cout << *poker;
+//#endif
+        return false;
+    }
 
     boolean GetIsWon(){
         return false;
@@ -297,15 +394,6 @@ public class GameManager {
     boolean OnLButtonDown(Vector2 pt) {
         return false;
     }
-
-    boolean OnLButtonUp(Vector2 pt){
-        return false;
-    }
-
-    boolean OnMouseMove(Vector2 pt){
-        return false;
-    }
-
     //播放胜利音乐，并开一个线程刷新烟花动画
     public void Win(){
 
@@ -331,5 +419,6 @@ public class GameManager {
         for (int i = 0; i < 10; i++) {
             vecImageEmpty.add(new Image());
         }
+        hasLoadImage = true;
     }
 }

@@ -172,7 +172,7 @@ public class Deal extends Action{
             card.setZIndex(0);
 
             //所有牌设置为背面
-            card.setShow(false);
+//            card.setShow(false);
 
 
             //最后10张牌

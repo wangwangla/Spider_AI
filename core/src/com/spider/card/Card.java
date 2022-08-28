@@ -52,14 +52,21 @@ public class Card extends Group {
 
     public void setShow(boolean show) {
         this.show = show;
+        if (show) {
+            if (img != null) {
+                img.setVisible(true);
+                imgBack.setVisible(false);
+            }
+        }else {
+            if (img != null) {
+                img.setVisible(false);
+                imgBack.setVisible(true);
+            }
+        }
     }
 
     public void setVisible(boolean visible) {
         this.visible = visible;
-    }
-
-    public void setZIndex(int z) {
-        this.z_index = z;
     }
 
     int GetZIndex() {
@@ -67,8 +74,8 @@ public class Card extends Group {
     }
 
     public void SetPos(Vector2 vector2) {
-        img.setPosition(vector2.x, vector2.y);
-        imgBack.setPosition(vector2.x, vector2.y);
+//        img.setPosition(vector2.x, vector2.y);
+//        imgBack.setPosition(vector2.x, vector2.y);
     }
 
 //
@@ -100,20 +107,21 @@ public class Card extends Group {
 //#endif
 
     //返回花色 C D H S
-    public char getSuit() {
-        switch (suit) {
-            case 1:
-                return 'C';//梅花
-            case 2:
-                return 'D';//方块
-            case 3:
-                return 'H';//红桃
-            case 4:
-                return 'S';//黑桃
-            default:
-                return 'S';
+    public int getSuit() {
+        return suit;
+//        switch (suit) {
+//            case 1:
+//                return 'C';//梅花
+//            case 2:
+//                return 'D';//方块
+//            case 3:
+//                return 'H';//红桃
+//            case 4:
+//                return 'S';//黑桃
+//            default:
+//                return 'S';
                 //                throw new Exception("Error:'getSuit():' Undefined suit");
-        }
+//        }
     }
 
     public boolean isShow() {
@@ -140,7 +148,7 @@ public class Card extends Group {
     }
 
     public void initCard() {
-        int imageIndex = (suit - 1) * 13 + getPoint() - 1;
+        int imageIndex = (suit - 1) * 13 + getPoint();
         img = new Image(SpiderGame.getAssetUtil()
                 .loadTexture("Resource/card/CARD"+imageIndex+".png"));
         imgBack = new Image(SpiderGame.getAssetUtil().loadTexture(
@@ -156,5 +164,11 @@ public class Card extends Group {
         }
         img.setTouchable(Touchable.disabled);
         imgBack.setTouchable(Touchable.disabled);
+        img.setX(0);
+        img.setY(0);
+    }
+
+    public void setZ_index(int z_index) {
+        this.z_index = z_index;
     }
 }

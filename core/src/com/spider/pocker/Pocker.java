@@ -179,4 +179,12 @@ public class Pocker {
 
         return value;
     }
+
+    public void minusOne() {
+        score--;
+    }
+
+    public void addOperation() {
+        operation++;
+    }
 }
