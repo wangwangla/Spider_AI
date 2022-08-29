@@ -99,6 +99,18 @@ public class Pocker {
 
     public Pocker(Pocker pocker){
 
+        this.seed = pocker.getSeed();//种子
+        this.suitNum = pocker.getSuitNum();//花色
+        this.score = pocker.getScore();//分数
+        this.operation = pocker.getOperation();//操作次数
+        this.hasGUI = pocker.hasGUI;//已加载图片
+        //桌上套牌
+        this.desk = new Array<Array<Card>>(pocker.desk);//0为最里面
+        //发牌区
+        this.corner = new Array<Array<Card>>(pocker.corner);//0为最里面
+        //已完成套牌
+        this.finished = new Array<Array<Card>>(pocker.finished);
+
     }
 
     //通过检测 已完成==8 返回是否已完成

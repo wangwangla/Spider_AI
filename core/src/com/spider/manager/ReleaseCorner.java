@@ -71,7 +71,7 @@ public class ReleaseCorner extends Action {
         return true;
     }
 
-    boolean Redo(Pocker inpoker) {
+    public boolean Redo(Pocker inpoker) {
         assert (success);
         poker = inpoker;
         //撤销回收

@@ -8,6 +8,7 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.Align;
@@ -75,6 +76,14 @@ public class GameScreen extends ScreenAdapter {
                 ResourceConstant.IDB_CARDMASK);
         manager.newGame(1);
 
+        stage.addAction(Actions.delay(3,Actions.run(new Runnable() {
+            @Override
+            public void run() {
+
+                manager.AutoSolve(false);
+
+            }
+        })));
         final Vector2 tempV = new Vector2();
         sendCardGroup.addListener(new ClickListener(){
             @Override

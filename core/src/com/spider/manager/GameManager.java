@@ -431,7 +431,7 @@ public class GameManager {
 
     private int MAX_PATH = 260;
 
-    private AutoSolveResult autoSolveResult;
+    private AutoSolveResult autoSolveResult = new AutoSolveResult();
     public boolean AutoSolve(boolean playAnimation) {
         bOnThread = true;
         bStopThread = false;
@@ -569,8 +569,9 @@ public class GameManager {
                             Pocker tempPoker = new Pocker(poker);
                             Action action = new PMove(orig, dest, num);
                             List<Pocker> tempList = new ArrayList(states);
-                            if (action.Do(tempPoker) &&
-                                    (tempPoker == tempList.get(tempList.size()-1)))
+//                            boolean b = tempList.size() > 0 && tempPoker == tempList.get(tempList.size() - 1);
+                            boolean b1 = stateLast(tempList, tempPoker);
+                            if (action.Do(tempPoker) &&b1)
                             actions.add(new Node(tempPoker.GetValue(),tempPoker,action));
                             break;
                         }
@@ -593,9 +594,20 @@ public class GameManager {
     }
 
 
+    public boolean stateLast(List<Pocker> tempList, Pocker tempPoker){
+        if (tempList.size()<=0){
+            return true;
+        }
+        if (tempList.get(tempList.size()-1) == tempPoker) {
+            return true;
+        }
+        return false;
+    }
+
     boolean DFS(boolean success, int calc, String origTitle, Array<Action> record,
                       HashSet<Pocker> states, int stackLimited, int calcLimited,
                         boolean playAnimation) {
+        System.out.println("--------------------"+pocker.getOperation());
         if (pocker.isFinished()) {
             success = true;
             return true;
@@ -615,18 +627,28 @@ public class GameManager {
         Array<Node> actions = GetAllOperator(emptyIndex, tempPoker, states);
 
         //优化操作
-        if (emptyIndex.empty())
+        if (emptyIndex.size<=0) {
             //没有空位
             //去掉比当前评分还低的移牌
-            for (auto it = actions.begin(); it != actions.end();)
-            {
-                if (typeid(*it->action) == typeid(PMove) && it->value <= poker->GetValue())
-                {
-                    it = actions.erase(it);
+            Array<Node> array = new Array<Node>();
+            for (Node action : actions) {
+                if (action.getAction() instanceof PMove && action.getValue() <= pocker.GetValue()) {
+                    array.add(action);
                 }
-			else
-                it++;
             }
+            for (Node node : array) {
+                actions.removeValue(node,false);
+            }
+        }
+//            for (auto it = actions.begin(); it != actions.end();)
+//            {
+//                if (typeid(*it->action) == typeid(PMove) && it->value <= poker->GetValue())
+//                {
+//                    it = actions.erase(it);
+//                }
+//			else
+//                it++;
+//            }
         else
         {
             //有空位
@@ -676,7 +698,7 @@ public class GameManager {
                     {
                         //只添加一个移牌补空位的操作
                         Action action = new PMove(orig, emptyIndex.get(0), 1);
-                        Pocker newPoker = new Pocker(pocker));
+                        Pocker newPoker = new Pocker(pocker);
                         action.Do(newPoker);
                         actions.add(new Node(newPoker.GetValue(),newPoker,action));
                     }
@@ -718,89 +740,85 @@ public class GameManager {
 //
 //            此处暂停
             //按任意键则走一步，输入数字则直到stack==round才停下
-            if (pocker.getOperation() < round)
-            {
+            if (pocker.getOperation() < round) {
                 ;
-            }
-            else
-            {
+            } else {
 //                string s;
 //                cout << "input the destination operation number:" << endl;
 //                cout << ">>";
-                getline(cin, s);
-                if (s.empty())
-                    round = -1;
-                else
-                    round = stoi(s);
+//                getline(cin, s);
+//                if (s.empty())
+//                    round = -1;
+//                else
+//                    round = stoi(s);
             }
-#endif
+//#endif
 
             //没出现过的状态
-            if (states.find(*node.poker) == states.end())
-            {
-                static bool bNounce = true;
-                static bool bStop = false;
-                node.action->Do(poker);
+            List<Pocker> tempList = new ArrayList<Pocker>(states);
+            boolean b1 = stateLast(tempList, it.getPoker());
+            if (b1) ;
+            boolean bNounce = true;
+            boolean bStop = false;
+            it.getAction().Do(pocker);
 
-#ifndef _CONSOLE
-                SetWindowText(hWnd, (origTitle + " (求解步骤=" + to_string(calc) + ")").c_str());
-                if (poker->hasGUI)
-                {
+//#ifndef _CONSOLE
+//                SetWindowText(hWnd, (origTitle + " (求解步骤=" + to_string(calc) + ")").c_str());
+            if (pocker.isHasGUI()) {
 
-                    if (playAnimation)
-                        node.action->StartAnimation(hWnd, bNounce, bStop);
-				else
-                    {
-                        OnSize(*pRcClient);
-                        InvalidateRect(hWnd, pRcClient, false);
-                        UpdateWindow(hWnd);
-                        Sleep(1);
+                if (playAnimation)
+                    it.getAction().startAnimation(bNounce, bStop);
+                else {
+//                        OnSize(*pRcClient);
+//                        InvalidateRect(hWnd, pRcClient, false);
+//                        UpdateWindow(hWnd);
+                    setPos();
+                    try {
+                        Thread.sleep(1);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
                     }
                 }
-#endif
-                //加入状态
-                states.insert(*node.poker);
+            }
+            //加入状态
+            states.add(it.getPoker());
+            //push记录
+            record.add(it.getAction());
 
-                //push记录
-                record.push_back(node.action);
+            if (DFS(success, calc, origTitle, record, states, stackLimited, calcLimited, playAnimation)) {
+                //只有终止才会返回true，如果任意位置返回true，此处将逐级终止递归
+                ReleaseActions(actions);
+                return true;
+            }
 
-                if (DFS(success, calc, origTitle, record, states, stackLimited, calcLimited, playAnimation))
-                {
-                    //只有终止才会返回true，如果任意位置返回true，此处将逐级终止递归
-                    ReleaseActions(actions);
-                    return true;
+            it.getAction().Redo(pocker);
+            if (pocker.isHasGUI()) {
+                if (playAnimation) {
                 }
-
-                node.action->Redo(poker);
-
-#ifndef _CONSOLE
-                if (poker->hasGUI)
-                {
-                    if (playAnimation)
-                        node.action->RedoAnimation(hWnd, bNounce, bStop);
-				else
-                    {
-                        OnSize(*pRcClient);
-                        InvalidateRect(hWnd, pRcClient, false);
-                        UpdateWindow(hWnd);
-                        Sleep(1);
+//                        it.getAction().RedoAnimation(hWnd, bNounce, bStop);
+                else {
+//                        OnSize(*pRcClient);
+//                        InvalidateRect(hWnd, pRcClient, false);
+//                        UpdateWindow(hWnd);
+                    setPos();
+                    try {
+                        Thread.sleep(1);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
                     }
                 }
-#endif
 
                 //pop记录
-                record.pop_back();
-
-                it++;
+                record.removeIndex(record.size - 1);
             }
 		else//已出现过的状态
             {
-#ifdef _PRINT
-                cout << string(20, '-');
-                cout << "No-movement:" << endl;
-#endif
+//                cout << string(20, '-');
+//                cout << "No-movement:" << endl;
+//#endif
                     //直接转到下一个操作
-                    it = actions.erase(it);
+//                    it = actions.erase(it);
+
             }
         }
 
