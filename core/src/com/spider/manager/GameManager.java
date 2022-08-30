@@ -41,7 +41,11 @@ public class GameManager {
     private PMove pMove;
     private DragInfo dragInfo;
     private ReleaseCorner corner ;
-//            cardGroup,finishGroup,sendCardGroup
+    private boolean hasLoadImage;
+
+
+
+    //            cardGroup,finishGroup,sendCardGroup
     public GameManager(Group cardGroup, Group finishGroup, Group sendCardGroup){
         config = new Configuration();
         this.cardGroup = cardGroup;
@@ -83,6 +87,7 @@ public class GameManager {
             for (Card card : cards) {
                 card.setPosition((index-1)* v,offSetY, Align.left);
                 offSetY -= 20;
+                card.setShow(true);
             }
         }
         index=0;
@@ -103,12 +108,9 @@ public class GameManager {
         int zIndex=0;
         for (Array<Card> array : pocker.getDesk()) {
             for (Card card : array) {
-//                card.setZIndex(zIndex++);
                 card.setZIndex(zIndex++);
             }
         }
-
-        System.out.println("-------------------");
     }
 
     public void initialImage() {
@@ -168,24 +170,15 @@ public class GameManager {
         return true;
     }
 
-
     public void GiveUpDrag(){
         dragInfo.setbOnDrag(false);
         //恢复z-index
         for (ArrayMap<Card, Vector2> arrayMap : dragInfo.getVecCard()) {
             arrayMap.getKeyAt(0).setZIndex(0);
         }
-//        for (auto& pr : dragInfo.vecCard)
-//        {
-//            pr.first->SetZIndex(0);
-//        }
         dragInfo.getVecCard().clear();
         //恢复位置并刷新
-//        OnSize(*pRcClient);
-//        InvalidateRect(hWnd, pRcClient, false);
     }
-
-    private boolean hasLoadImage;
 
     public boolean OnMouseMove(Vector2 pt) {
         if (hasLoadImage == false)
@@ -206,25 +199,16 @@ public class GameManager {
                     index++;
                     NLog.e(" x %s,y %s",pt.x-cardGroup.getX(),pt.y-cardGroup.getY());
                 }
-//                for (auto& pr : dragInfo.vecCard)
-//                {
-//                    pr.first->SetPos(pt + pr.second);
-//
-//                }
-
-                //刷新
-//                InvalidateRect(hWnd, pRcClient, false);
                 return true;
             }
         }
         return false;
     }
 
-    public boolean OnLButtonUp(Vector2 pt) {
+    public boolean OnLButtonUp() {
         if (dragInfo.isbOnDrag()) {
             //取得拖动牌最顶上一张坐标
             Vector2 ptUpCard = dragInfo.getVecCard().get(0).getKeyAt(0).getPosition();
-
             //取得目标牌位号
             int dest = GetDestIndex(pocker, ptUpCard, dragInfo.getOrig(), dragInfo.getNum());
             //恢复拖动设置
@@ -232,28 +216,15 @@ public class GameManager {
             for (ArrayMap<Card, Vector2> arrayMap : dragInfo.getVecCard()) {
                 arrayMap.getKeyAt(0).setZIndex(0);
             }
-//            for (auto& pr : dragInfo.vecCard)
-//            {
-//                pr.first->SetZIndex(0);
-//            }
             dragInfo.getVecCard().clear();
-
             //有目标牌位，且可以移动
             if (dest != -1 && dest != dragInfo.getOrig()) {
                 Move(pocker,dragInfo.getOrig(),dest,dragInfo.getNum());
                 //进行移动
-//                Command("m " + to_string(dragInfo.orig) + " " + to_string(dest) + " " + to_string(dragInfo.num));
-
-//                OnSize(*pRcClient);
-//                InvalidateRect(hWnd, pRcClient, false);
-//                return true;
             }else {
             }
         }
-
         setPos();
-//        OnSize(*pRcClient);
-//        InvalidateRect(hWnd, pRcClient, false);
         return false;
     }
 
@@ -432,7 +403,14 @@ public class GameManager {
     private int MAX_PATH = 260;
 
     private AutoSolveResult autoSolveResult = new AutoSolveResult();
+    Array<Pocker> array = new Array<Pocker>();
     public boolean AutoSolve(boolean playAnimation) {
+        Pocker pockerTemp = new Pocker(pocker);
+        array.add(pocker);
+        array.add(pockerTemp);
+
+
+
         bOnThread = true;
         bStopThread = false;
         HashSet<Pocker> states = new HashSet<Pocker>();
@@ -640,15 +618,6 @@ public class GameManager {
                 actions.removeValue(node,false);
             }
         }
-//            for (auto it = actions.begin(); it != actions.end();)
-//            {
-//                if (typeid(*it->action) == typeid(PMove) && it->value <= poker->GetValue())
-//                {
-//                    it = actions.erase(it);
-//                }
-//			else
-//                it++;
-//            }
         else
         {
             //有空位
@@ -715,99 +684,61 @@ public class GameManager {
         //按照评估分大到小排序
 //        sort(actions.begin(), actions.end(), [](const Node& n1, const Node& n2) {return n1.value > n2.value; });
 
+        Array<Node> array = new Array<Node>();
         int round = -1;
         //开始递归
         for (Node it : actions) {
-
-//        for (auto it = actions.begin(); it != actions.end();)
-//        {
-//            auto& node = *it;
-
-//#define _PAUSE
-//#ifdef _PAUSE
-//            cout << *poker;
-
-            //可以的操作
-//            cout << "Action:" << endl;
-
-//            for (auto it2 = it; it2 != actions.end(); ++it2)
-//                cout << *it2->action << " value:" << it2->value << endl;
-//
-//            显示操作
-//            cout << string(20, '-');
-//            cout << "Calc=" << calc << " ";
-//            cout << "Do:" << *node.action << endl;
-//
-//            此处暂停
-            //按任意键则走一步，输入数字则直到stack==round才停下
-            if (pocker.getOperation() < round) {
-                ;
-            } else {
-//                string s;
-//                cout << "input the destination operation number:" << endl;
-//                cout << ">>";
-//                getline(cin, s);
-//                if (s.empty())
-//                    round = -1;
-//                else
-//                    round = stoi(s);
-            }
-//#endif
-
             //没出现过的状态
             List<Pocker> tempList = new ArrayList<Pocker>(states);
             boolean b1 = stateLast(tempList, it.getPoker());
-            if (b1) ;
-            boolean bNounce = true;
-            boolean bStop = false;
-            it.getAction().Do(pocker);
-
+            if (b1) {
+                boolean bNounce = true;
+                boolean bStop = false;
+                it.getAction().Do(pocker,cardGroup);
+                setPos();
 //#ifndef _CONSOLE
 //                SetWindowText(hWnd, (origTitle + " (求解步骤=" + to_string(calc) + ")").c_str());
-            if (pocker.isHasGUI()) {
-
-                if (playAnimation)
-                    it.getAction().startAnimation(bNounce, bStop);
-                else {
+                if (pocker.isHasGUI()) {
+                    if (playAnimation) {
+                        it.getAction().startAnimation(bNounce, bStop);
+                    } else {
 //                        OnSize(*pRcClient);
 //                        InvalidateRect(hWnd, pRcClient, false);
 //                        UpdateWindow(hWnd);
-                    setPos();
-                    try {
-                        Thread.sleep(1);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
+                        setPos();
+                        try {
+                            Thread.sleep(1);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
                     }
                 }
-            }
-            //加入状态
-            states.add(it.getPoker());
-            //push记录
-            record.add(it.getAction());
+                //加入状态
+                states.add(it.getPoker());
+                //push记录
+                record.add(it.getAction());
 
-            if (DFS(success, calc, origTitle, record, states, stackLimited, calcLimited, playAnimation)) {
-                //只有终止才会返回true，如果任意位置返回true，此处将逐级终止递归
-                ReleaseActions(actions);
-                return true;
-            }
-
-            it.getAction().Redo(pocker);
-            if (pocker.isHasGUI()) {
-                if (playAnimation) {
+                if (DFS(success, calc, origTitle, record, states, stackLimited, calcLimited, playAnimation)) {
+                    //只有终止才会返回true，如果任意位置返回true，此处将逐级终止递归
+                    ReleaseActions(actions);
+                    return true;
                 }
-//                        it.getAction().RedoAnimation(hWnd, bNounce, bStop);
-                else {
+
+                it.getAction().Redo(pocker);
+                if (pocker.isHasGUI()) {
+                    if (playAnimation) {
+                    } else {
 //                        OnSize(*pRcClient);
 //                        InvalidateRect(hWnd, pRcClient, false);
 //                        UpdateWindow(hWnd);
-                    setPos();
-                    try {
-                        Thread.sleep(1);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
+                        setPos();
+                        try {
+                            Thread.sleep(1);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
                     }
                 }
-
                 //pop记录
                 record.removeIndex(record.size - 1);
             }
@@ -818,10 +749,13 @@ public class GameManager {
 //#endif
                     //直接转到下一个操作
 //                    it = actions.erase(it);
-
+                array.add(it);
             }
         }
 
+        for (Node node : array) {
+            actions.removeValue(node,false);
+        }
         ReleaseActions(actions);
         return false;
     }

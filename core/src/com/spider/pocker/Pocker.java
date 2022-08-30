@@ -3,6 +3,8 @@ package com.spider.pocker;
 import com.badlogic.gdx.utils.Array;
 import com.spider.card.Card;
 
+import java.util.Objects;
+
 /**
 桌面上共10摞牌，前4摞6张，后6摞5张，共6*4+5*6=54张
 角落共5叠，每叠10张，共10*5=50张
@@ -98,19 +100,44 @@ public class Pocker {
     }
 
     public Pocker(Pocker pocker){
-
         this.seed = pocker.getSeed();//种子
         this.suitNum = pocker.getSuitNum();//花色
         this.score = pocker.getScore();//分数
         this.operation = pocker.getOperation();//操作次数
         this.hasGUI = pocker.hasGUI;//已加载图片
         //桌上套牌
-        this.desk = new Array<Array<Card>>(pocker.desk);//0为最里面
-        //发牌区
-        this.corner = new Array<Array<Card>>(pocker.corner);//0为最里面
-        //已完成套牌
-        this.finished = new Array<Array<Card>>(pocker.finished);
+        this.desk = new Array<Array<Card>>();//0为最里面
+        for (Array<Card> cards : pocker.desk) {
+            Array<Card> array = new Array<Card>();
+            for (Card card : cards) {
+                array.add(card);
+            }
+            desk.add(array);
+        }
+//        //发牌区
+        this.corner = new Array<Array<Card>>();//0为最里面
+        for (Array<Card> cards : pocker.corner) {
+            Array<Card> array = new Array<Card>();
+            for (Card card : cards) {
+                array.add(card);
+            }
+            corner.add(cards);
+        }
+//        //已完成套牌
+        this.finished = new Array<Array<Card>>();
+        for (Array<Card> cards : pocker.finished) {
+            Array<Card> cards1 = new Array<Card>();
+            finished.add(cards1);
+            for (Card card : cards) {
+                cards1.add(new Card(card));
+            }
+        }
 
+//        this.desk = pocker.desk;//0为最里面
+//        //发牌区
+//        this.corner = pocker.corner;//0为最里面
+//        //已完成套牌
+//        this.finished = pocker.finished;
     }
 
     //通过检测 已完成==8 返回是否已完成
@@ -202,5 +229,23 @@ public class Pocker {
 
     public void addOperation() {
         operation++;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Pocker pocker = (Pocker) o;
+        return seed == pocker.seed && suitNum == pocker.suitNum &&
+                score == pocker.score && operation == pocker.operation &&
+                hasGUI == pocker.hasGUI &&
+                Objects.equals(desk, pocker.desk) &&
+                Objects.equals(corner, pocker.corner) &&
+                Objects.equals(finished, pocker.finished);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(seed, suitNum, score, operation, hasGUI, desk, corner, finished);
     }
 }

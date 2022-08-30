@@ -109,8 +109,7 @@ public class GameScreen extends ScreenAdapter {
             @Override
             public void touchUp(InputEvent event, float x, float y, int pointer, int button) {
                 super.touchUp(event, x, y, pointer, button);
-                tempV.set(x,y);
-                manager.OnLButtonUp(tempV);
+                manager.OnLButtonUp();
             }
         });
     }

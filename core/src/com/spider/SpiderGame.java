@@ -18,7 +18,7 @@ public class SpiderGame extends Game {
     public void create() {
         NLog.e("game create");
         assetUtil = new AssetUtil();
-        viewport = new ExtendViewport(640,360);
+        viewport = new ExtendViewport(640,960);
         Gdx.app.postRunnable(new Runnable() {
             @Override
             public void run() {

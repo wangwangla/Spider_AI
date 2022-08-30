@@ -9,7 +9,7 @@ public class DesktopLauncher {
 		LwjglApplicationConfiguration config = new LwjglApplicationConfiguration();
 		config.title = "Spider v1.0";
 		config.width = 880;
-		config.height = 400;
+		config.height = 1000;
 		config.x = 0;
 		config.y = 0;
 		new LwjglApplication(new SpiderGame(), config);
