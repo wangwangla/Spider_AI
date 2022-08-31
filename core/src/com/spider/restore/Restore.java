@@ -1,16 +1,16 @@
 package com.spider.restore;
 
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.utils.Array;
 import com.spider.action.Action;
 import com.spider.bean.Oper;
 import com.spider.card.Card;
+import com.spider.log.NLog;
 import com.spider.pocker.Pocker;
 
 public class Restore extends Action {
-    Array<Vector2> vecStartPt;
-    Vector2 ptEnd;
-
+    private Group finished;
     public Restore(){
 
     }
@@ -18,7 +18,8 @@ public class Restore extends Action {
     private Array<Oper> vecOper = new Array<Oper>();
     //若所有堆叠有可回收的情况则回收
     //若对应堆叠能回收则回收
-    public Restore(int deskNum){
+    public Restore(int deskNum, Group group){
+        this.finished = group;
 //        vdeskNum,false}});
         vecOper.add(new Oper(deskNum,false));
     }
@@ -49,7 +50,13 @@ public class Restore extends Action {
             //进行回收
             //加入套牌，从最低下一张倒数13张，所以顺序为1-13
             Array<Card> array = poker.getDesk().get(deskNum);
-            Array<Card> array1 = new Array<Card>(array);
+
+
+            Array<Card> array1 = new Array<Card>();
+            for (int i = 0; i < 13; i++) {
+                array1.add(array.get(array.size-1-i));
+            }
+
             poker.getFinished().add(array1);
             //预存起点位置
             if (poker.isHasGUI()){
@@ -60,9 +67,9 @@ public class Restore extends Action {
             //去掉牌堆叠的13张
             for (Card card : array1) {
                 array.removeValue(card,false);
+                NLog.e("huishou : %s",card.getPoint());
+                finished.addActor(card);
             }
-//            poker.getDesk().get(deskNum).erase(poker->desk[deskNum].end() - 13, poker->desk[deskNum].end());
-
             //翻开下面的牌
             if (!(array.size<=0) && array.get(array.size-1).isShow() == false) {
                 array.get(array.size-1).setShow(true);

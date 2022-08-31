@@ -2,9 +2,13 @@ package com.spider.pMove;
 
 import com.badlogic.gdx.math.Vector;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.scenes.scene2d.Group;
+import com.badlogic.gdx.scenes.scene2d.actions.Actions;
+import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
 import com.spider.action.Action;
 import com.spider.card.Card;
+import com.spider.constant.Constant;
 import com.spider.pocker.Pocker;
 import com.spider.restore.Restore;
 
@@ -18,12 +22,13 @@ public class PMove extends Action {
     private boolean shownLastCard;
     private Restore restored;
     private boolean success;
-
-    public PMove(){
-
+    private Group finishGroup;
+    public PMove(Group finishGroup){
+        this.finishGroup = finishGroup;
     }
 
-    public PMove(int origIndex, int destIndex,int num){
+    public PMove(int origIndex, int destIndex,int num,Group finishGroup){
+        this.finishGroup = finishGroup;
         this.orig = origIndex;
         this.dest = destIndex;
         this.num = num;
@@ -98,7 +103,7 @@ public class PMove extends Action {
             if (poker.isHasGUI()) {
                 //加入点集
                 vecStartPt.clear();
-                for (int i = cards.size - 1 - num; i < cards.size; i++) {
+                for (int i = cards.size - num; i < cards.size; i++) {
                     Card card = cards.get(i);
                     vecStartPt.add(new Vector2(card.getX(), card.getY()));
                 }
@@ -120,7 +125,7 @@ public class PMove extends Action {
             poker.minusOne();
             poker.addOperation();
             //进行回收
-            restored = new Restore(dest);
+            restored = new Restore(dest,finishGroup);
             if (restored.Do(poker) == false) {
                 restored = null;
             }
@@ -147,31 +152,18 @@ public class PMove extends Action {
         if (restored != null) {
             restored.Redo(poker);
         }
-
-//        SendMessage(hWnd, WM_SIZE, 0, 0);
-
-        Array<Vector2> vecEndPt = new Array<Vector2>();
-
-//        shared_ptr<SequentialAnimation> seq(make_shared<SequentialAnimation>());
-//
-//        ParallelAnimation* para = new ParallelAnimation;
-//
-//        vector<AbstractAnimation*> vecFinalAni;
-//        for (int i = 0; i < num; ++i)
-//        {
-//        int sz = poker->desk[dest].size();
-//        auto& card = poker->desk[dest][sz - num + i];
-//
-//        vecEndPt.push_back(card.GetPos());
-//
-//        card.SetPos(vecStartPt[i]);
-//        card.SetZIndex(999);
-//
-//        para->Add(new ValueAnimation<Card, POINT>(&card, 500*iDuration, &Card::SetPos, vecStartPt[i], vecEndPt[i]));
-//
-//        //恢复z-index
-//        vecFinalAni.push_back(new SettingAnimation<Card, int>(&card, 0, &Card::SetZIndex, 0));
-//    }
+        Array<Card> cards = poker.getDesk().get(dest);
+        int i1 = cards.size - num;
+        float baseY = 0;
+        if (i1 >=0) {
+            Card card1 = cards.get(cards.size - num-1);
+            baseY = card1.getY();
+        }
+        for (int i = 0; i < num; ++i) {
+            float v = Constant.worldWidth / 10.0F;
+            Card card = cards.get(cards.size - num+i);
+            card.addAction(Actions.moveTo((dest)* v,baseY-20*(i+1),1));
+        }
 
         //移动
 //    seq->Add(para);
@@ -310,5 +302,9 @@ public class PMove extends Action {
 //        poker->desk[dest].erase(itOrigBegin, itOrigEnd);
 
         return true;
+    }
+
+    public void setPocker(Pocker poker) {
+        this.poker = poker;
     }
 }

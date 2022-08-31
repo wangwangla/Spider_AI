@@ -2,6 +2,7 @@ package com.spider.manager;
 
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Group;
+import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
 import com.spider.action.Action;
 import com.spider.card.Card;
@@ -55,6 +56,12 @@ public class ReleaseCorner extends Action {
             cards.get(i).setShow(true);
             //逐个堆叠加上
             poker.getDesk().get(i).add(cards.get(i));
+            Card card = cards.get(i);
+            Group parent = card.getParent();
+            Vector2 vector2 = new Vector2(0,0);
+            parent.localToStageCoordinates(vector2);
+            cardGroup.stageToLocalCoordinates(vector2);
+            cards.get(i).setPosition(vector2.x,vector2.y);
             cardGroup.addActor(cards.get(i));
         }
         //去掉一摞待发区

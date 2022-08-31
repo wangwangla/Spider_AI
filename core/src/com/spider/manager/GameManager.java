@@ -4,6 +4,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Group;
+import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
@@ -33,8 +34,6 @@ public class GameManager {
     private Pocker pocker;
     private Array<Action> record = new Array<Action>();
     private Array<Image> vecImageEmpty;
-    private Configuration config;
-    private boolean bOnThread;
     private boolean bStopThread;
     private Group cardGroup;
     private Group finishGroup;
@@ -48,12 +47,11 @@ public class GameManager {
     Array<Pocker> array = new Array<Pocker>();
 
     public GameManager(Group cardGroup, Group finishGroup, Group sendCardGroup){
-        config = new Configuration();
         this.cardGroup = cardGroup;
         this.finishGroup = finishGroup;
         this.sendCardGroup = sendCardGroup;
         this.dragInfo = new DragInfo();
-        this.pMove = new PMove();
+        this.pMove = new PMove(finishGroup);
         this.corner = new ReleaseCorner();
     }
 
@@ -78,7 +76,6 @@ public class GameManager {
             for (Card card : cards) {
                 card.setPosition((index-1)* v,offSetY, Align.left);
                 offSetY -= 20;
-                card.setShow(true);
             }
         }
         index=0;
@@ -95,7 +92,10 @@ public class GameManager {
                 card.setPosition((index-1)*10,0,Align.bottom);
             }
         }
+        updateZIndex();
+    }
 
+    public void updateZIndex(){
         int zIndex=0;
         for (Array<Card> array : pocker.getDesk()) {
             for (Card card : array) {
@@ -209,13 +209,20 @@ public class GameManager {
             }
             dragInfo.getVecCard().clear();
             //有目标牌位，且可以移动
-            if (dest != -1 && dest != dragInfo.getOrig()) {
+//            if (dest != -1 && dest != dragInfo.getOrig()) {
                 Move(pocker,dragInfo.getOrig(),dest,dragInfo.getNum());
                 //进行移动
-            }
+//            }else {
+//            }
+        }else {
+
         }
-        setPos();
+        updateZIndex();
         return false;
+    }
+
+    public void checkSuccess(){
+
     }
 
     public int GetDestIndex(Pocker pocker, Vector2 ptUpCard, int orig, int num){
@@ -264,7 +271,28 @@ public class GameManager {
 
     public void faPai() {
         corner.Do(pocker,cardGroup);
-        setPos();
+        cornerAction();
+    }
+
+    private void cornerAction() {
+        for (int i = 0; i < pocker.getDesk().size; i++) {
+            Array<Card> cards = pocker.getDesk().get(i);
+            if (cards.size>1) {
+                Card card = cards.get(cards.size - 2);
+                Card card1 = cards.get(cards.size - 1);
+                card1.addAction(Actions.moveTo(card.getX(),card.getY()-20,1));
+            }else {
+                Card card = cards.get(cards.size - 1);
+                card.addAction(Actions.moveTo(1,1,1));
+            }
+        }
+    }
+
+    public void recod() {
+        Array<Action> record = this.record;
+        for (Action action : record) {
+            System.out.println(action);
+        }
     }
 
 
@@ -312,31 +340,17 @@ public class GameManager {
     void NewGameSolved(){}
 
     boolean Move(Pocker poker,int orig,int dest,int num) {
-//
-//        cout << "--move--" << endl << "input orig, dest, num: "; in >> orig >> dest >> num;
-//        cout << endl;
-//        cout << "Chose: "; poker->printCard(orig, num);
-//        cout << endl;
-//        cout << "canMove? ";
-//#else
-//        in >> orig >> dest >> num;
-//#endif
-        PMove action = new PMove(orig, dest, num);
-        boolean success = false;
-        if (success = action.Do(poker)) {
-            record.add(action);
+        if (orig!=dest && dest!=-1) {
+            PMove action = new PMove(orig, dest, num,finishGroup);
+            if (action.Do(poker)) {
+                record.add(action);
+            }
+            action.startAnimation(false,false);
+        }else {
+            PMove action = new PMove(orig, orig, num,finishGroup);
+            action.setPocker(poker);
+            action.startAnimation(false,false);
         }
-
-//#ifndef _CONSOLE
-//        if (success && poker->hasGUI)
-//        {
-//            if (config.enableAnimation)
-//                action->StartAnimationQuick(hWnd, bOnThread, bStopThread);
-//        }
-//#else
-//        cout << (success ? "success." : "failed.") << endl;
-//        cout << *poker;
-//#endif
         return false;
     }
 
@@ -384,10 +398,6 @@ public class GameManager {
         Pocker pockerTemp = new Pocker(pocker);
         array.add(pocker);
         array.add(pockerTemp);
-
-
-
-        bOnThread = true;
         bStopThread = false;
         ArrayMap<Pocker,Pocker> states = new ArrayMap<Pocker,Pocker>();
         autoSolveResult.setCalc(0);
@@ -435,7 +445,6 @@ public class GameManager {
             }
 //            cout << "Fail." << endl;
         }
-        bOnThread = false;
         return autoSolveResult.isSuccess();
     }
 
@@ -477,7 +486,7 @@ public class GameManager {
                     if (num == cards.size)
                         continue;
                     Pocker newPoker = new Pocker(poker);
-                    Action action = new PMove(orig, dest, num);
+                    Action action = new PMove(orig, dest, num,finishGroup);
                     action.Do(newPoker);
 //                    if (newPoker == states.getKeyAt(states.size-1)) {
 
@@ -522,7 +531,7 @@ public class GameManager {
                         if (it.getPoint() + 1 == pCardDest.getPoint())//it->suit == pCard->suit &&
                         {
                             Pocker tempPoker = new Pocker(poker);
-                            Action action = new PMove(orig, dest, num);
+                            Action action = new PMove(orig, dest, num,finishGroup);
 
 //                            boolean b = tempList.size() > 0 && tempPoker == tempList.get(tempList.size() - 1);
 //                            boolean b1 = stateLast(tempList, tempPoker);
@@ -645,7 +654,7 @@ public class GameManager {
                     else
                     {
                         //只添加一个移牌补空位的操作
-                        Action action = new PMove(orig, emptyIndex.get(0), 1);
+                        Action action = new PMove(orig, emptyIndex.get(0), 1,finishGroup);
                         Pocker newPoker = new Pocker(pocker);
                         action.Do(newPoker);
                         actions.add(new Node(newPoker.GetValue(),newPoker,action));

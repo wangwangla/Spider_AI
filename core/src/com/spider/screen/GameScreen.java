@@ -13,6 +13,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.Align;
 import com.spider.SpiderGame;
+import com.spider.asset.AssetUtil;
 import com.spider.config.Configuration;
 import com.spider.constant.Constant;
 import com.spider.constant.ResourceConstant;
@@ -62,6 +63,18 @@ public class GameScreen extends ScreenAdapter {
         sendCardGroup.setSize(76,92);
         sendCardGroup.setPosition(Constant.worldWidth - 100,20);
         sendCardGroup.setDebug(true);
+
+        Image image = new Image(SpiderGame.getAssetUtil().loadTexture("Resource/cardmask.png"));
+        stage.addActor(image);
+        image.addListener(new ClickListener(){
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                super.clicked(event, x, y);
+                manager.recod();
+            }
+        });
+
+
 
         stage.addActor(cardGroup);
         stage.addActor(finishGroup);

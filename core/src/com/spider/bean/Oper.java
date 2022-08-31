@@ -6,7 +6,7 @@ import com.badlogic.gdx.utils.Array;
 public class Oper {
     private int origDeskIndex;//回收源堆叠序号
     private boolean shownLastCard;//回收后底牌是否翻出
-    private Array<Vector2> vecStartPt;
+    private Array<Vector2> vecStartPt = new Array<Vector2>();
     private Vector2 ptEnd;
 
     public Oper(){}
