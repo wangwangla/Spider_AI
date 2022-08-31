@@ -7,7 +7,6 @@ import com.spider.pocker.Pocker;
 
 public class Action {
     protected Pocker poker;
-
     public Action() {
 
     }
@@ -31,5 +30,4 @@ public class Action {
     public void startAnimation(boolean bOnAnimation,boolean bStopAnimation){
 
     }
-
 }

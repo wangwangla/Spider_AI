@@ -1,5 +1,6 @@
 package com.spider.manager;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Group;
@@ -9,8 +10,10 @@ import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ArrayMap;
 import com.badlogic.gdx.utils.ObjectMap;
 import com.badlogic.gdx.utils.ObjectSet;
+import com.spider.SpiderGame;
 import com.spider.action.Action;
 import com.spider.action.Deal;
+import com.spider.asset.AssetUtil;
 import com.spider.bean.AutoSolveResult;
 import com.spider.bean.DragInfo;
 import com.spider.bean.Node;
@@ -30,10 +33,6 @@ public class GameManager {
     private Pocker pocker;
     private Array<Action> record = new Array<Action>();
     private Array<Image> vecImageEmpty;
-    private String idCardEmpty;
-    private String idCardBack;
-    private String idCard1;
-    private String idCardMask;
     private Configuration config;
     private boolean bOnThread;
     private boolean bStopThread;
@@ -44,10 +43,10 @@ public class GameManager {
     private DragInfo dragInfo;
     private ReleaseCorner corner ;
     private boolean hasLoadImage;
+    private int MAX_PATH = 260;
+    private AutoSolveResult autoSolveResult = new AutoSolveResult();
+    Array<Pocker> array = new Array<Pocker>();
 
-
-
-    //            cardGroup,finishGroup,sendCardGroup
     public GameManager(Group cardGroup, Group finishGroup, Group sendCardGroup){
         config = new Configuration();
         this.cardGroup = cardGroup;
@@ -65,18 +64,8 @@ public class GameManager {
         pocker = new Pocker();
         Deal action = new Deal(suitNum,seed,false,1);
         action.Do(pocker);
-        if (idCardEmpty!=null && idCardBack!=null &&
-                idCard1!=null && idCardMask!=null){
-            initialImage();
-        }
+        initialImage();
         setPos();
-        if (pocker.isHasGUI()){
-            if (config.isEnableAnimation()) {
-                action.startAnimation(bOnThread, bStopThread);
-            } else {
-                bOnThread = false;
-            }
-        }
     }
 
     public void setPos(){
@@ -134,7 +123,8 @@ public class GameManager {
     }
 
 
-    public boolean touchDown(Actor target) {
+    private Vector2 orV = new Vector2();
+    public boolean touchDown(Actor target,float x,float y) {
         if(target == null){
             return false;
         }
@@ -151,6 +141,8 @@ public class GameManager {
         //没有牌
         if (clickPocker.i == -1)
             return false;
+        orV.set(x, y);
+        target.stageToLocalCoordinates(orV);
         int num = pocker.getDesk().get(clickPocker.i).size - clickPocker.j;
         //不能够拾取
         if (!pMove.canPick(pocker, clickPocker.i, num))
@@ -183,21 +175,18 @@ public class GameManager {
     }
 
     public boolean OnMouseMove(Vector2 pt) {
-        if (hasLoadImage == false)
-            return false;
         if (dragInfo.isbOnDrag()) {
             //没有按下左键，释放拖动
             //抬起
 //            if (!(GetAsyncKeyState(VK_LBUTTON) & 0x8000)) {
-            if (false){
-                GiveUpDrag();
-            } else {
+            {
                 //移动拖动组
                 int index = 0;
                 for (ArrayMap<Card, Vector2> arrayMap : dragInfo.getVecCard()) {
                     Vector2 position = arrayMap.getKeyAt(0).getPosition();
                     position.add(pt);
-                    arrayMap.getKeyAt(0).setPosition(pt.x-cardGroup.getX(),pt.y-cardGroup.getY() - index*20);
+                    arrayMap.getKeyAt(0).setPosition(pt.x - orV.x,
+                            pt.y-cardGroup.getY() - index*20 - orV.y);
                     index++;
                     NLog.e(" x %s,y %s",pt.x-cardGroup.getX(),pt.y-cardGroup.getY());
                 }
@@ -223,7 +212,6 @@ public class GameManager {
             if (dest != -1 && dest != dragInfo.getOrig()) {
                 Move(pocker,dragInfo.getOrig(),dest,dragInfo.getNum());
                 //进行移动
-            }else {
             }
         }
         setPos();
@@ -306,7 +294,6 @@ public class GameManager {
     public void GetIndexFromPoint(Object object) {
         if (pocker == null)
             return;
-
         for (int i = 0; i < pocker.getDesk().size; ++i) {
             for (int j = 0; j < pocker.getDesk().get(i).size; ++j) {
                 Card card = pocker.getDesk().get(i).get(j);
@@ -316,16 +303,6 @@ public class GameManager {
                 }
             }
         }
-//        for (int i = 0; i < pocker.getDesk().size; ++i) {
-//            for (int j = 0; j < pocker.getDesk().get(i).size; ++j) {
-//                Card card = pocker.getDesk().get(i).get(j);
-//                Actor hit = card.hit(pt.x, pt.y, true);
-//                if (hit!=null){
-//                    clickPocker.setI(i);
-//                    clickPocker.setJ(j);
-//                }
-//            }
-//        }
     }
 
     public void NewGame(boolean isRandom){
@@ -388,24 +365,14 @@ public class GameManager {
 
     }
 
-    public void setGuiProperty(String idCardEmpty, String idCardBack,
-                               String idCard1, String idCardMask) {
-        this.idCardEmpty = idCardEmpty;
-        this.idCardBack = idCardBack;
-        this.idCard1 = idCard1;
-        this.idCardMask = idCardMask;
+    public void setGuiProperty() {
         //创建空牌位
         vecImageEmpty = new Array<Image>();
         for (int i = 0; i < 10; i++) {
-            vecImageEmpty.add(new Image());
+            vecImageEmpty.add(new Image(SpiderGame.getAssetUtil().loadTexture("Resource/cardempty.png")));
         }
-        hasLoadImage = true;
     }
 
-    private int MAX_PATH = 260;
-
-    private AutoSolveResult autoSolveResult = new AutoSolveResult();
-    Array<Pocker> array = new Array<Pocker>();
     public boolean AutoSolve(boolean playAnimation) {
 //        ReleaseCorner releaseCorner = new ReleaseCorner();
 //        releaseCorner.Do(pocker,cardGroup);

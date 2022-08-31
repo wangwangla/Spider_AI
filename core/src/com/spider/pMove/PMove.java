@@ -12,9 +12,17 @@ public class PMove extends Action {
     private int orig;
     private int dest;
     private int num;
+
+    private Pocker poker;
+    private Array<Vector2> vecStartPt = new Array<Vector2>();
+    private boolean shownLastCard;
+    private Restore restored;
+    private boolean success;
+
     public PMove(){
 
     }
+
     public PMove(int origIndex, int destIndex,int num){
         this.orig = origIndex;
         this.dest = destIndex;
@@ -64,12 +72,6 @@ public class PMove extends Action {
             return true;
         return false;
     }
-
-    private Pocker poker;
-    private Array<Vector2> vecStartPt = new Array<Vector2>();
-    private boolean shownLastCard;
-    private Restore restored;
-    private boolean success;
 
     public boolean Do(Pocker inpoker) {
         poker = inpoker;

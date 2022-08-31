@@ -12,7 +12,7 @@ import java.lang.reflect.Array;
 public class Card extends Group {
     private int z_index;
     private boolean visible;
-    private Image img, imgBack,imageMask;
+    private Image img, imgBack;
     private int suit;//花色 1 2 3 4
     private int point;//点数 1-13
     private boolean show;//是否已翻开
@@ -69,59 +69,9 @@ public class Card extends Group {
         this.visible = visible;
     }
 
-    int GetZIndex() {
-        return z_index;
-    }
-
-    public void SetPos(Vector2 vector2) {
-//        img.setPosition(vector2.x, vector2.y);
-//        imgBack.setPosition(vector2.x, vector2.y);
-    }
-
-//
-//    Vector2 GetPos(){
-//        return img.getP;
-//    }
-
-    public void setImage(Image img, Image imgBack) {
-        this.img = img;
-        this.imgBack = imgBack;
-    }
-
-    Image GetBackImage() {
-        return imgBack;
-    }
-
-    Image GetImage() {
-        return img;
-    }
-
-//    void Draw(HDC hdc)
-//    {
-//        if (visible)
-//            if (show)
-//                img->Draw(hdc);
-//            else
-//                imgBack->Draw(hdc);
-//    }
-//#endif
-
     //返回花色 C D H S
     public int getSuit() {
         return suit;
-//        switch (suit) {
-//            case 1:
-//                return 'C';//梅花
-//            case 2:
-//                return 'D';//方块
-//            case 3:
-//                return 'H';//红桃
-//            case 4:
-//                return 'S';//黑桃
-//            default:
-//                return 'S';
-                //                throw new Exception("Error:'getSuit():' Undefined suit");
-//        }
     }
 
     public boolean isShow() {
@@ -153,8 +103,6 @@ public class Card extends Group {
                 .loadTexture("Resource/card/CARD"+imageIndex+".png"));
         imgBack = new Image(SpiderGame.getAssetUtil().loadTexture(
                 "Resource/cardback.png"));
-//        img.setVisible(false);
-//        imgBack.setVisible(false);
         addActor(img);
         addActor(imgBack);
         setSize(img.getWidth(),img.getHeight());
@@ -166,9 +114,5 @@ public class Card extends Group {
         imgBack.setTouchable(Touchable.disabled);
         img.setX(0);
         img.setY(0);
-    }
-
-    public void setZ_index(int z_index) {
-        this.z_index = z_index;
     }
 }

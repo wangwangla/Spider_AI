@@ -16,16 +16,14 @@ public class Deal extends Action{
     private int seed;
     private boolean enableSound;
     private int soundDeal;
-    public Deal(int suitNum,int seed,boolean enableSound,int soundDeal){
+    public Deal(int suitNum,int seed,boolean enableSound,int soundDeal) {
         this.enableSound = enableSound;
         this.soundDeal = soundDeal;
         this.suitNum = suitNum;
         this.seed = seed;
     }
 
-
     public String GetCommand() {
-//        using namespace std;
         return "dr "+(suitNum)+" "+(seed);
     }
 
@@ -74,7 +72,6 @@ public class Deal extends Action{
         poker.getFinished().clear();
         //生成整齐牌
         Array<Card> cards = genInitCard();
-
         cardPrint("shuffle pre",cards);
         //打乱
         Random random = new Random();
@@ -90,7 +87,6 @@ public class Deal extends Action{
                 deskOne.add(cards.get(pos++));
             poker.getDesk().add(deskOne);
         }
-
         //6摞5张的=30
         for (int i = 0; i < 6; ++i){
             Array<Card> deskOne = new Array<Card>();
@@ -154,8 +150,6 @@ public class Deal extends Action{
             Array<Array<Card>> desk = poker.getDesk();
             Array<Card> cards1 = desk.get(deskIndex);
             card = cards1.get(cardIndex);
-//            card = poker->desk[deskIndex][cardIndex];
-
             //所有牌设置为不可见
             card.setVisible(false);
             //动画：设置z-index
@@ -165,9 +159,6 @@ public class Deal extends Action{
             seq.addAction(Actions.visible(true));
             //动画：从角落到指定位置
             seq.addAction(Actions.moveTo(card.getX(),card.getY(),0.25F));
-
-            card.SetPos(ptStart);
-
             //动画：恢复z-index
             card.setZIndex(0);
 
@@ -215,7 +206,6 @@ public class Deal extends Action{
         poker.getDesk().clear();
         poker.getCorner().clear();
         poker.getFinished().clear();
-
         return true;
     }
 }

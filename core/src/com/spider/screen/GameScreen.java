@@ -52,14 +52,17 @@ public class GameScreen extends ScreenAdapter {
         cardGroup.setSize(Constant.worldWidth,92F);
         cardGroup.setY(Constant.worldHeight-100);
         cardGroup.setDebug(true);
+
         finishGroup = new Group();
         finishGroup.setSize(76,92);
         finishGroup.setDebug(true);
         finishGroup.setPosition(100,20);
+
         sendCardGroup = new Group();
         sendCardGroup.setSize(76,92);
         sendCardGroup.setPosition(Constant.worldWidth - 100,20);
         sendCardGroup.setDebug(true);
+
         stage.addActor(cardGroup);
         stage.addActor(finishGroup);
         stage.addActor(sendCardGroup);
@@ -69,21 +72,8 @@ public class GameScreen extends ScreenAdapter {
         NLog.e("init manager");
         manager = new GameManager(cardGroup,finishGroup,sendCardGroup);
         manager.setSoundId();
-        manager.setGuiProperty(
-                ResourceConstant.IDB_CARDEMPTY,
-                ResourceConstant.IDB_CARDBACK,
-                ResourceConstant.IDB_CARD1,
-                ResourceConstant.IDB_CARDMASK);
+        manager.setGuiProperty();
         manager.newGame(1);
-
-        stage.addAction(Actions.delay(3,Actions.run(new Runnable() {
-            @Override
-            public void run() {
-
-                manager.AutoSolve(false);
-
-            }
-        })));
         final Vector2 tempV = new Vector2();
         sendCardGroup.addListener(new ClickListener(){
             @Override
@@ -95,7 +85,7 @@ public class GameScreen extends ScreenAdapter {
         stage.addListener(new ClickListener(){
             @Override
             public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
-                manager.touchDown(event.getTarget());
+                manager.touchDown(event.getTarget(),x,y);
                 return super.touchDown(event, x, y, pointer, button);
             }
 
@@ -104,6 +94,12 @@ public class GameScreen extends ScreenAdapter {
                 super.touchDragged(event, x, y, pointer);
                 tempV.set(x,y);
                 manager.OnMouseMove(tempV);
+            }
+
+            @Override
+            public void cancel() {
+                super.cancel();
+                manager.GiveUpDrag();
             }
 
             @Override
@@ -125,7 +121,6 @@ public class GameScreen extends ScreenAdapter {
         stage.addActor(image);
         image.setSize(Constant.worldWidth,Constant.worldHeight);
         image.setPosition(Constant.worldWidth/2,Constant.worldHeight/2, Align.center);
-
     }
 
     @Override
