@@ -2,6 +2,7 @@ package com.spider.restore;
 
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Group;
+import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.utils.Array;
 import com.spider.action.Action;
 import com.spider.bean.Oper;
@@ -45,14 +46,14 @@ public class Restore extends Action {
 
     boolean doRestore(Pocker poker,int deskNum) {
         if (canRestore(poker,deskNum)) {
-            Oper oper = new Oper();
+            final Oper oper = new Oper();
             oper.setOrigDeskIndex(deskNum);
             //进行回收
             //加入套牌，从最低下一张倒数13张，所以顺序为1-13
-            Array<Card> array = poker.getDesk().get(deskNum);
+            final Array<Card> array = poker.getDesk().get(deskNum);
 
 
-            Array<Card> array1 = new Array<Card>();
+            final Array<Card> array1 = new Array<Card>();
             for (int i = 0; i < 13; i++) {
                 array1.add(array.get(array.size-1-i));
             }
@@ -68,15 +69,29 @@ public class Restore extends Action {
             for (Card card : array1) {
                 array.removeValue(card,false);
                 NLog.e("huishou : %s",card.getPoint());
-                finished.addActor(card);
+
+                 card.clearActions();
             }
+            finished.addAction(Actions.delay(5,Actions.run(new Runnable() {
+                @Override
+                public void run() {
+                    for (Card card : array1) {
+                        array.removeValue(card,false);
+                        NLog.e("huishou : %s",card.getPoint());
+                        finished.addActor(card);
+                        card.setPosition(0,0);
+                        card.clearActions();
+                    }
+                    if (!(array.size<=0) && array.get(array.size-1).isShow() == false) {
+                        array.get(array.size-1).setShow(true);
+                        oper.setShownLastCard(true);
+                    } else {
+                        oper.setShownLastCard(false);
+                    }
+                }
+            })));
             //翻开下面的牌
-            if (!(array.size<=0) && array.get(array.size-1).isShow() == false) {
-                array.get(array.size-1).setShow(true);
-                oper.setShownLastCard(true);
-            } else {
-                oper.setShownLastCard(false);
-            }
+
             poker.setScore(poker.getScore()+100);
             vecOper.add(oper);
             return true;

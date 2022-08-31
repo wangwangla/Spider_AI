@@ -74,8 +74,6 @@ public class GameScreen extends ScreenAdapter {
             }
         });
 
-
-
         stage.addActor(cardGroup);
         stage.addActor(finishGroup);
         stage.addActor(sendCardGroup);

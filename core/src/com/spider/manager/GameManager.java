@@ -24,6 +24,7 @@ import com.spider.constant.Constant;
 import com.spider.log.NLog;
 import com.spider.pMove.PMove;
 import com.spider.pocker.Pocker;
+import com.spider.restore.Restore;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -52,7 +53,7 @@ public class GameManager {
         this.sendCardGroup = sendCardGroup;
         this.dragInfo = new DragInfo();
         this.pMove = new PMove(finishGroup);
-        this.corner = new ReleaseCorner();
+        this.corner = new ReleaseCorner(cardGroup,sendCardGroup);
     }
 
     public void newGame(int suitNum){
@@ -290,10 +291,15 @@ public class GameManager {
     }
 
     public void recod() {
+        if (record.size<=0)return;
         Array<Action> record = this.record;
-        for (Action action : record) {
-            System.out.println(action);
-        }
+        Action action = record.removeIndex(record.size - 1);
+        action.Redo(pocker);
+//        for (Action action : record) {
+//            System.out.println(action);
+//            action.Redo(pocker);
+//        }
+        setPos();
     }
 
 
@@ -345,6 +351,11 @@ public class GameManager {
             PMove action = new PMove(orig, dest, num,finishGroup);
             if (action.Do(poker)) {
                 record.add(action);
+            }
+            //进行回收
+            Restore restored = new Restore(dest,finishGroup);
+            if (restored.Do(poker) == false) {
+                restored = null;
             }
             action.startAnimation(false,false);
         }else {
@@ -549,7 +560,7 @@ public class GameManager {
         //加入发牌操作
         if (emptyIndex.size<=0 && !(poker.getCorner().size<=0)){
             Pocker newPoker = new Pocker(poker);
-            Action action = new ReleaseCorner(false);
+            Action action = new ReleaseCorner(false,cardGroup,finishGroup);
 //            sAction action(new ReleaseCorner(config.enableSound, soundDeal));
 //#endif
             action.Do(newPoker);
@@ -647,7 +658,7 @@ public class GameManager {
                     if (minPoint == 14)//说明总牌数小于10张，强行发牌
                     {
                         Pocker newPoker = new Pocker(pocker);
-                        Action action = new ReleaseCorner(false);
+                        Action action = new ReleaseCorner(false,cardGroup,finishGroup);
 //                        shared_ptr<Action> action(new ReleaseCorner(config.enableSound, soundDeal));
                         action.Do(newPoker);
                         actions.add(new Node(pocker.GetValue() - 100,newPoker,action));

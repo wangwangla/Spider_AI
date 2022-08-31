@@ -14,13 +14,17 @@ public class ReleaseCorner extends Action {
     private Vector2 ptStart = new Vector2();
     private boolean success;
     private Pocker poker;
+    private Group cardGroup;
+    private Group sendCardGroup;
 
-    public ReleaseCorner(){
-
+    public ReleaseCorner(Group cardGroup, Group sendCardGroup) {
+        this(false,cardGroup,sendCardGroup);
     }
 
-    public ReleaseCorner(boolean success){
-        this.success = success;
+    public ReleaseCorner(boolean b, Group cardGroup, Group sendCardGroup){
+        this.success = b;
+        this.cardGroup = cardGroup;
+        this.sendCardGroup = sendCardGroup;
     }
 
     //释放一摞右下角，检查收牌情况
@@ -98,6 +102,7 @@ public class ReleaseCorner extends Action {
             temp.add(cards.get(cards.size - 1));
             //从桌上取掉
             cards.removeIndex(cards.size - 1);
+            sendCardGroup.addActor(cards.get(cards.size-1));
         }
         poker.getCorner().add(temp);
         return true;

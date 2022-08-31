@@ -16,7 +16,6 @@ public class PMove extends Action {
     private int orig;
     private int dest;
     private int num;
-
     private Pocker poker;
     private Array<Vector2> vecStartPt = new Array<Vector2>();
     private boolean shownLastCard;
@@ -155,7 +154,7 @@ public class PMove extends Action {
         Array<Card> cards = poker.getDesk().get(dest);
         int i1 = cards.size - num;
         float baseY = 0;
-        if (i1 >=0) {
+        if (i1 >0) {
             Card card1 = cards.get(cards.size - num-1);
             baseY = card1.getY();
         }
@@ -268,7 +267,7 @@ public class PMove extends Action {
         }
 
         Array<Array<Card>> desk = poker.getDesk();
-        Array<Card> array1 = desk.get(desk.size - 1);
+        Array<Card> array1 = desk.get(dest);
         int start = array1.size - num;
         int end = array1.size - 1;
 //        auto itOrigBegin = poker.getDesk().get(dest).end() - num;
