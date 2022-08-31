@@ -162,7 +162,7 @@ public class PMove extends Action {
         for (int i = 0; i < num; ++i) {
             float v = Constant.worldWidth / 10.0F;
             Card card = cards.get(cards.size - num+i);
-            card.addAction(Actions.moveTo((dest)* v,baseY-20*(i+1),1));
+            card.addAction(Actions.moveTo((dest)* v,baseY-20*(i+1),0.2F));
         }
 
         //移动

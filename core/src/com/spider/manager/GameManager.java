@@ -271,6 +271,7 @@ public class GameManager {
 
     public void faPai() {
         corner.Do(pocker,cardGroup);
+        record.add(corner);
         cornerAction();
     }
 
