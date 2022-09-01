@@ -101,8 +101,13 @@ public class ReleaseCorner extends Action {
             //回收
             temp.add(cards.get(cards.size - 1));
             //从桌上取掉
-            cards.removeIndex(cards.size - 1);
             sendCardGroup.addActor(cards.get(cards.size-1));
+
+            cards.removeIndex(cards.size - 1);
+            if (cards.size>0) {
+                Card card = cards.get(cards.size - 1);
+                card.setShow(true);
+            }
         }
         poker.getCorner().add(temp);
         return true;

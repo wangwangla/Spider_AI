@@ -41,8 +41,7 @@ public class GameManager {
     private Group sendCardGroup;
     private PMove pMove;
     private DragInfo dragInfo;
-    private ReleaseCorner corner ;
-    private boolean hasLoadImage;
+    private ReleaseCorner corner;
     private int MAX_PATH = 260;
     private AutoSolveResult autoSolveResult = new AutoSolveResult();
     Array<Pocker> array = new Array<Pocker>();
@@ -210,13 +209,7 @@ public class GameManager {
             }
             dragInfo.getVecCard().clear();
             //有目标牌位，且可以移动
-//            if (dest != -1 && dest != dragInfo.getOrig()) {
-                Move(pocker,dragInfo.getOrig(),dest,dragInfo.getNum());
-                //进行移动
-//            }else {
-//            }
-        }else {
-
+            Move(pocker,dragInfo.getOrig(),dest,dragInfo.getNum());
         }
         updateZIndex();
         return false;
@@ -339,12 +332,6 @@ public class GameManager {
             }
         }
     }
-
-    public void NewGame(boolean isRandom){
-
-    }
-
-    void NewGameSolved(){}
 
     boolean Move(Pocker poker,int orig,int dest,int num) {
         if (orig!=dest && dest!=-1) {
