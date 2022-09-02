@@ -1,5 +1,6 @@
 package com.spider.restore;
 
+import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.utils.Array;
@@ -11,6 +12,7 @@ import com.spider.pocker.Pocker;
 
 public class Restore extends Action {
     private Group finished;
+    private Group cardGroup;
     public Restore(){
 
     }
@@ -68,28 +70,26 @@ public class Restore extends Action {
             for (Card card : array1) {
                 array.removeValue(card,false);
                 NLog.e("huishou : %s",card.getPoint());
-
-                 card.clearActions();
             }
-            finished.addAction(Actions.delay(5,Actions.run(new Runnable() {
-                @Override
-                public void run() {
-                    for (Card card : array1) {
-                        array.removeValue(card,false);
-                        NLog.e("huishou : %s",card.getPoint());
-                        finished.addActor(card);
-                        card.setPosition(0,0);
-                        card.clearActions();
-                    }
-                    if (!(array.size<=0) && array.get(array.size-1).isShow() == false) {
-                        array.get(array.size-1).setShow(true);
-                        oper.setShownLastCard(true);
-                    } else {
-                        oper.setShownLastCard(false);
-                    }
-                }
-            })));
+
             //翻开下面的牌
+            for (Card card : array1) {
+                array.removeValue(card,false);
+                NLog.e("huishou : %s",card.getPoint());
+                Vector2 vs = new Vector2();
+                vs.set(card.getX(),card.getY());
+                card.getParent().localToStageCoordinates(vs);
+                finished.stageToLocalCoordinates(vs);
+                card.setPosition(vs.x,vs.y);
+                finished.addActor(card);
+                card.addAction(Actions.moveTo(0,0,1));
+            }
+            if (!(array.size<=0) && array.get(array.size-1).isShow() == false) {
+                array.get(array.size-1).setShow(true);
+                oper.setShownLastCard(true);
+            } else {
+                oper.setShownLastCard(false);
+            }
 
             poker.setScore(poker.getScore()+100);
             vecOper.add(oper);
@@ -222,13 +222,21 @@ public class Restore extends Action {
                 Array<Card> array = poker.getDesk().get(it.getOrigDeskIndex());
                 array.get(array.size - 1).setShow(false);
             }
+
             //把完成的牌放回堆叠
             Array<Array<Card>> finished1 = poker.getFinished();
             Array<Card> it1 = finished1.get(finished1.size-1);
 
             Array<Card> array = poker.getDesk().get(it.getOrigDeskIndex());
             for (int i = 0; i < it1.size; i++) {
+                Card card = it1.get(it1.size - 1);
+                Vector2 vector2 = new Vector2();
+                vector2.set(card.getX(),card.getY());
+                card.getParent().localToStageCoordinates(vector2);
+                finished.stageToLocalCoordinates(vector2);
                 array.add(it1.get(it1.size-1));
+                card.setPosition(vector2.x,vector2.y);
+//                card.addAction(Actions.moveTo(array));
             }
             //完成的牌消掉
             Array<Array<Card>> finished = poker.getFinished();

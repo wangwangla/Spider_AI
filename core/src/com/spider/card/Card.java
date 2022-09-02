@@ -8,6 +8,7 @@ import com.spider.SpiderGame;
 import com.spider.asset.AssetUtil;
 
 import java.lang.reflect.Array;
+import java.util.Objects;
 
 public class Card extends Group {
     private int z_index;
@@ -114,5 +115,21 @@ public class Card extends Group {
         imgBack.setTouchable(Touchable.disabled);
         img.setX(0);
         img.setY(0);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Card card = (Card) o;
+        return z_index == card.z_index && visible == card.visible
+                && suit == card.suit && point == card.point &&
+                show == card.show && position.x == card.position.x&&
+                position.y == card.position.y;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(z_index, visible, img, imgBack, suit, point, show, position);
     }
 }

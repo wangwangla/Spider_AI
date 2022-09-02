@@ -240,9 +240,30 @@ public class Pocker {
         return seed == pocker.seed && suitNum == pocker.suitNum &&
                 score == pocker.score && operation == pocker.operation &&
                 hasGUI == pocker.hasGUI &&
-                Objects.equals(desk, pocker.desk) &&
+                checkArray(desk, pocker.desk) &&
                 Objects.equals(corner, pocker.corner) &&
                 Objects.equals(finished, pocker.finished);
+    }
+
+    public boolean checkArray(Array<Array<Card>> array, Array<Array<Card>> array1){
+        if (array == null && array1 == null)return true;
+        if (array.size!=array1.size) {
+            return false;
+        }
+        for (int i = 0; i < array.size; i++) {
+            Array<Card> array2 = array.get(i);
+            Array<Card> array3 = array1.get(i);
+            if (array2.size != array3.size)return false;
+            for (int i1 = 0; i1 < array2.size; i1++) {
+                Card card = array2.get(i1);
+                Card card1 = array3.get(i1);
+                if (!card.equals(card1)) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 
     public boolean equealCard(Array<Card> array,Array<Card> array1){

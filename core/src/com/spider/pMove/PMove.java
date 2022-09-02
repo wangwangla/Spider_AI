@@ -147,9 +147,6 @@ public class PMove extends Action {
         assert (poker.isHasGUI());
         assert (success);
         //如果发生了回收事件，先恢复到回收前
-        if (restored != null) {
-            restored.redo(poker);
-        }
         Array<Card> cards = poker.getDesk().get(dest);
         int i1 = cards.size - num;
         float baseY = 0;

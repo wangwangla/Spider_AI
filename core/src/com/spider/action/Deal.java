@@ -40,7 +40,7 @@ public class Deal extends Action{
         //打乱
         Random random = new Random();
         random.setSeed(seed);
-        shuffle(cards,random);
+//        shuffle(cards,random);
         cardPrint("shuffle after",cards);
         //发牌
         int pos = 0;
