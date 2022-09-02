@@ -1,6 +1,5 @@
 package com.spider.restore;
 
-import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.utils.Array;
@@ -101,7 +100,7 @@ public class Restore extends Action {
 
 
     private Pocker poker;
-    public boolean Do(Pocker inpoker) {
+    public boolean doAction(Pocker inpoker) {
         poker = inpoker;
         if (vecOper.size<=0) {
             //未指定回收组号
@@ -212,8 +211,8 @@ public class Restore extends Action {
 //        bOnAnimation = false;
     }
 
-    public boolean Redo(Pocker inpoker) {
-        super.Redo(inpoker);
+    public boolean redo(Pocker inpoker) {
+        super.redo(inpoker);
         assert(vecOper.size<=0);
         poker = inpoker;
         for (Oper it : vecOper) {

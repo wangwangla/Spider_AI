@@ -1,6 +1,5 @@
 package com.spider.pMove;
 
-import com.badlogic.gdx.math.Vector;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
@@ -77,7 +76,7 @@ public class PMove extends Action {
         return false;
     }
 
-    public boolean Do(Pocker inpoker) {
+    public boolean doAction(Pocker inpoker) {
         poker = inpoker;
         //不能拾取返回false
         if (!canPick(poker, orig, num)) {
@@ -125,7 +124,7 @@ public class PMove extends Action {
             poker.addOperation();
             //进行回收
             restored = new Restore(dest,finishGroup);
-            if (restored.Do(poker) == false) {
+            if (restored.doAction(poker) == false) {
                 restored = null;
             }
             success = true;
@@ -136,20 +135,20 @@ public class PMove extends Action {
     }
 
 
-    public void startAnimation(boolean bOnAnimation, boolean bStopAnimation) {
-        startAnimation_inner(bOnAnimation, bStopAnimation, 1.0);
+    public void startAnimation() {
+        startAnimation_inner();
     }
 
     public void startAnimationQuick(boolean bOnAnimation, boolean bStopAnimation) {
-        startAnimation_inner(bOnAnimation, bStopAnimation, 0.1);
+//        startAnimation_inner(bOnAnimation, bStopAnimation, 0.1);
     }
 
-    public void startAnimation_inner(boolean bOnAnimation, boolean bStopAnimation, double iDuration) {
+    public void startAnimation_inner() {
         assert (poker.isHasGUI());
         assert (success);
         //如果发生了回收事件，先恢复到回收前
         if (restored != null) {
-            restored.Redo(poker);
+            restored.redo(poker);
         }
         Array<Card> cards = poker.getDesk().get(dest);
         int i1 = cards.size - num;
@@ -163,32 +162,6 @@ public class PMove extends Action {
             Card card = cards.get(cards.size - num+i);
             card.addAction(Actions.moveTo((dest)* v,baseY-20*(i+1),0.2F));
         }
-
-        //移动
-//    seq->Add(para);
-
-        //翻出正面
-//    if (shownLastCard)
-//    {
-//    auto& card = poker->desk[orig].back();
-//    seq->Add(CardTurnOverAnimation::AddBackToFrontAnimation(card));
-//    }
-
-        //恢复z-index
-//    for (auto& ani : vecFinalAni)
-//    seq->Add(ani);
-
-//    bStopAnimation = false;
-//    bOnAnimation = true;
-//    seq->Start(hWnd, bStopAnimation);
-//
-//    //如果在Do中发生了回收，此时再进行回收
-//    if (restored)
-//    {
-//    restored->Do(poker);
-//    restored->StartAnimation(hWnd, bOnAnimation, bStopAnimation);
-//    }
-//    bOnAnimation = false;
     }
 
     void startHintAnimation(boolean bOnAnimation, boolean bStopAnimation) {
@@ -196,7 +169,7 @@ public class PMove extends Action {
         assert (success);
         //如果发生了回收事件，先恢复到回收前
         if (restored != null) {
-            restored.Redo(poker);
+            restored.redo(poker);
         }
 //        SendMessage(hWnd, WM_SIZE, 0, 0);
 
@@ -248,15 +221,26 @@ public class PMove extends Action {
     }
 
 
-    public void RedoAnimation(boolean bOnAnimation, boolean bStopAnimation) {
+    public void redoAnimation() {
         assert (poker.isHasGUI());
+        int index = 0;
+        float worldWidth = Constant.worldWidth;
+        float v = worldWidth / 10.0F;
+        for (Array<Card> cards : poker.getDesk()) {
+            index ++;
+            float offSetY = 0;
+            for (Card card : cards) {
+                card.addAction(Actions.moveTo((index-1)* v,offSetY,1));
+                offSetY -= 20;
+            }
+        }
     }
 
-    public boolean Redo(Pocker inpoker) {
+    public boolean redo(Pocker inpoker) {
         assert (success);
         poker = inpoker;
         if (restored != null) {
-            restored.Redo(poker);
+            restored.redo(poker);
         }
         success = false;
         poker.setOperation(poker.getOperation() - 1);
@@ -270,11 +254,6 @@ public class PMove extends Action {
         Array<Card> array1 = desk.get(dest);
         int start = array1.size - num;
         int end = array1.size - 1;
-//        auto itOrigBegin = poker.getDesk().get(dest).end() - num;
-//        auto itOrigEnd = poker->desk[dest].end();
-
-//        auto itDest = poker.getDesk().get()[orig].end();
-
         Array<Card> temp = new Array<Card>();
         Array<Card> array = poker.getDesk().get(orig);
         if ((start<0)) {
@@ -288,18 +267,9 @@ public class PMove extends Action {
             array.add(card);
             temp.add(card);
         }
-
         for (Card card : temp) {
             array1.removeValue(card,false);
         }
-
-
-        //加上移走的牌
-//        poker->desk[orig].insert(itDest, itOrigBegin, itOrigEnd);
-
-        //擦除移来的牌
-//        poker->desk[dest].erase(itOrigBegin, itOrigEnd);
-
         return true;
     }
 

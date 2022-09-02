@@ -1,11 +1,11 @@
 package com.spider.action;
 
-import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
-import com.badlogic.gdx.scenes.scene2d.actions.SequenceAction;
 import com.badlogic.gdx.utils.Array;
 import com.spider.card.Card;
+import com.spider.constant.Constant;
 import com.spider.log.NLog;
 import com.spider.pocker.Pocker;
 
@@ -14,54 +14,18 @@ import java.util.Random;
 public class Deal extends Action{
     private int suitNum;
     private int seed;
-    private boolean enableSound;
-    private int soundDeal;
-    public Deal(int suitNum,int seed,boolean enableSound,int soundDeal) {
-        this.enableSound = enableSound;
-        this.soundDeal = soundDeal;
+
+    public Deal(int suitNum,int seed) {
         this.suitNum = suitNum;
         this.seed = seed;
     }
 
-    public String GetCommand() {
-        return "dr "+(suitNum)+" "+(seed);
-    }
-
-    public void StartAnimation(boolean bOnAnimation, boolean bStopAnimation) {
-
-    }
-
-    public void RedoAnimation(boolean bOnAnimation, boolean bStopAnimation){
-
-    }
-
-    //返回1维数组，各花色依次1-13点，共8*13=104张
-    public Array<Card> genInitCard() {
-        Array<Card> result = new Array<Card>();
-        switch (suitNum) {
-            case 1:
-                for (int i = 0; i < 8; ++i)
-                    for (int j = 1; j <= 13; ++j)
-                        result.add(new Card(4, j));//1个花色：黑桃
-                break;
-            case 2:
-                for (int i = 0; i < 8; ++i)
-                    for (int j = 1; j <= 13; ++j)
-                        result.add(new Card((i>3) ? 3 : 4, j));//2个花色：红桃，黑桃
-                break;
-            case 4:
-                for (int i = 0; i < 8; ++i)
-                    for (int j = 1; j <= 13; ++j)
-                        result.add(new Card( i % 4 + 1, j));//4个花色
-                break;
-            default:
-//                throw string("Error:'genInitCard(" + to_string(suitNum) + ")");
-                return result;
-        }
-        return result;
-    }
-
-    public boolean Do(Pocker inpoker) {
+    /**
+     * 发牌
+     * @param inpoker
+     * @return
+     */
+    public boolean doAction(Pocker inpoker) {
         poker = inpoker;
         poker.setHasGUI(true);
         poker.setSuitNum(suitNum);
@@ -76,7 +40,7 @@ public class Deal extends Action{
         //打乱
         Random random = new Random();
         random.setSeed(seed);
-        shuffle(cards);
+        shuffle(cards,random);
         cardPrint("shuffle after",cards);
         //发牌
         int pos = 0;
@@ -112,10 +76,9 @@ public class Deal extends Action{
         return true;
     }
 
-    public void shuffle (Array<Card> array) {
+    public void shuffle(Array<Card> array, Random random) {
         Object [] items = array.toArray();
         int size = items.length;
-        Random random = new Random();
         random.setSeed(1);
         for (int i = size - 1; i >= 0; i--) {
             int ii = random.nextInt(i+1);
@@ -135,77 +98,69 @@ public class Deal extends Action{
         }
     }
 
-    public void startAnimation(boolean bOnAnimation,boolean bStopAnimation) {
-        //刷新牌的最后位置
-        SequenceAction seq = new SequenceAction();
-        Array<Array<Card>> corner = poker.getCorner();
-        Array<Card> cards = corner.get(corner.size - 1);
-        Card card = cards.get(cards.size - 1);
-        Vector2 ptStart = card.getPosition();
-        for (int i = 0; i < 54; ++i)
-        {
-            int deskIndex = i % 10;
-            int cardIndex = i / 10;
-
-            Array<Array<Card>> desk = poker.getDesk();
-            Array<Card> cards1 = desk.get(deskIndex);
-            card = cards1.get(cardIndex);
-            //所有牌设置为不可见
-            card.setVisible(false);
-            //动画：设置z-index
-//            seq.addAction(new SettingAnimation<Card, int>(&card,0,&Card::SetZIndex,999-i));
-            card.setZIndex(999-i);
-            //动画：设置为可见
-            seq.addAction(Actions.visible(true));
-            //动画：从角落到指定位置
-            seq.addAction(Actions.moveTo(card.getX(),card.getY(),0.25F));
-            //动画：恢复z-index
-            card.setZIndex(0);
-
-            //所有牌设置为背面
-//            card.setShow(false);
-
-
-            //最后10张牌
-            if (cardIndex == poker.getDesk().get(deskIndex).size - 1) {
-                //背面翻到不显示
-//                vecFinal.push_back(new ValueAnimation<TImage, double>(&card.GetBackImage(),25,&TImage::SetIWidth,1.0,0.0));
-//
-//                //动画：显示牌正面
-//                vecFinal.push_back(new SettingAnimation<Card, bool>(&card,0,&Card::SetShow,true));
-//
-//                //正面翻出来
-//                vecFinal.push_back(new ValueAnimation<TImage, double>(&card.GetImage(),25,&TImage::SetIWidth,0.0,1.0));
+    public void startAnimation() {
+        float worldWidth = Constant.worldWidth;
+        float v = worldWidth / 10.0F;
+        Array<Array<Card>> deskPocker = poker.getDesk();
+        int indexX = 0;
+        for (Array<Card> array : deskPocker) {
+            int y = 0;
+            for (Card card : array) {
+                card.addAction(Actions.moveTo(indexX*v,-y*20,indexX*0.1F+0.2F*y));
+                y++;
             }
+            indexX++;
         }
-
-//        seq->Add(vecFinal);
-
-//        if (enableSound) {
-
-//            int msAll = 25 * 54 + 50 * 10;
-//            int times = msAll / 125 + 1;
-//            auto play = [&]()
-            {
-//                PlaySound((LPCSTR)soundDeal, GetModuleHandle(NULL), SND_RESOURCE | SND_SYNC);
-//            };
-//            while (times--)
-//            {
-//                thread t(play);
-//                t.detach();
-//            }
-        }
-
-        bOnAnimation = true;
-//        seq.Start(hWnd, bStopAnimation);
-        bOnAnimation = false;
     }
 
-    boolean redo(Pocker inpoker) {
+    public boolean redo(Pocker inpoker,Group deskGroup,Group finishGroup,Group coener) {
         poker = inpoker;
         poker.getDesk().clear();
         poker.getCorner().clear();
         poker.getFinished().clear();
+        deskGroup.clearChildren();
+        finishGroup.clearChildren();
+        coener.clearChildren();
         return true;
+    }
+
+
+    //返回1维数组，各花色依次1-13点，共8*13=104张
+    public Array<Card> genInitCard() {
+        Array<Card> result = new Array<Card>();
+        switch (suitNum) {
+            case 1:
+                for (int i = 0; i < 8; ++i)
+                    for (int j = 1; j <= 13; ++j)
+                        result.add(new Card(4, j));//1个花色：黑桃
+                break;
+            case 2:
+                for (int i = 0; i < 8; ++i)
+                    for (int j = 1; j <= 13; ++j)
+                        result.add(new Card((i>3) ? 3 : 4, j));//2个花色：红桃，黑桃
+                break;
+            case 4:
+                for (int i = 0; i < 8; ++i)
+                    for (int j = 1; j <= 13; ++j)
+                        result.add(new Card( i % 4 + 1, j));//4个花色
+                break;
+            default:
+                return result;
+        }
+        return result;
+    }
+
+
+    public void initPos(Group sendCardGroup, Group corner) {
+        Array<Array<Card>> deskPocker = poker.getDesk();
+        Vector2 pos = new Vector2(0,0);
+        corner.localToStageCoordinates(pos);
+        sendCardGroup.stageToLocalCoordinates(pos);
+        for (Array<Card> array : deskPocker) {
+            for (Card card : array) {
+                card.setPosition(pos.y,pos.x);
+                NLog.e("posx posy %s   %s",pos.x,pos.y);
+            }
+        }
     }
 }

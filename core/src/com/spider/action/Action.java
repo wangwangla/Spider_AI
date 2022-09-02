@@ -11,23 +11,25 @@ public class Action {
 
     }
 
-    public boolean Do(Pocker inpoker, Group group) {
+    public boolean doAction(Pocker inpoker, Group group) {
         return false;
     }
 
-    public boolean Do(Pocker inpoker) {
+    public boolean doAction(Pocker inpoker) {
         return false;
     }
 
-    public boolean Redo(Pocker inpoker) {
+    public boolean redo(Pocker inpoker) {
         return false;
     }
 
-    public String GetCommand() {
-        return "";
-    }
-
-    public void startAnimation(boolean bOnAnimation,boolean bStopAnimation){
+    public void startAnimation(){
 
     }
+
+    public void endAnimation(){
+
+    }
+
+    public void redoAnimation(){}
 }

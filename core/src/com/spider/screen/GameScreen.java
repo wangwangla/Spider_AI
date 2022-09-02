@@ -8,18 +8,14 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
-import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.Align;
 import com.spider.SpiderGame;
-import com.spider.asset.AssetUtil;
 import com.spider.config.Configuration;
 import com.spider.constant.Constant;
-import com.spider.constant.ResourceConstant;
 import com.spider.log.NLog;
 import com.spider.manager.GameManager;
-import com.spider.manager.ReleaseCorner;
 
 public class GameScreen extends ScreenAdapter {
     private Stage stage;
