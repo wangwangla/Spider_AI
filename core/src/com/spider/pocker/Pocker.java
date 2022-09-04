@@ -111,7 +111,7 @@ public class Pocker {
         for (Array<Card> cards : pocker.desk) {
             Array<Card> array = new Array<Card>();
             for (Card card : cards) {
-                array.add(card);
+                array.add(new Card(card));
             }
             desk.add(array);
         }
@@ -120,7 +120,7 @@ public class Pocker {
         for (Array<Card> cards : pocker.corner) {
             Array<Card> array = new Array<Card>();
             for (Card card : cards) {
-                array.add(card);
+                array.add(new Card(card));
             }
             corner.add(cards);
         }
@@ -283,4 +283,53 @@ public class Pocker {
     public int hashCode() {
         return Objects.hash(seed, suitNum, score, operation, hasGUI, desk, corner, finished);
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    public int sss(){
+        int ret = 0;
+        StringBuilder builder = new StringBuilder();
+        for (Array<Card> cards : desk) {
+            for (Card card : cards) {
+                builder.append(card.toString());
+            }
+            ret^=builder.toString().hashCode();
+            builder.setLength(0);
+        }
+        for (Array<Card> cards : corner) {
+            for (Card card : cards) {
+                builder.append(card.toString());
+            }
+            ret^=builder.toString().hashCode();
+            builder.setLength(0);
+        }
+        for (Array<Card> cards : finished) {
+            for (Card card : cards) {
+                builder.append(card.toString());
+            }
+            ret^=builder.toString().hashCode();
+            builder.setLength(0);
+        }
+        return ret;
+    }
+
+
+
+
+
+
+
 }

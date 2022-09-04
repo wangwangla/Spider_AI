@@ -28,6 +28,7 @@ public class ReleaseCorner extends Action {
 
     //释放一摞右下角，检查收牌情况
     public boolean doAction(Pocker inpoker, Group cardGroup) {
+        System.out.println("-------------------------------------");
         poker = inpoker;
         //角落区没牌
         if (poker.getCorner().size <= 0) {
@@ -125,10 +126,12 @@ public class ReleaseCorner extends Action {
             if (cards.size>1) {
                 Card card = cards.get(cards.size - 2);
                 Card card1 = cards.get(cards.size - 1);
-                card1.addAction(Actions.moveTo(card.getX(),card.getY()-20,1));
+//                card1.addAction(Actions.moveTo(card.getX(),card.getY()-20,1));
+                card1.setPosition(card.getX(),card.getY()-20,1);
             }else {
                 Card card = cards.get(cards.size - 1);
-                card.addAction(Actions.moveTo(1,1,1));
+//                card.addAction(Actions.moveTo(1,1,1));
+                card.setPosition(1,1);
             }
         }
     }

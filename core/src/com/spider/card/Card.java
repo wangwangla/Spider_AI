@@ -75,6 +75,18 @@ public class Card extends Group {
         return suit;
     }
 
+    char getSuit1() {
+        switch (suit)
+        {
+            case 1:return 'C';//梅花
+            case 2:return 'D';//方块
+            case 3:return 'H';//红桃
+            case 4:return 'S';//黑桃
+            default:
+                throw new RuntimeException("Error:'getSuit():' Undefined suit");
+        }
+    }
+
     public boolean isShow() {
         return show;
     }
@@ -86,16 +98,8 @@ public class Card extends Group {
 
     @Override
     public String toString() {
-        return "Card{" +
-                "z_index=" + z_index +
-                ", visible=" + visible +
-                ", img=" + img +
-                ", imgBack=" + imgBack +
-                ", suit=" + suit +
-                ", point=" + point +
-                ", show=" + show +
-                ", position=" + position +
-                '}';
+        String x = (show ? "" : "[") + getSuit1() + point + (show ? "" : "]");
+        return x;
     }
 
     public void initCard() {
@@ -115,6 +119,12 @@ public class Card extends Group {
         imgBack.setTouchable(Touchable.disabled);
         img.setX(0);
         img.setY(0);
+    }
+
+
+    @Override
+    protected void setParent(Group parent) {
+        super.setParent(parent);
     }
 
     @Override

@@ -36,4 +36,9 @@ public class Action {
     public void setGroup(Group cardGroup) {
 
     }
+
+    @Override
+    public String toString() {
+        return super.toString();
+    }
 }

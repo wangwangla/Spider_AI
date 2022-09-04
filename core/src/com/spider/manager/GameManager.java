@@ -24,13 +24,13 @@ import com.spider.pocker.Pocker;
 import com.spider.restore.Restore;
 
 import java.util.Comparator;
-import java.util.List;
+import java.util.HashSet;
 
 public class GameManager {
     private Pocker pocker;
-    private Array<Action> record = new Array<Action>();
+    public static Array<Action> record = new Array<Action>();
     private Array<Image> vecImageEmpty;
-    private Group cardGroup;
+    public static Group cardGroup;
     private Group finishGroup;
     private Group sendCardGroup;
     private PMove pMove;
@@ -323,25 +323,14 @@ public class GameManager {
             if (action.doAction(poker)) {
                 record.add(action);
             }
-            cardGroup.addAction(Actions.delay(1,Actions.run(
-                    new Runnable() {
-                        @Override
-                        public void run() {
-                            Restore restored = new Restore(dest,finishGroup);
-                            if (restored.canRestore(poker,dest)) {
-                                record.add(restored);
-                            }
-                            if (restored.doAction(poker) == false) {
 
-                            }
-                        }
-                    }
-            )));
             action.startAnimation();
+
         }else {
             PMove action = new PMove(orig, orig, num,finishGroup);
             action.setPocker(poker);
             action.startAnimation();
+
         }
         return false;
     }
@@ -388,7 +377,7 @@ public class GameManager {
 
     int num = 0;
     public boolean AutoSolve1() {
-        ArrayMap<Pocker,Pocker> states = new ArrayMap<Pocker,Pocker>();
+        HashSet<Integer> states = new HashSet<Integer>();
         autoSolveResult.setCalc(0);
         autoSolveResult.setSuccess(false);
         autoSolveResult.setSuit(pocker.getSuitNum());
@@ -400,39 +389,37 @@ public class GameManager {
         int calcLimited = 100000;
         //480时栈溢出，所以必须小于480。不建议提高保留栈大小
         int stackLimited = 400;
+
+
         DFS(autoSolveResult.isSuccess(),
                 autoSolveResult.getCalc(),
                 record,
                 states,
                 stackLimited,
                 calcLimited,false);
-//        SetWindowText(hWnd, origTitle.c_str());
-//#else
         //输出计算量
-//        cout << "Calculation:" << autoSolveResult.calc << endl;
+        NLog.e("calc -- :"+autoSolveResult.getCalc());
 
         if (autoSolveResult.isSuccess() == true) {
             //输出步骤
-//            cout << "Finished. Step = " << record.size() << endl;
-//            for (int i = 0; i < record.size; ++i)
-//                cout << "[" << i << "] " << *record[i] << endl;
-        }
-        else
-        {
+            NLog.e("Finished. Step = "+record.size);
+            for (int i = 0; i < record.size; ++i)
+                NLog.e("[" + i + "] " + record.get(i));
+        } else {
             //输出失败原因
             if (autoSolveResult.getCalc() >= calcLimited) {
-//                cout << "Calculation number >= " << calcLimited << endl;
+                NLog.e("Calculation number >= %s" ,calcLimited);
             } else {
-//                cout << "Call-stack depth >= " << stackLimited << endl;
+                NLog.e("Call-stack depth >= %s", stackLimited);
             }
-//            cout << "Fail." << endl;
+            NLog.e("Fail.");
         }
         return autoSolveResult.isSuccess();
     }
 
 
     Array<Node> GetAllOperator(Array<Integer> emptyIndex,
-                               Pocker poker, ArrayMap<Pocker,Pocker> states) {
+                               Pocker poker, HashSet<Integer> states) {
         Array<Node> actions = new Array<Node>();
         for (int dest = 0; dest < poker.getDesk().size; ++dest) {
             Array<Card> destCards = poker.getDesk().get(dest);
@@ -538,15 +525,18 @@ public class GameManager {
         return actions;
     }
 
+
+    private  int xx = 0;
     boolean DFS(boolean success, int calc, Array<Action> record,
-                      ArrayMap<Pocker,Pocker> states, int stackLimited, int calcLimited,
+                      HashSet<Integer> states, int stackLimited, int calcLimited,
                         boolean playAnimation) {
+        setPos();
         if (pocker.isFinished()) {
-            success = true;
             return true;
         }
-        num++;
-        if (num == 2)return true;
+
+        num ++;
+        if (num == 130)return true;
         //操作次数超出限制，计算量超出限制
         if (calc >= calcLimited) {
             return true;
@@ -581,7 +571,7 @@ public class GameManager {
                 boolean AllIsOrdered = true;
                 Array<Array<Card>> desk = pocker.getDesk();
                 for (int i = 0; i < desk.size; i++) {
-                    for (int i1 = 0; i1 < desk.get(i).size; i1++) {
+                    for (int i1 = 1; i1 < desk.get(i).size; i1++) {
                         if (desk.get(i).get(i1-1).getSuit() !=
                                 desk.get(i).get(i1).getSuit() ||
                                 desk.get(i).get(i1 - 1).getPoint() - 1
@@ -632,7 +622,7 @@ public class GameManager {
         actions.sort(new Comparator<Node>() {
             @Override
             public int compare(Node o1, Node o2) {
-                return o1.getValue()-o2.getValue();
+                return o2.getValue()-o1.getValue();
             }
         });
         //按照评估分大到小排序
@@ -647,32 +637,19 @@ public class GameManager {
 //                cardGroup.addAction(Actions.delay(dxxx++,Actions.run(new Runnable() {
 //                    @Override
 //                    public void run() {
-                        System.out.println(it.getAction());
-
-                        it.getAction().doAction(pocker,cardGroup);
-                        setPos();
-//                    }
-//                })));
-
-//#ifndef _CONSOLE
-//                SetWindowText(hWnd, (origTitle + " (求解步骤=" + to_string(calc) + ")").c_str());
-//                if (pocker.isHasGUI()) {
-//                    if (playAnimation) {
-//                        it.getAction().startAnimation();
-//                    } else {
-////                        OnSize(*pRcClient);
-////                        InvalidateRect(hWnd, pRcClient, false);
-////                        UpdateWindow(hWnd);
-//                        try {
-//                            Thread.sleep(1);
-//                        } catch (InterruptedException e) {
-//                            e.printStackTrace();
-//                        }
-//                    }
-//                }
+                xx++;
+                System.out.println("=============================="+xx);
+                if (xx == 62){
+                    System.out.println("-----------------");
+                }
+                it.getAction().doAction(pocker);
+                setPos();
                 //加入状态
-                states.put(it.getPoker(),it.getPoker());
+                states.add(it.getPoker().sss());
                 //push记录
+                if (record.size==60){
+                    System.out.println("=======================================");
+                }
                 record.add(it.getAction());
 
                 if (DFS(success, calc, record, states, stackLimited, calcLimited, playAnimation)) {
@@ -696,11 +673,7 @@ public class GameManager {
             }
 		else//已出现过的状态
             {
-//                cout << string(20, '-');
-//                cout << "No-movement:" << endl;
-//#endif
-                    //直接转到下一个操作
-//                    it = actions.erase(it);
+
                 array.add(it);
             }
         }
@@ -717,14 +690,8 @@ public class GameManager {
     };
 
     int dxxx = 0;
-    public boolean compare(ArrayMap<Pocker,Pocker> arrayMap,Pocker pocker){
-        if (arrayMap.size<=0)return false;
-        for (ObjectMap.Entry<Pocker, Pocker> pockerPockerEntry : arrayMap) {
-            if (!pockerPockerEntry.value.equals(pocker)) {
-                return false;
-            }
-        }
-        return true;
+    public boolean compare(HashSet<Integer> arrayMap,Pocker pocker){
+        return arrayMap.contains(pocker.sss());
     }
 
 }

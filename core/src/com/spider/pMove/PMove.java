@@ -8,6 +8,7 @@ import com.badlogic.gdx.utils.Array;
 import com.spider.action.Action;
 import com.spider.card.Card;
 import com.spider.constant.Constant;
+import com.spider.manager.GameManager;
 import com.spider.pocker.Pocker;
 import com.spider.restore.Restore;
 
@@ -36,8 +37,12 @@ public class PMove extends Action {
     //pos 牌编号
     public boolean canPick(Pocker poker, int origIndex, int num) {
         assert (origIndex >= 0 && origIndex < poker.getDesk().size);
-        assert (num > 0 && num <= poker.getDesk().get(origIndex).size);
+        assert (num > 0 && num > poker.getDesk().get(origIndex).size);
+        if (num>0 && num <= poker.getDesk().get(origIndex).size){
 
+        }else {
+            System.out.println();
+        }
         //暂存最外张牌
         //eg. size=10, card[9].suit
         Array<Card> cards = poker.getDesk().get(origIndex);
@@ -124,6 +129,15 @@ public class PMove extends Action {
             poker.addOperation();
 
             success = true;
+            Restore restored = new Restore(dest,finishGroup);
+            if (restored.canRestore(poker,dest)) {
+                System.out.println("=======================================");
+
+                if (restored.doAction(poker) == false) {
+
+                }
+            }
+
             return true;
         } else {
             return false;
@@ -153,8 +167,11 @@ public class PMove extends Action {
         for (int i = 0; i < num; ++i) {
             float v = Constant.worldWidth / 10.0F;
             Card card = cards.get(cards.size - num+i);
-            card.addAction(Actions.moveTo((dest)* v,baseY-20*(i+1),0.2F));
+//            card.addAction(Actions.moveTo((dest)* v,baseY-20*(i+1),0.2F));
+            card.setPosition(dest* v,baseY-20*(i+1));
         }
+
+
     }
 
     void startHintAnimation(boolean bOnAnimation, boolean bStopAnimation) {
@@ -268,5 +285,10 @@ public class PMove extends Action {
 
     public void setPocker(Pocker poker) {
         this.poker = poker;
+    }
+
+    @Override
+    public String toString() {
+        return orig +"  "+dest +"   ";
     }
 }

@@ -79,11 +79,14 @@ public class Restore extends Action {
                 NLog.e("huishou : %s",card.getPoint());
                 Vector2 vs = new Vector2();
                 vs.set(card.getX(),card.getY());
-                card.getParent().localToStageCoordinates(vs);
-                finished.stageToLocalCoordinates(vs);
-                card.setPosition(vs.x,vs.y);
-                finished.addActor(card);
-                card.addAction(Actions.moveTo(0,0,1));
+                if (card.getParent()!=null) {
+                    card.getParent().localToStageCoordinates(vs);
+                    finished.stageToLocalCoordinates(vs);
+                    card.setPosition(vs.x,vs.y);
+                    finished.addActor(card);
+                    card.addAction(Actions.moveTo(0,0,1));
+                }
+
             }
             if (!(array.size<=0) && array.get(array.size-1).isShow() == false) {
                 array.get(array.size-1).setShow(true);

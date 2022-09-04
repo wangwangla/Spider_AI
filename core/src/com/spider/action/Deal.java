@@ -94,7 +94,7 @@ public class Deal extends Action{
 
     private void cardPrint(String preShuffle,Array<Card> cards) {
         for (Card card : cards) {
-            NLog.e("%s cards \n: %s",preShuffle,card);
+//            NLog.e("%s cards \n: %s",preShuffle,card);
         }
     }
 
