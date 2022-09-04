@@ -122,11 +122,7 @@ public class PMove extends Action {
             }
             poker.minusOne();
             poker.addOperation();
-            //进行回收
-            restored = new Restore(dest,finishGroup);
-            if (restored.doAction(poker) == false) {
-                restored = null;
-            }
+
             success = true;
             return true;
         } else {

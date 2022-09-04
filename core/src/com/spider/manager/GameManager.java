@@ -23,13 +23,13 @@ import com.spider.pMove.PMove;
 import com.spider.pocker.Pocker;
 import com.spider.restore.Restore;
 
+import java.util.Comparator;
 import java.util.List;
 
 public class GameManager {
     private Pocker pocker;
     private Array<Action> record = new Array<Action>();
     private Array<Image> vecImageEmpty;
-    private boolean bStopThread;
     private Group cardGroup;
     private Group finishGroup;
     private Group sendCardGroup;
@@ -269,6 +269,7 @@ public class GameManager {
         if (record.size<=0)return;
         Array<Action> record = this.record;
         Action action = record.removeIndex(record.size - 1);
+        action.setGroup(cardGroup);
         action.redo(pocker);
         action.redoAnimation();
 //        for (Action action : record) {
@@ -316,17 +317,26 @@ public class GameManager {
         }
     }
 
-    boolean Move(Pocker poker,int orig,int dest,int num) {
+    boolean Move(final Pocker poker,int orig,final int dest,int num) {
         if (orig!=dest && dest!=-1) {
             PMove action = new PMove(orig, dest, num,finishGroup);
             if (action.doAction(poker)) {
                 record.add(action);
             }
-            //进行回收
-            Restore restored = new Restore(dest,finishGroup);
-            if (restored.doAction(poker) == false) {
-                restored = null;
-            }
+            cardGroup.addAction(Actions.delay(1,Actions.run(
+                    new Runnable() {
+                        @Override
+                        public void run() {
+                            Restore restored = new Restore(dest,finishGroup);
+                            if (restored.canRestore(poker,dest)) {
+                                record.add(restored);
+                            }
+                            if (restored.doAction(poker) == false) {
+
+                            }
+                        }
+                    }
+            )));
             action.startAnimation();
         }else {
             PMove action = new PMove(orig, orig, num,finishGroup);
@@ -376,11 +386,8 @@ public class GameManager {
         return false;
     }
 
-    public boolean AutoSolve1(boolean playAnimation) {
-        Pocker pockerTemp = new Pocker(pocker);
-        array.add(pocker);
-        array.add(pockerTemp);
-        bStopThread = false;
+    int num = 0;
+    public boolean AutoSolve1() {
         ArrayMap<Pocker,Pocker> states = new ArrayMap<Pocker,Pocker>();
         autoSolveResult.setCalc(0);
         autoSolveResult.setSuccess(false);
@@ -391,21 +398,14 @@ public class GameManager {
         //2花色时，2000可以解出23/100个；8000可以解出32/100个；100000可以解出47/100个，耗时100min
         //4花色时，100000解出0/100个，耗时132min
         int calcLimited = 100000;
-
         //480时栈溢出，所以必须小于480。不建议提高保留栈大小
         int stackLimited = 400;
-        char sz[] = new char[MAX_PATH];
-//        GetWindowText(hWnd, sz, MAX_PATH);
-//        string origTitle(sz);
-        String origTitle = "";
-//        DFS(autoSolveResult.isSuccess(),
-//                autoSolveResult.getCalc(),
-//                origTitle,
-//                record,
-//                states,
-//                stackLimited,
-//                calcLimited,
-//                playAnimation);
+        DFS(autoSolveResult.isSuccess(),
+                autoSolveResult.getCalc(),
+                record,
+                states,
+                stackLimited,
+                calcLimited,false);
 //        SetWindowText(hWnd, origTitle.c_str());
 //#else
         //输出计算量
@@ -435,7 +435,6 @@ public class GameManager {
                                Pocker poker, ArrayMap<Pocker,Pocker> states) {
         Array<Node> actions = new Array<Node>();
         for (int dest = 0; dest < poker.getDesk().size; ++dest) {
-            Array<Array<Card>> desk = poker.getDesk();
             Array<Card> destCards = poker.getDesk().get(dest);
             if (destCards.size<=0) {
                 emptyIndex.add(dest);
@@ -503,7 +502,7 @@ public class GameManager {
 
                         //不是倒数第1个
                         if (it != origCards.get(origCards.size-1)) {
-                            Card itDown = origCards.get(origCards.size-2);//上一张牌
+                            Card itDown = origCards.get(i+1);//上一张牌
                             if (itDown.getPoint() + 1 != it.getPoint())//不连续则跳出，不能移动
                                 break;
                         }
@@ -539,199 +538,185 @@ public class GameManager {
         return actions;
     }
 
+    boolean DFS(boolean success, int calc, Array<Action> record,
+                      ArrayMap<Pocker,Pocker> states, int stackLimited, int calcLimited,
+                        boolean playAnimation) {
+        if (pocker.isFinished()) {
+            success = true;
+            return true;
+        }
+        num++;
+        if (num == 2)return true;
+        //操作次数超出限制，计算量超出限制
+        if (calc >= calcLimited) {
+            return true;
+        }
 
-    public boolean stateLast(List<Pocker> tempList, Pocker tempPoker){
-        if (tempList.size()<=0){
-            return true;
+        if (pocker.getOperation() >= stackLimited) {
+            return false;
         }
-        if (tempList.get(tempList.size()-1) == tempPoker) {
-            return true;
+        calc++;
+        Array<Integer> emptyIndex = new Array<Integer>();
+        Pocker tempPoker = new Pocker(pocker);
+        Array<Node> actions = GetAllOperator(emptyIndex, tempPoker, states);
+
+        //优化操作
+        if (emptyIndex.size<=0) {
+            //没有空位
+            //去掉比当前评分还低的移牌
+            Array<Node> array = new Array<Node>();
+            for (Node action : actions) {
+                if (action.getAction() instanceof PMove && action.getValue() <= pocker.GetValue()) {
+                    array.add(action);
+                }
+            }
+            for (Node node : array) {
+                actions.removeValue(node,false);
+            }
+        } else {
+            //有空位
+            //如果待发区还有牌，则移牌到空位补空，因为有空位不能发牌
+            if (!(pocker.getCorner().size<=0)) {
+                //如果全是顺牌，则找一张最小的移过去
+                boolean AllIsOrdered = true;
+                Array<Array<Card>> desk = pocker.getDesk();
+                for (int i = 0; i < desk.size; i++) {
+                    for (int i1 = 0; i1 < desk.get(i).size; i1++) {
+                        if (desk.get(i).get(i1-1).getSuit() !=
+                                desk.get(i).get(i1).getSuit() ||
+                                desk.get(i).get(i1 - 1).getPoint() - 1
+                                        != desk.get(i).get(i1).getPoint())
+                        {
+                            AllIsOrdered = false;
+                            break;
+                        }
+
+                    }
+                }
+
+                if (AllIsOrdered) {
+                    //清空当前所有操作
+                    ReleaseActions(actions);
+                    int orig = 0;
+                    int minPoint = 14;
+                    //寻找最小的牌
+                    for (int i = 0; i < pocker.getDesk().size; ++i) {
+                        Array<Card> cards = pocker.getDesk().get(i);
+                        if (cards.size > 1 && cards.get(cards.size-1).getPoint() < minPoint)//牌数>=2，把上面的挪到旁边去
+                        {
+                            minPoint = cards.get(cards.size-1).getPoint();
+                            orig = i;
+                        }
+                    }
+
+                    if (minPoint == 14)//说明总牌数小于10张，强行发牌
+                    {
+                        Pocker newPoker = new Pocker(pocker);
+                        Action action = new ReleaseCorner(false,cardGroup,finishGroup);
+//                        shared_ptr<Action> action(new ReleaseCorner(config.enableSound, soundDeal));
+                        action.doAction(newPoker);
+                        actions.add(new Node(pocker.GetValue() - 100,newPoker,action));
+                    }
+                    else
+                    {
+                        //只添加一个移牌补空位的操作
+                        Action action = new PMove(orig, emptyIndex.get(0), 1,finishGroup);
+                        Pocker newPoker = new Pocker(pocker);
+                        action.doAction(newPoker);
+                        actions.add(new Node(newPoker.GetValue(),newPoker,action));
+                    }
+                }
+            }
         }
+
+        actions.sort(new Comparator<Node>() {
+            @Override
+            public int compare(Node o1, Node o2) {
+                return o1.getValue()-o2.getValue();
+            }
+        });
+        //按照评估分大到小排序
+//        sort(actions.begin(), actions.end(), [](const Node& n1, const Node& n2) {return n1.value > n2.value; });
+
+        Array<Node> array = new Array<Node>();
+        int round = -1;
+        //开始递归
+        for (final Node it : actions) {
+            //没出现过的状态
+            if (!compare(states,it.getPoker())) {
+//                cardGroup.addAction(Actions.delay(dxxx++,Actions.run(new Runnable() {
+//                    @Override
+//                    public void run() {
+                        System.out.println(it.getAction());
+
+                        it.getAction().doAction(pocker,cardGroup);
+                        setPos();
+//                    }
+//                })));
+
+//#ifndef _CONSOLE
+//                SetWindowText(hWnd, (origTitle + " (求解步骤=" + to_string(calc) + ")").c_str());
+//                if (pocker.isHasGUI()) {
+//                    if (playAnimation) {
+//                        it.getAction().startAnimation();
+//                    } else {
+////                        OnSize(*pRcClient);
+////                        InvalidateRect(hWnd, pRcClient, false);
+////                        UpdateWindow(hWnd);
+//                        try {
+//                            Thread.sleep(1);
+//                        } catch (InterruptedException e) {
+//                            e.printStackTrace();
+//                        }
+//                    }
+//                }
+                //加入状态
+                states.put(it.getPoker(),it.getPoker());
+                //push记录
+                record.add(it.getAction());
+
+                if (DFS(success, calc, record, states, stackLimited, calcLimited, playAnimation)) {
+                    //只有终止才会返回true，如果任意位置返回true，此处将逐级终止递归
+                    ReleaseActions(actions);
+                    return true;
+                }
+
+                it.getAction().redo(pocker);
+                if (pocker.isHasGUI()) {
+                    if (playAnimation) {
+                    } else {
+//                        OnSize(*pRcClient);
+//                        InvalidateRect(hWnd, pRcClient, false);
+//                        UpdateWindow(hWnd);
+                        setPos();
+                    }
+                }
+                //pop记录
+                record.removeIndex(record.size - 1);
+            }
+		else//已出现过的状态
+            {
+//                cout << string(20, '-');
+//                cout << "No-movement:" << endl;
+//#endif
+                    //直接转到下一个操作
+//                    it = actions.erase(it);
+                array.add(it);
+            }
+        }
+
+        for (Node node : array) {
+            actions.removeValue(node,false);
+        }
+        ReleaseActions(actions);
         return false;
     }
-
-    int indd = 0;
-
-//    boolean DFS(boolean success, int calc, String origTitle, Array<Action> record,
-//                      ArrayMap<Pocker,Pocker> states, int stackLimited, int calcLimited,
-//                        boolean playAnimation) {
-//        indd++;
-//        if (indd>1)return false;
-//        System.out.println("--------------------"+pocker.getOperation());
-//        if (pocker.isFinished()) {
-//            success = true;
-//            return true;
-//        }
-//
-//        //操作次数超出限制，计算量超出限制
-//        if (calc >= calcLimited || bStopThread) {
-//            return true;
-//        }
-//
-//        if (pocker.getOperation() >= stackLimited) {
-//            return false;
-//        }
-//        calc++;
-//        Array<Integer> emptyIndex = new Array<Integer>();
-//        Pocker tempPoker = new Pocker(pocker);
-//        Array<Node> actions = GetAllOperator(emptyIndex, tempPoker, states);
-//
-//        //优化操作
-//        if (emptyIndex.size<=0) {
-//            //没有空位
-//            //去掉比当前评分还低的移牌
-//            Array<Node> array = new Array<Node>();
-//            for (Node action : actions) {
-//                if (action.getAction() instanceof PMove && action.getValue() <= pocker.GetValue()) {
-//                    array.add(action);
-//                }
-//            }
-//            for (Node node : array) {
-//                actions.removeValue(node,false);
-//            }
-//        } else {
-//            //有空位
-//            //如果待发区还有牌，则移牌到空位补空，因为有空位不能发牌
-//            if (!(pocker.getCorner().size<=0)) {
-//                //如果全是顺牌，则找一张最小的移过去
-//                boolean AllIsOrdered = true;
-//                Array<Array<Card>> desk = pocker.getDesk();
-//                for (int i = 0; i < desk.size; i++) {
-//                    for (int i1 = 0; i1 < desk.get(i).size; i1++) {
-//                        if (desk.get(i).get(i1-1).getSuit() !=
-//                                desk.get(i).get(i1).getSuit() ||
-//                                desk.get(i).get(i1 - 1).getPoint() - 1
-//                                        != desk.get(i).get(i1).getPoint())
-//                        {
-//                            AllIsOrdered = false;
-//                            break;
-//                        }
-//
-//                    }
-//                }
-//
-//                if (AllIsOrdered) {
-//                    //清空当前所有操作
-//                    ReleaseActions(actions);
-//                    int orig = 0;
-//                    int minPoint = 14;
-//                    //寻找最小的牌
-//                    for (int i = 0; i < pocker.getDesk().size; ++i) {
-//                        Array<Card> cards = pocker.getDesk().get(i);
-//                        if (cards.size > 1 && cards.get(cards.size-1).getPoint() < minPoint)//牌数>=2，把上面的挪到旁边去
-//                        {
-//                            minPoint = cards.get(cards.size-1).getPoint();
-//                            orig = i;
-//                        }
-//                    }
-//
-//                    if (minPoint == 14)//说明总牌数小于10张，强行发牌
-//                    {
-//                        Pocker newPoker = new Pocker(pocker);
-//                        Action action = new ReleaseCorner(false,cardGroup,finishGroup);
-////                        shared_ptr<Action> action(new ReleaseCorner(config.enableSound, soundDeal));
-//                        action.doAction(newPoker);
-//                        actions.add(new Node(pocker.GetValue() - 100,newPoker,action));
-//                    }
-//                    else
-//                    {
-//                        //只添加一个移牌补空位的操作
-//                        Action action = new PMove(orig, emptyIndex.get(0), 1,finishGroup);
-//                        Pocker newPoker = new Pocker(pocker);
-//                        action.doAction(newPoker);
-//                        actions.add(new Node(newPoker.GetValue(),newPoker,action));
-//                    }
-//                }
-//            }
-//        }
-//
-//        actions.sort(new Comparator<Node>() {
-//            @Override
-//            public int compare(Node o1, Node o2) {
-//                return o1.getValue()-o2.getValue();
-//            }
-//        });
-//        //按照评估分大到小排序
-////        sort(actions.begin(), actions.end(), [](const Node& n1, const Node& n2) {return n1.value > n2.value; });
-//
-//        Array<Node> array = new Array<Node>();
-//        int round = -1;
-//        //开始递归
-//        for (Node it : actions) {
-//            //没出现过的状态
-//            if (!compare(states,it.getPoker())) {
-//                boolean bNounce = true;
-//                boolean bStop = false;
-//                it.getAction().doAction(pocker,cardGroup);
-//                setPos();
-////#ifndef _CONSOLE
-////                SetWindowText(hWnd, (origTitle + " (求解步骤=" + to_string(calc) + ")").c_str());
-//                if (pocker.isHasGUI()) {
-//                    if (playAnimation) {
-//                        it.getAction().startAnimation(bNounce, bStop);
-//                    } else {
-////                        OnSize(*pRcClient);
-////                        InvalidateRect(hWnd, pRcClient, false);
-////                        UpdateWindow(hWnd);
-//                        setPos();
-//                        try {
-//                            Thread.sleep(1);
-//                        } catch (InterruptedException e) {
-//                            e.printStackTrace();
-//                        }
-//                    }
-//                }
-//                //加入状态
-//                states.put(it.getPoker(),it.getPoker());
-//                //push记录
-//                record.add(it.getAction());
-//
-//                if (DFS(success, calc, origTitle, record, states, stackLimited, calcLimited, playAnimation)) {
-//                    //只有终止才会返回true，如果任意位置返回true，此处将逐级终止递归
-//                    ReleaseActions(actions);
-//                    return true;
-//                }
-//
-//                it.getAction().redo(pocker);
-//                if (pocker.isHasGUI()) {
-//                    if (playAnimation) {
-//                    } else {
-////                        OnSize(*pRcClient);
-////                        InvalidateRect(hWnd, pRcClient, false);
-////                        UpdateWindow(hWnd);
-//                        setPos();
-//                        try {
-//                            Thread.sleep(1);
-//                        } catch (InterruptedException e) {
-//                            e.printStackTrace();
-//                        }
-//                    }
-//                }
-//                //pop记录
-//                record.removeIndex(record.size - 1);
-//            }
-//		else//已出现过的状态
-//            {
-////                cout << string(20, '-');
-////                cout << "No-movement:" << endl;
-////#endif
-//                    //直接转到下一个操作
-////                    it = actions.erase(it);
-//                array.add(it);
-//            }
-//        }
-//
-//        for (Node node : array) {
-//            actions.removeValue(node,false);
-//        }
-//        ReleaseActions(actions);
-//        return false;
-//    }
 
     private void ReleaseActions(Array<Node> actions) {
         actions.clear();
     };
 
+    int dxxx = 0;
     public boolean compare(ArrayMap<Pocker,Pocker> arrayMap,Pocker pocker){
         if (arrayMap.size<=0)return false;
         for (ObjectMap.Entry<Pocker, Pocker> pockerPockerEntry : arrayMap) {

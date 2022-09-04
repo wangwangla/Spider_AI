@@ -241,8 +241,8 @@ public class Pocker {
                 score == pocker.score && operation == pocker.operation &&
                 hasGUI == pocker.hasGUI &&
                 checkArray(desk, pocker.desk) &&
-                Objects.equals(corner, pocker.corner) &&
-                Objects.equals(finished, pocker.finished);
+                checkArray(corner, pocker.corner) &&
+                checkArray(finished, pocker.finished);
     }
 
     public boolean checkArray(Array<Array<Card>> array, Array<Array<Card>> array1){

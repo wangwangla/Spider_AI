@@ -7,6 +7,7 @@ import com.badlogic.gdx.utils.Array;
 import com.spider.action.Action;
 import com.spider.bean.Oper;
 import com.spider.card.Card;
+import com.spider.constant.Constant;
 import com.spider.log.NLog;
 import com.spider.pocker.Pocker;
 
@@ -26,7 +27,7 @@ public class Restore extends Action {
         vecOper.add(new Oper(deskNum,false));
     }
         //返回对应堆叠能否回收
-    boolean canRestore(Pocker poker, int deskNum) {
+    public boolean canRestore(Pocker poker, int deskNum) {
         if (poker.getDesk().get(deskNum).size<=0)
             return false;
         int pos = poker.getDesk().get(deskNum).size - 1;
@@ -90,7 +91,6 @@ public class Restore extends Action {
             } else {
                 oper.setShownLastCard(false);
             }
-
             poker.setScore(poker.getScore()+100);
             vecOper.add(oper);
             return true;
@@ -114,7 +114,6 @@ public class Restore extends Action {
             vecOper.clear();
             doRestore(poker,deskIndex);
         }
-
         return !(vecOper.size<=0);
     }
 
@@ -226,17 +225,21 @@ public class Restore extends Action {
             //把完成的牌放回堆叠
             Array<Array<Card>> finished1 = poker.getFinished();
             Array<Card> it1 = finished1.get(finished1.size-1);
-
+            float v = Constant.worldWidth / 10.0F;
             Array<Card> array = poker.getDesk().get(it.getOrigDeskIndex());
+            float baseY = array.size>0 ? array.get(array.size-1).getY() : 0;
             for (int i = 0; i < it1.size; i++) {
-                Card card = it1.get(it1.size - 1);
+                Card card = it1.get(it1.size - 1-i);
                 Vector2 vector2 = new Vector2();
                 vector2.set(card.getX(),card.getY());
                 card.getParent().localToStageCoordinates(vector2);
-                finished.stageToLocalCoordinates(vector2);
-                array.add(it1.get(it1.size-1));
+                cardGroup.stageToLocalCoordinates(vector2);
+                array.add(card);
                 card.setPosition(vector2.x,vector2.y);
 //                card.addAction(Actions.moveTo(array));
+                cardGroup.addActor(card);
+                card.addAction(Actions.moveTo(it.getOrigDeskIndex()*v,baseY,1F));
+                baseY -= 40;
             }
             //完成的牌消掉
             Array<Array<Card>> finished = poker.getFinished();
@@ -244,5 +247,11 @@ public class Restore extends Action {
         }
         vecOper.clear();
         return true;
+    }
+
+    @Override
+    public void setGroup(Group cardGroup) {
+        super.setGroup(cardGroup);
+        this.cardGroup = cardGroup;
     }
 }

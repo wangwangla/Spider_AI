@@ -8,6 +8,7 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.Align;
@@ -115,6 +116,13 @@ public class GameScreen extends ScreenAdapter {
                 manager.OnLButtonUp();
             }
         });
+
+        stage.addAction(Actions.delay(4,Actions.run(new Runnable() {
+            @Override
+            public void run() {
+                manager.AutoSolve1();
+            }
+        })));
     }
 
     private void showBg() {
