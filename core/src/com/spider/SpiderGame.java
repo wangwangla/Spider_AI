@@ -28,7 +28,6 @@ public class SpiderGame extends Game {
     }
 
     public static ExtendViewport getViewport() {
-
         return viewport;
     }
 

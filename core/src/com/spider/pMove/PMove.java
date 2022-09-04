@@ -275,7 +275,7 @@ public class PMove extends Action {
 
         Array<Array<Card>> desk = poker.getDesk();
         Array<Card> array1 = desk.get(desk.size - 1);
-        int start = array1.size - num - 1;
+        int start = array1.size - num;
         int end = array1.size - 1;
 //        auto itOrigBegin = poker.getDesk().get(dest).end() - num;
 //        auto itOrigEnd = poker->desk[dest].end();
@@ -284,6 +284,12 @@ public class PMove extends Action {
 
         Array<Card> temp = new Array<Card>();
         Array<Card> array = poker.getDesk().get(orig);
+        if ((start<0)) {
+            start = 0;
+        }
+        if (end>=array1.size) {
+            end = array1.size-1;
+        }
         for (int i = start; i <= end; i++) {
             Card card = array1.get(i);
             array.add(card);

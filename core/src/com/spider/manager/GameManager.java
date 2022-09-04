@@ -7,6 +7,8 @@ import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ArrayMap;
+import com.badlogic.gdx.utils.ObjectMap;
+import com.badlogic.gdx.utils.ObjectSet;
 import com.spider.action.Action;
 import com.spider.action.Deal;
 import com.spider.bean.AutoSolveResult;
@@ -405,6 +407,13 @@ public class GameManager {
     private AutoSolveResult autoSolveResult = new AutoSolveResult();
     Array<Pocker> array = new Array<Pocker>();
     public boolean AutoSolve(boolean playAnimation) {
+//        ReleaseCorner releaseCorner = new ReleaseCorner();
+//        releaseCorner.Do(pocker,cardGroup);
+//        setPos();
+        return false;
+    }
+
+    public boolean AutoSolve1(boolean playAnimation) {
         Pocker pockerTemp = new Pocker(pocker);
         array.add(pocker);
         array.add(pockerTemp);
@@ -413,7 +422,7 @@ public class GameManager {
 
         bOnThread = true;
         bStopThread = false;
-        HashSet<Pocker> states = new HashSet<Pocker>();
+        ArrayMap<Pocker,Pocker> states = new ArrayMap<Pocker,Pocker>();
         autoSolveResult.setCalc(0);
         autoSolveResult.setSuccess(false);
         autoSolveResult.setSuit(pocker.getSuitNum());
@@ -465,7 +474,7 @@ public class GameManager {
 
 
     Array<Node> GetAllOperator(Array<Integer> emptyIndex,
-                               Pocker poker, HashSet<Pocker> states) {
+                               Pocker poker, ArrayMap<Pocker,Pocker> states) {
         Array<Node> actions = new Array<Node>();
         for (int dest = 0; dest < poker.getDesk().size; ++dest) {
             Array<Array<Card>> desk = poker.getDesk();
@@ -503,8 +512,9 @@ public class GameManager {
                     Pocker newPoker = new Pocker(poker);
                     Action action = new PMove(orig, dest, num);
                     action.Do(newPoker);
-                    List<Pocker> list = new ArrayList(states);
-                    if (newPoker == list.get(list.size()-1)) {
+//                    if (newPoker == states.getKeyAt(states.size-1)) {
+
+                    if (!compare(states,newPoker)) {
                         actions.add(new Node(newPoker.GetValue(), newPoker, action));
                     }
                 }
@@ -546,10 +556,10 @@ public class GameManager {
                         {
                             Pocker tempPoker = new Pocker(poker);
                             Action action = new PMove(orig, dest, num);
-                            List<Pocker> tempList = new ArrayList(states);
+
 //                            boolean b = tempList.size() > 0 && tempPoker == tempList.get(tempList.size() - 1);
-                            boolean b1 = stateLast(tempList, tempPoker);
-                            if (action.Do(tempPoker) &&b1)
+//                            boolean b1 = stateLast(tempList, tempPoker);
+                            if (action.Do(tempPoker) &&!compare(states,tempPoker))
                             actions.add(new Node(tempPoker.GetValue(),tempPoker,action));
                             break;
                         }
@@ -582,9 +592,13 @@ public class GameManager {
         return false;
     }
 
+    int indd = 0;
+
     boolean DFS(boolean success, int calc, String origTitle, Array<Action> record,
-                      HashSet<Pocker> states, int stackLimited, int calcLimited,
+                      ArrayMap<Pocker,Pocker> states, int stackLimited, int calcLimited,
                         boolean playAnimation) {
+        indd++;
+        if (indd>1)return false;
         System.out.println("--------------------"+pocker.getOperation());
         if (pocker.isFinished()) {
             success = true;
@@ -617,9 +631,7 @@ public class GameManager {
             for (Node node : array) {
                 actions.removeValue(node,false);
             }
-        }
-        else
-        {
+        } else {
             //有空位
             //如果待发区还有牌，则移牌到空位补空，因为有空位不能发牌
             if (!(pocker.getCorner().size<=0)) {
@@ -689,9 +701,7 @@ public class GameManager {
         //开始递归
         for (Node it : actions) {
             //没出现过的状态
-            List<Pocker> tempList = new ArrayList<Pocker>(states);
-            boolean b1 = stateLast(tempList, it.getPoker());
-            if (b1) {
+            if (!compare(states,it.getPoker())) {
                 boolean bNounce = true;
                 boolean bStop = false;
                 it.getAction().Do(pocker,cardGroup);
@@ -714,7 +724,7 @@ public class GameManager {
                     }
                 }
                 //加入状态
-                states.add(it.getPoker());
+                states.put(it.getPoker(),it.getPoker());
                 //push记录
                 record.add(it.getAction());
 
@@ -763,5 +773,15 @@ public class GameManager {
     private void ReleaseActions(Array<Node> actions) {
         actions.clear();
     };
+
+    public boolean compare(ArrayMap<Pocker,Pocker> arrayMap,Pocker pocker){
+        if (arrayMap.size<=0)return false;
+        for (ObjectMap.Entry<Pocker, Pocker> pockerPockerEntry : arrayMap) {
+            if (!pockerPockerEntry.value.equals(pocker)) {
+                return false;
+            }
+        }
+        return true;
+    }
 
 }

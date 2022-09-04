@@ -1,6 +1,7 @@
 package com.spider.pocker;
 
 import com.badlogic.gdx.utils.Array;
+import com.badlogic.gdx.utils.ArrayMap;
 import com.spider.card.Card;
 
 import java.util.Objects;
@@ -242,6 +243,19 @@ public class Pocker {
                 Objects.equals(desk, pocker.desk) &&
                 Objects.equals(corner, pocker.corner) &&
                 Objects.equals(finished, pocker.finished);
+    }
+
+    public boolean equealCard(Array<Card> array,Array<Card> array1){
+        if (null == array ||array1==null)return false;
+        if (array.size != array1.size)return false;
+        for (int i = 0; i < array.size; i++) {
+            Card card = array.get(i);
+            Card card1 = array1.get(i);
+            if (!card.toString().equals(card1.toString())) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @Override
