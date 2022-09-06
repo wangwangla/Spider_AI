@@ -164,8 +164,8 @@ public class Pocker {
 //                };
 
                 int num = 0;
-                Card pTop = cards.get(cards.size - 1);
-                Card pDown = cards.get(cards.size - 1);
+                Card pTop = cards.get(cards.size-1);
+                Card pDown = cards.get(cards.size-1);
 
                 //从下数第2张到顶部
                 for (int i = cards.size - 2; i >= 0; --i) {

@@ -1,5 +1,6 @@
 package com.spider.manager;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Group;
@@ -9,6 +10,7 @@ import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ArrayMap;
 import com.badlogic.gdx.utils.ObjectMap;
+import com.badlogic.gdx.utils.Timer;
 import com.spider.SpiderGame;
 import com.spider.action.Action;
 import com.spider.action.Deal;
@@ -25,6 +27,7 @@ import com.spider.restore.Restore;
 
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.TimerTask;
 
 public class GameManager {
     private Pocker pocker;
@@ -534,7 +537,6 @@ public class GameManager {
         if (pocker.isFinished()) {
             return true;
         }
-
         num ++;
         if (num == 130)return true;
         //操作次数超出限制，计算量超出限制
@@ -652,6 +654,11 @@ public class GameManager {
                 }
                 record.add(it.getAction());
 
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
                 if (DFS(success, calc, record, states, stackLimited, calcLimited, playAnimation)) {
                     //只有终止才会返回true，如果任意位置返回true，此处将逐级终止递归
                     ReleaseActions(actions);
@@ -673,7 +680,6 @@ public class GameManager {
             }
 		else//已出现过的状态
             {
-
                 array.add(it);
             }
         }

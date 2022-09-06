@@ -120,7 +120,12 @@ public class GameScreen extends ScreenAdapter {
         stage.addAction(Actions.delay(4,Actions.run(new Runnable() {
             @Override
             public void run() {
-                manager.AutoSolve1();
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+//                        manager.AutoSolve1();
+                    }
+                }).start();
             }
         })));
     }
