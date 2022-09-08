@@ -19,7 +19,7 @@ public class DealPocker extends Action{
 
     public DealPocker(int suitNum) {
         this.suitNum = suitNum;
-        this.seed = (int) (Math.random() * 100);
+        this.seed =1;
         NLog.e("seed is %s",seed);
     }
 

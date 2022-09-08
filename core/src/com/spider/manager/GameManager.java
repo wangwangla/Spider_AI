@@ -604,11 +604,7 @@ public class GameManager {
                 states.add(it.getPoker().sss());
                 //push记录
                 record.add(it.getAction());
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
+
                 if (DFS(calc, record, states, stackLimited, calcLimited, playAnimation)) {
                     //只有终止才会返回true，如果任意位置返回true，此处将逐级终止递归
                     ReleaseActions(actions);

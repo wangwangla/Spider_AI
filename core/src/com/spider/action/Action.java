@@ -26,20 +26,11 @@ public class Action {
 
     }
 
-    public void endAnimation(){
-
-    }
-
     public void redoAnimation(){
 
     }
 
     public void setGroup(Group cardGroup) {
 
-    }
-
-    @Override
-    public String toString() {
-        return super.toString();
     }
 }

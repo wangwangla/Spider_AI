@@ -1,5 +1,6 @@
 package com.spider.restore;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
@@ -70,21 +71,24 @@ public class Restore extends Action {
                 array.removeValue(card,true);
                 NLog.e("huishou : %s",card.getPoint());
             }
-
-            //翻开下面的牌
-            for (Card card : array1) {
-                array.removeValue(card,true);
-                NLog.e("huishou : %s",card.getPoint());
-                Vector2 vs = new Vector2();
-                vs.set(card.getX(),card.getY());
-                if (card.getParent()!=null && finished!=null) {
-                    card.getParent().localToStageCoordinates(vs);
-                    finished.stageToLocalCoordinates(vs);
-                    card.setPosition(vs.x,vs.y);
-                    finished.addActor(card);
+            Gdx.app.postRunnable(new Runnable() {
+                @Override
+                public void run() {
+                    //翻开下面的牌
+//                    for (Card card : array1) {
+//                        array.removeValue(card,true);
+//                        NLog.e("huishou : %s",card.getPoint());
+//                        Vector2 vs = new Vector2();
+//                        vs.set(card.getX(),card.getY());
+//                        if (card.getParent()!=null && finished!=null) {
+//                            card.getParent().localToStageCoordinates(vs);
+//                            finished.stageToLocalCoordinates(vs);
+//                            card.setPosition(vs.x,vs.y);
+//                            finished.addActor(card);
+//                        }
+//                    }
                 }
-
-            }
+            });
             if (!(array.size<=0) && array.get(array.size-1).isShow() == false) {
                 array.get(array.size-1).setShow(true);
                 oper.setShownLastCard(true);
@@ -191,18 +195,18 @@ public class Restore extends Action {
             for (int i = 0; i < it1.size; i++) {
                 Card card = it1.get(it1.size - 1-i);
                 array.add(card);
-                if (cardGroup!=null) {
-                    Vector2 vector2 = new Vector2();
-                    vector2.set(card.getX(), card.getY());
-                    card.getParent().localToStageCoordinates(vector2);
-                    cardGroup.stageToLocalCoordinates(vector2);
-                    card.setPosition(vector2.x, vector2.y);
-//                card.addAction(Actions.moveTo(array));
-                    cardGroup.addActor(card);
-//                    card.addAction(Actions.moveTo(it.getOrigDeskIndex()*v,baseY,1F));
-                    card.setPosition(it.getOrigDeskIndex()*v,baseY);
-
-                }
+//                if (cardGroup!=null) {
+//                    Vector2 vector2 = new Vector2();
+//                    vector2.set(card.getX(), card.getY());
+//                    card.getParent().localToStageCoordinates(vector2);
+//                    cardGroup.stageToLocalCoordinates(vector2);
+//                    card.setPosition(vector2.x, vector2.y);
+////                card.addAction(Actions.moveTo(array));
+//                    cardGroup.addActor(card);
+////                    card.addAction(Actions.moveTo(it.getOrigDeskIndex()*v,baseY,1F));
+//                    card.setPosition(it.getOrigDeskIndex()*v,baseY);
+//
+//                }
                 baseY -= 40;
             }
             //完成的牌消掉

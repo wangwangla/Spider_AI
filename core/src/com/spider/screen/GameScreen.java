@@ -87,7 +87,7 @@ public class GameScreen extends ScreenAdapter {
         NLog.e("init manager");
         manager = new GameManager(cardGroup,finishGroup,sendCardGroup);
         manager.setGuiProperty();
-        manager.newGame(1);
+        manager.newGame(4);
         sendCardGroup.addListener(new ClickListener(){
             @Override
             public void clicked(InputEvent event, float x, float y) {
