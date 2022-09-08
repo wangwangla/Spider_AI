@@ -493,6 +493,7 @@ public class GameManager {
                         boolean playAnimation) {
 
         if (pocker.isFinished()) {
+            autoSolveResult.setSuccess(true);
             return true;
         }
         //操作次数超出限制，计算量超出限制
