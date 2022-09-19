@@ -348,7 +348,7 @@ public class GameManager {
     }
 
     public boolean AutoSolve1() {
-        HashSet<Integer> states = new HashSet<Integer>();
+        HashSet<Pocker> states = new HashSet<Pocker>();
         autoSolveResult.setCalc(0);
         autoSolveResult.setSuccess(false);
         autoSolveResult.setSuit(pocker.getSuitNum());
@@ -382,7 +382,7 @@ public class GameManager {
         return autoSolveResult.isSuccess();
     }
 
-    private Array<Node> GetAllOperator(Array<Integer> emptyIndex,Pocker poker, HashSet<Integer> states) {
+    private Array<Node> GetAllOperator(Array<Integer> emptyIndex,Pocker poker, HashSet<Pocker> states) {
         Array<Node> actions = new Array<Node>();
         for (int dest = 0; dest < poker.getDesk().size; ++dest) {
             Array<Card> destCards = poker.getDesk().get(dest);
@@ -489,7 +489,7 @@ public class GameManager {
 
     private  int xx = 0;
     boolean DFS(int calc, Array<Action> record,
-                      HashSet<Integer> states, int stackLimited, int calcLimited,
+                      HashSet<Pocker> states, int stackLimited, int calcLimited,
                         boolean playAnimation) {
 
         if (pocker.isFinished()) {
@@ -601,7 +601,7 @@ public class GameManager {
 //                it.getAction().startAnimation();
                 setPos();
                 //加入状态
-                states.add(it.getPoker().sss());
+                states.add(it.getPoker());
                 //push记录
                 record.add(it.getAction());
 
@@ -640,7 +640,7 @@ public class GameManager {
         actions.clear();
     };
 
-    public boolean compare(HashSet<Integer> arrayMap,Pocker pocker){
-        return arrayMap.contains(pocker.sss());
+    public boolean compare(HashSet<Pocker> arrayMap,Pocker pocker){
+        return arrayMap.contains(pocker);
     }
 }

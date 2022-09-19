@@ -210,10 +210,7 @@ public class Pocker {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Pocker pocker = (Pocker) o;
-        return seed == pocker.seed && suitNum == pocker.suitNum &&
-                score == pocker.score && operation == pocker.operation &&
-                hasGUI == pocker.hasGUI &&
-                checkArray(desk, pocker.desk) &&
+        return checkArray(desk, pocker.desk) &&
                 checkArray(corner, pocker.corner) &&
                 checkArray(finished, pocker.finished);
     }
