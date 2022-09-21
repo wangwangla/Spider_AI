@@ -123,7 +123,7 @@ public class GameScreen extends ScreenAdapter {
                 new Thread(new Runnable() {
                     @Override
                     public void run() {
-//                        manager.AutoSolve1();
+                        manager.AutoSolve1();
                     }
                 }).start();
             }

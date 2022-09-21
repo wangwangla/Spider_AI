@@ -519,9 +519,7 @@ public class GameManager {
         //加入发牌操作
         if (emptyIndex.size<=0 && !(poker.getCorner().size<=0)){
             Pocker newPoker = new Pocker(poker);
-            Action action = new ReleaseCorner(false,finishGroup,cardGroup);
-//            sAction action(new ReleaseCorner(config.enableSound, soundDeal));
-//#endif
+            ReleaseCorner action = new ReleaseCorner(false,finishGroup,cardGroup);
             action.doAction(newPoker);
             actions.add(new Node( poker.GetValue() - 100,newPoker,action ));
         }
@@ -533,12 +531,15 @@ public class GameManager {
     boolean DFS(boolean success, int calc, Array<Action> record,
                       HashSet<Integer> states, int stackLimited, int calcLimited,
                         boolean playAnimation) {
+
+        if (calc == 70) {
+            System.out.println(calc+"========calc ----------- =");
+        }
         setPos();
         if (pocker.isFinished()) {
             return true;
         }
-        num ++;
-        if (num == 130)return true;
+
         //操作次数超出限制，计算量超出限制
         if (calc >= calcLimited) {
             return true;
@@ -604,7 +605,7 @@ public class GameManager {
                     if (minPoint == 14)//说明总牌数小于10张，强行发牌
                     {
                         Pocker newPoker = new Pocker(pocker);
-                        Action action = new ReleaseCorner(false,cardGroup,finishGroup);
+                        ReleaseCorner action = new ReleaseCorner(false,cardGroup,finishGroup);
 //                        shared_ptr<Action> action(new ReleaseCorner(config.enableSound, soundDeal));
                         action.doAction(newPoker);
                         actions.add(new Node(pocker.GetValue() - 100,newPoker,action));
@@ -640,11 +641,12 @@ public class GameManager {
 //                    @Override
 //                    public void run() {
                 xx++;
-                System.out.println("=============================="+xx);
-                if (xx == 62){
-                    System.out.println("-----------------");
+
+                if (it.getAction() instanceof ReleaseCorner){
+                    it.getAction().doAction(pocker,cardGroup);
+                }else {
+                    it.getAction().doAction(pocker);
                 }
-                it.getAction().doAction(pocker);
                 setPos();
                 //加入状态
                 states.add(it.getPoker().sss());
@@ -655,7 +657,7 @@ public class GameManager {
                 record.add(it.getAction());
 
                 try {
-                    Thread.sleep(1000);
+                    Thread.sleep(500);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
