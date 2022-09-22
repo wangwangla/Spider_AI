@@ -46,6 +46,9 @@ public class PMove extends Action {
         //暂存最外张牌
         //eg. size=10, card[9].suit
         Array<Card> cards = poker.getDesk().get(origIndex);
+        if (cards.size <=0){
+            System.out.println("-------------------");
+        }
         int suit = cards.get(cards.size - 1).getSuit();
         int point = cards.get(cards.size - 1).getPoint();
 
@@ -81,7 +84,9 @@ public class PMove extends Action {
         return false;
     }
 
+    Pocker old = null;
     public boolean doAction(Pocker inpoker) {
+        old = poker;
         poker = inpoker;
         //不能拾取返回false
         if (!canPick(poker, orig, num)) {
@@ -115,7 +120,7 @@ public class PMove extends Action {
             Array<Card> array = poker.getDesk().get(orig);
             for (Card card : temp) {
                 card.toFront();
-                array.removeValue(card, false);
+                array.removeValue(card, true);
             }
             //翻开暗牌
             Array<Card> array1 = poker.getDesk().get(orig);
@@ -129,12 +134,10 @@ public class PMove extends Action {
             poker.addOperation();
 
             success = true;
-            Restore restored = new Restore(dest,finishGroup);
+            restored = new Restore(dest,null);
             if (restored.canRestore(poker,dest)) {
                 System.out.println("=======================================");
-
                 if (restored.doAction(poker) == false) {
-
                 }
             }
 
@@ -173,63 +176,6 @@ public class PMove extends Action {
 
 
     }
-
-    void startHintAnimation(boolean bOnAnimation, boolean bStopAnimation) {
-        assert (poker.isHasGUI());
-        assert (success);
-        //如果发生了回收事件，先恢复到回收前
-        if (restored != null) {
-            restored.redo(poker);
-        }
-//        SendMessage(hWnd, WM_SIZE, 0, 0);
-
-//        vector<POINT> vecEndPt;
-//
-//        shared_ptr<SequentialAnimation> seq(make_shared<SequentialAnimation>());
-//
-//        ParallelAnimation* para = new ParallelAnimation;
-//        ParallelAnimation* paraGoBack = new ParallelAnimation;
-//
-//        vector<AbstractAnimation*> vecFinalAni;
-//
-//        //
-//        if (shownLastCard)
-//        {
-//        auto& card = poker->desk[orig].back();
-//        card.SetShow(false);
-//        }
-//        for (int i = 0; i < num; ++i)
-//        {
-//        int sz = poker->desk[dest].size();
-//        auto& card = poker->desk[dest][sz - num + i];
-//
-//        vecEndPt.push_back(card.GetPos());
-//
-//        card.SetPos(vecStartPt[i]);
-//        card.SetZIndex(999);
-//
-//        para->Add(new ValueAnimation<Card, POINT>(&card, 500, &Card::SetPos, vecStartPt[i], vecEndPt[i]));
-//        paraGoBack->Add(new ValueAnimation<Card, POINT>(&card, 500, &Card::SetPos, vecEndPt[i], vecStartPt[i]));
-//
-//        //恢复z-index
-//        vecFinalAni.push_back(new SettingAnimation<Card, int>(&card, 0, &Card::SetZIndex, 0));
-//        }
-//
-//        //移动
-//        seq->Add(para);
-//        seq->Add(paraGoBack);
-//
-//        //恢复z-index
-//        for (auto& ani : vecFinalAni)
-//        seq->Add(ani);
-//
-//        bStopAnimation = false;
-//        bOnAnimation = true;
-//        seq->Start(hWnd, bStopAnimation);
-//
-        bOnAnimation = false;
-    }
-
 
     public void redoAnimation() {
         assert (poker.isHasGUI());
@@ -278,7 +224,7 @@ public class PMove extends Action {
             temp.add(card);
         }
         for (Card card : temp) {
-            array1.removeValue(card,false);
+            array1.removeValue(card,true);
         }
         return true;
     }

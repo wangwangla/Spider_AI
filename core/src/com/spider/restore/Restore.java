@@ -69,17 +69,17 @@ public class Restore extends Action {
             }
             //去掉牌堆叠的13张
             for (Card card : array1) {
-                array.removeValue(card,false);
+                array.removeValue(card,true);
                 NLog.e("huishou : %s",card.getPoint());
             }
 
             //翻开下面的牌
             for (Card card : array1) {
-                array.removeValue(card,false);
+                array.removeValue(card,true);
                 NLog.e("huishou : %s",card.getPoint());
                 Vector2 vs = new Vector2();
                 vs.set(card.getX(),card.getY());
-                if (card.getParent()!=null) {
+                if (card.getParent()!=null && finished!=null) {
                     card.getParent().localToStageCoordinates(vs);
                     finished.stageToLocalCoordinates(vs);
                     card.setPosition(vs.x,vs.y);
@@ -233,15 +233,18 @@ public class Restore extends Action {
             float baseY = array.size>0 ? array.get(array.size-1).getY() : 0;
             for (int i = 0; i < it1.size; i++) {
                 Card card = it1.get(it1.size - 1-i);
-                Vector2 vector2 = new Vector2();
-                vector2.set(card.getX(),card.getY());
-                card.getParent().localToStageCoordinates(vector2);
-                cardGroup.stageToLocalCoordinates(vector2);
+
                 array.add(card);
-                card.setPosition(vector2.x,vector2.y);
+                if (cardGroup!=null) {
+                    Vector2 vector2 = new Vector2();
+                    vector2.set(card.getX(), card.getY());
+                    card.getParent().localToStageCoordinates(vector2);
+                    cardGroup.stageToLocalCoordinates(vector2);
+                    card.setPosition(vector2.x, vector2.y);
 //                card.addAction(Actions.moveTo(array));
-                cardGroup.addActor(card);
-                card.addAction(Actions.moveTo(it.getOrigDeskIndex()*v,baseY,1F));
+                    cardGroup.addActor(card);
+                    card.addAction(Actions.moveTo(it.getOrigDeskIndex()*v,baseY,1F));
+                }
                 baseY -= 40;
             }
             //完成的牌消掉

@@ -1,8 +1,6 @@
 package com.spider.action;
 
 import com.badlogic.gdx.scenes.scene2d.Group;
-import com.badlogic.gdx.utils.Array;
-import com.spider.card.Card;
 import com.spider.pocker.Pocker;
 
 public class Action {
@@ -31,7 +29,9 @@ public class Action {
 
     }
 
-    public void redoAnimation(){}
+    public void redoAnimation(){
+
+    }
 
     public void setGroup(Group cardGroup) {
 

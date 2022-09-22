@@ -457,7 +457,7 @@ public class GameManager {
                     if (num == cards.size)
                         continue;
                     Pocker newPoker = new Pocker(poker);
-                    Action action = new PMove(orig, dest, num,finishGroup);
+                    Action action = new PMove(orig, dest, num,null);
                     action.doAction(newPoker);
 //                    if (newPoker == states.getKeyAt(states.size-1)) {
 
@@ -502,7 +502,7 @@ public class GameManager {
                         if (it.getPoint() + 1 == pCardDest.getPoint())//it->suit == pCard->suit &&
                         {
                             Pocker tempPoker = new Pocker(poker);
-                            Action action = new PMove(orig, dest, num,finishGroup);
+                            Action action = new PMove(orig, dest, num,null);
 
 //                            boolean b = tempList.size() > 0 && tempPoker == tempList.get(tempList.size() - 1);
 //                            boolean b1 = stateLast(tempList, tempPoker);
@@ -532,9 +532,6 @@ public class GameManager {
                       HashSet<Integer> states, int stackLimited, int calcLimited,
                         boolean playAnimation) {
 
-        if (calc == 70) {
-            System.out.println(calc+"========calc ----------- =");
-        }
         setPos();
         if (pocker.isFinished()) {
             return true;
@@ -564,7 +561,7 @@ public class GameManager {
                 }
             }
             for (Node node : array) {
-                actions.removeValue(node,false);
+                actions.removeValue(node,true);
             }
         } else {
             //有空位
@@ -613,7 +610,7 @@ public class GameManager {
                     else
                     {
                         //只添加一个移牌补空位的操作
-                        Action action = new PMove(orig, emptyIndex.get(0), 1,finishGroup);
+                        Action action = new PMove(orig, emptyIndex.get(0), 1,null);
                         Pocker newPoker = new Pocker(pocker);
                         action.doAction(newPoker);
                         actions.add(new Node(newPoker.GetValue(),newPoker,action));
@@ -633,6 +630,7 @@ public class GameManager {
 
         Array<Node> array = new Array<Node>();
         int round = -1;
+
         //开始递归
         for (final Node it : actions) {
             //没出现过的状态
@@ -640,7 +638,10 @@ public class GameManager {
 //                cardGroup.addAction(Actions.delay(dxxx++,Actions.run(new Runnable() {
 //                    @Override
 //                    public void run() {
-                xx++;
+                xx ++;
+                if (xx == 147) {
+                    System.out.println(xx);
+                }
 
                 if (it.getAction() instanceof ReleaseCorner){
                     it.getAction().doAction(pocker,cardGroup);
@@ -687,7 +688,7 @@ public class GameManager {
         }
 
         for (Node node : array) {
-            actions.removeValue(node,false);
+            actions.removeValue(node,true);
         }
         ReleaseActions(actions);
         return false;
