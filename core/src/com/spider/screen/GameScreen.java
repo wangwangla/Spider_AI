@@ -24,9 +24,11 @@ public class GameScreen extends ScreenAdapter {
     private Group cardGroup;
     private Group finishGroup;
     private Group sendCardGroup;
+    private final Vector2 touchDownPos;
 
     public GameScreen(){
         NLog.e("create gameScreen !");
+        touchDownPos = new Vector2();
         stage = new Stage(SpiderGame.getViewport(),SpiderGame.getBatch());
         Gdx.input.setInputProcessor(stage);
     }
@@ -46,7 +48,12 @@ public class GameScreen extends ScreenAdapter {
     }
 
     private void showGameGroup() {
-        cardGroup = new Group();
+        cardGroup = new Group(){
+            @Override
+            protected void positionChanged() {
+                super.positionChanged();
+            }
+        };
         cardGroup.setSize(Constant.worldWidth,92F);
         cardGroup.setY(Constant.worldHeight-100);
         cardGroup.setDebug(true);
@@ -79,10 +86,8 @@ public class GameScreen extends ScreenAdapter {
     private void initManager() {
         NLog.e("init manager");
         manager = new GameManager(cardGroup,finishGroup,sendCardGroup);
-        manager.setSoundId();
         manager.setGuiProperty();
         manager.newGame(1);
-        final Vector2 tempV = new Vector2();
         sendCardGroup.addListener(new ClickListener(){
             @Override
             public void clicked(InputEvent event, float x, float y) {
@@ -100,8 +105,8 @@ public class GameScreen extends ScreenAdapter {
             @Override
             public void touchDragged(InputEvent event, float x, float y, int pointer) {
                 super.touchDragged(event, x, y, pointer);
-                tempV.set(x,y);
-                manager.OnMouseMove(tempV);
+                touchDownPos.set(x,y);
+                manager.OnMouseMove(touchDownPos);
             }
 
             @Override
@@ -116,8 +121,7 @@ public class GameScreen extends ScreenAdapter {
                 manager.OnLButtonUp();
             }
         });
-
-        stage.addAction(Actions.delay(4,Actions.run(new Runnable() {
+        stage.addAction(Actions.delay(6,Actions.run(new Runnable() {
             @Override
             public void run() {
                 new Thread(new Runnable() {

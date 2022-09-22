@@ -3,6 +3,7 @@ package com.spider.pMove;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
+import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
 import com.spider.action.Action;
@@ -22,40 +23,33 @@ public class PMove extends Action {
     private Restore restored;
     private boolean success;
     private Group finishGroup;
-    public PMove(Group finishGroup){
-        this.finishGroup = finishGroup;
-    }
+    private Group cardGroup;
 
-    public PMove(int origIndex, int destIndex,int num,Group finishGroup){
+    public PMove(){}
+
+    public PMove(int origIndex, int destIndex,int num,Group finishGroup,Group cardGroup){
         this.finishGroup = finishGroup;
+        this.cardGroup = cardGroup;
         this.orig = origIndex;
         this.dest = destIndex;
         this.num = num;
     }
+
     //返回是否可以移动
     //deskNum 牌堆编号
     //pos 牌编号
     public boolean canPick(Pocker poker, int origIndex, int num) {
         assert (origIndex >= 0 && origIndex < poker.getDesk().size);
         assert (num > 0 && num > poker.getDesk().get(origIndex).size);
-        if (num>0 && num <= poker.getDesk().get(origIndex).size){
-
-        }else {
-            System.out.println();
-        }
         //暂存最外张牌
         //eg. size=10, card[9].suit
         Array<Card> cards = poker.getDesk().get(origIndex);
-        if (cards.size <=0){
-            System.out.println("-------------------");
-        }
         int suit = cards.get(cards.size - 1).getSuit();
         int point = cards.get(cards.size - 1).getPoint();
 
         //从下数第2张牌开始遍历
         //eg. num==4, i=[0,1,2]
         for (int i = 0; i < num - 1; ++i) {
-            //eg. size=10, up=10-[0,1,2]-2=[8,7,6]
             int index = poker.getDesk().get(origIndex).size - i - 2;
             Card card = poker.getDesk().get(origIndex).get(index);
             if (card.getSuit() != suit)
@@ -84,9 +78,7 @@ public class PMove extends Action {
         return false;
     }
 
-    Pocker old = null;
     public boolean doAction(Pocker inpoker) {
-        old = poker;
         poker = inpoker;
         //不能拾取返回false
         if (!canPick(poker, orig, num)) {
@@ -94,16 +86,13 @@ public class PMove extends Action {
         }
         Array<Card> cards = poker.getDesk().get(orig);
         Card itOrigBegin = cards.get(cards.size - num);
-        Card itOrigEnd = cards.get(cards.size - 1);
         Array<Card> itDest = poker.getDesk().get(dest);
-        Array<Card> cards1 = poker.getDesk().get(dest);
         //目标位置为空 或者
         //目标堆叠的最外牌==移动牌顶层+1
         if (poker.getDesk().get(dest).size <= 0 ||
                 (itOrigBegin.getPoint() + 1 == itDest.get(itDest.size - 1).getPoint())) {
             //加上移来的牌
-//            poker.getDesk().get(dest).insert(itDest, itOrigBegin, itOrigEnd);
-            Array<Card> temp = new Array<Card>();
+            temp = new Array<Card>();
             for (int i = cards.size - num; i < cards.size; i++) {
                 itDest.add(cards.get(i));
                 temp.add(cards.get(i));
@@ -132,13 +121,12 @@ public class PMove extends Action {
             }
             poker.minusOne();
             poker.addOperation();
-
             success = true;
-            restored = new Restore(dest,null);
-            if (restored.canRestore(poker,dest)) {
-                System.out.println("=======================================");
-                if (restored.doAction(poker) == false) {
-                }
+            restored = new Restore(finishGroup,cardGroup);
+            restored.setUpdateGroup(updateGroup);
+
+            if (restored.doAction(poker) == false) {
+                restored = null;
             }
 
             return true;
@@ -147,19 +135,17 @@ public class PMove extends Action {
         }
     }
 
-
     public void startAnimation() {
         startAnimation_inner();
-    }
-
-    public void startAnimationQuick(boolean bOnAnimation, boolean bStopAnimation) {
-//        startAnimation_inner(bOnAnimation, bStopAnimation, 0.1);
     }
 
     public void startAnimation_inner() {
         assert (poker.isHasGUI());
         assert (success);
         //如果发生了回收事件，先恢复到回收前
+        if (restored!=null){
+            restored.redo(poker);
+        }
         Array<Card> cards = poker.getDesk().get(dest);
         int i1 = cards.size - num;
         float baseY = 0;
@@ -167,31 +153,34 @@ public class PMove extends Action {
             Card card1 = cards.get(cards.size - num-1);
             baseY = card1.getY();
         }
+        Array<Image> vecImageEmpty = GameManager.vecImageEmpty;
         for (int i = 0; i < num; ++i) {
-            float v = Constant.worldWidth / 10.0F;
+            Image image = vecImageEmpty.get(dest);
+            if(cards.size-num<0){
+                System.out.println();
+            }
             Card card = cards.get(cards.size - num+i);
-//            card.addAction(Actions.moveTo((dest)* v,baseY-20*(i+1),0.2F));
-            card.setPosition(dest* v,baseY-20*(i+1));
+            card.addAction(Actions.moveTo(image.getX(),baseY-20*(i+1),0.3F));
         }
 
-
+        if (restored!=null){
+            restored.doAction(poker);
+            restored.startAnimation();
+        }
     }
 
     public void redoAnimation() {
         assert (poker.isHasGUI());
-        int index = 0;
-        float worldWidth = Constant.worldWidth;
-        float v = worldWidth / 10.0F;
-        for (Array<Card> cards : poker.getDesk()) {
-            index ++;
-            float offSetY = 0;
-            for (Card card : cards) {
-                card.addAction(Actions.moveTo((index-1)* v,offSetY,1));
-                offSetY -= 20;
-            }
+        Array<Image> vecImageEmpty = GameManager.vecImageEmpty;
+        Image image = vecImageEmpty.get(orig);
+        Array<Card> cards = poker.getDesk().get(orig);
+        float offSetY = -(cards.size-num) * 20;
+        for (Card card : temp) {
+            card.addAction(Actions.moveTo(image.getX(),offSetY,1));
+            offSetY-=20;
         }
     }
-
+    private Array<Card> temp;
     public boolean redo(Pocker inpoker) {
         assert (success);
         poker = inpoker;
@@ -205,12 +194,11 @@ public class PMove extends Action {
             Array<Card> array = poker.getDesk().get(orig);
             array.get(array.size - 1).setShow(false);
         }
-
         Array<Array<Card>> desk = poker.getDesk();
         Array<Card> array1 = desk.get(dest);
         int start = array1.size - num;
         int end = array1.size - 1;
-        Array<Card> temp = new Array<Card>();
+        temp = new Array<Card>();
         Array<Card> array = poker.getDesk().get(orig);
         if ((start<0)) {
             start = 0;

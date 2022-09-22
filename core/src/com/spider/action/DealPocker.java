@@ -3,21 +3,24 @@ package com.spider.action;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
+import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.utils.Array;
 import com.spider.card.Card;
 import com.spider.constant.Constant;
 import com.spider.log.NLog;
+import com.spider.manager.GameManager;
 import com.spider.pocker.Pocker;
 
 import java.util.Random;
 
-public class Deal extends Action{
+public class DealPocker extends Action{
     private int suitNum;
     private int seed;
 
-    public Deal(int suitNum,int seed) {
+    public DealPocker(int suitNum) {
         this.suitNum = suitNum;
-        this.seed = seed;
+        this.seed = (int) (Math.random() * 100);
+        NLog.e("seed is %s",seed);
     }
 
     /**
@@ -47,26 +50,28 @@ public class Deal extends Action{
         //4摞6张的=24
         for (int i = 0; i < 4; ++i) {
             Array<Card> deskOne = new Array<Card>();
-            for (int j = 0; j < 6; ++j)
+            for (int j = 0; j < 6; ++j){
                 deskOne.add(cards.get(pos++));
+            }
             poker.getDesk().add(deskOne);
         }
         //6摞5张的=30
         for (int i = 0; i < 6; ++i){
             Array<Card> deskOne = new Array<Card>();
-            for (int j = 0; j < 5; ++j)
+            for (int j = 0; j < 5; ++j) {
                 deskOne.add(cards.get(pos++));
+            }
             poker.getDesk().add(deskOne);
         }
 
         //5摞 待发区=50
         for (int i = 0; i < 5; ++i) {
             Array<Card> cornerOne = new Array<Card>();
-            for (int j = 0; j < 10; ++j)
+            for (int j = 0; j < 10; ++j) {
                 cornerOne.add(cards.get(pos++));
+            }
             poker.getCorner().add(cornerOne);
         }
-
         //每摞最外的牌亮牌
         for (Array<Card> cardArray : poker.getDesk()) {
             cardArray.get(cardArray.size-1).setShow(true);
@@ -99,14 +104,16 @@ public class Deal extends Action{
     }
 
     public void startAnimation() {
-        float worldWidth = Constant.worldWidth;
-        float v = worldWidth / 10.0F;
         Array<Array<Card>> deskPocker = poker.getDesk();
         int indexX = 0;
-        for (Array<Card> array : deskPocker) {
+        Array<Image> vecImageEmpty = GameManager.vecImageEmpty;
+        for (int i = 0; i < deskPocker.size; i++) {
             int y = 0;
-            for (Card card : array) {
-                card.addAction(Actions.moveTo(indexX*v,-y*20,indexX*0.1F+0.2F*y));
+            Array<Card> cards = deskPocker.get(i);
+            Image image = vecImageEmpty.get(i);
+            for (Card card : cards) {
+                card.addAction(Actions.delay(indexX*0.1F+1F*y,
+                        Actions.moveTo(image.getX(),image.getY()-y*20,0.1F)));
                 y++;
             }
             indexX++;
@@ -150,16 +157,23 @@ public class Deal extends Action{
         return result;
     }
 
+    public void initPos(Group sendCardGroup, Group cardGroup) {
+        for (int i = 0; i < poker.getCorner().size; i++) {
+            Array<Card> cards = poker.getCorner().get(i);
+            for (int i1 = 0; i1 < cards.size; i1++) {
+                Card card = cards.get(i1);
+                card.setPosition(i * 10,0);
+            }
+        }
 
-    public void initPos(Group sendCardGroup, Group corner) {
+
         Array<Array<Card>> deskPocker = poker.getDesk();
         Vector2 pos = new Vector2(0,0);
-        corner.localToStageCoordinates(pos);
-        sendCardGroup.stageToLocalCoordinates(pos);
+        sendCardGroup.localToStageCoordinates(pos);
+        cardGroup.stageToLocalCoordinates(pos);
         for (Array<Card> array : deskPocker) {
             for (Card card : array) {
-                card.setPosition(pos.y,pos.x);
-                NLog.e("posx posy %s   %s",pos.x,pos.y);
+                card.setPosition(pos.x,pos.y);
             }
         }
     }

@@ -15,7 +15,6 @@ spade 黑桃
 club 梅花
 diamond 方块
 */
-
 public class Pocker {
     private int seed;//种子
     private int suitNum;//花色
@@ -73,24 +72,12 @@ public class Pocker {
         return desk;
     }
 
-    public void setDesk(Array<Array<Card>> desk) {
-        this.desk = desk;
-    }
-
     public Array<Array<Card>> getCorner() {
         return corner;
     }
 
-    public void setCorner(Array<Array<Card>> corner) {
-        this.corner = corner;
-    }
-
     public Array<Array<Card>> getFinished() {
         return finished;
-    }
-
-    public void setFinished(Array<Array<Card>> finished) {
-        this.finished = finished;
     }
 
     public Pocker() {
@@ -133,12 +120,6 @@ public class Pocker {
                 cards1.add(new Card(card));
             }
         }
-
-//        this.desk = pocker.desk;//0为最里面
-//        //发牌区
-//        this.corner = pocker.corner;//0为最里面
-//        //已完成套牌
-//        this.finished = pocker.finished;
     }
 
     //通过检测 已完成==8 返回是否已完成
@@ -157,16 +138,9 @@ public class Pocker {
             } else {
                 //一摞牌且非空
                 //eg. num=4, topPoint=10, value+=40
-//                auto AddValue = [&value](int num,int topPoint)
-//                {
-//                    if (num)
-//                        value += topPoint * num;
-//                };
-
                 int num = 0;
                 Card pTop = cards.get(cards.size-1);
                 Card pDown = cards.get(cards.size-1);
-
                 //从下数第2张到顶部
                 for (int i = cards.size - 2; i >= 0; --i) {
                     //已经不显示了则跳出
@@ -212,7 +186,6 @@ public class Pocker {
             int num = 10;
             //没有翻开的牌分值：-10, -9, -8 ...
             for (Card card : cards) {
-
                 if (card.isShow() == false) {
                     value -= num;
                     num--;
@@ -220,7 +193,6 @@ public class Pocker {
                     break;
             }
         }
-
         return value;
     }
 
@@ -262,20 +234,6 @@ public class Pocker {
                 }
             }
         }
-
-        return true;
-    }
-
-    public boolean equealCard(Array<Card> array,Array<Card> array1){
-        if (null == array ||array1==null)return false;
-        if (array.size != array1.size)return false;
-        for (int i = 0; i < array.size; i++) {
-            Card card = array.get(i);
-            Card card1 = array1.get(i);
-            if (!card.toString().equals(card1.toString())) {
-                return false;
-            }
-        }
         return true;
     }
 
@@ -283,21 +241,6 @@ public class Pocker {
     public int hashCode() {
         return Objects.hash(seed, suitNum, score, operation, hasGUI, desk, corner, finished);
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     public int sss(){
         int ret = 0;
@@ -325,11 +268,4 @@ public class Pocker {
         }
         return ret;
     }
-
-
-
-
-
-
-
 }

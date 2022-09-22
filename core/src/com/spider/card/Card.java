@@ -3,6 +3,7 @@ package com.spider.card;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
+import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.spider.SpiderGame;
 import com.spider.asset.AssetUtil;
@@ -28,8 +29,8 @@ public class Card extends Group {
         this.show = card.show;
         this.z_index = card.z_index;
         this.visible = card.visible;
-        this.img = card.img;
-        this.imgBack = card.imgBack;
+        this.img = null;
+        this.imgBack = null;
     }
     public Card(int suit, int point, boolean show) {
         this.suit = suit;
@@ -141,5 +142,14 @@ public class Card extends Group {
     @Override
     public int hashCode() {
         return Objects.hash(z_index, visible, img, imgBack, suit, point, show, position);
+    }
+
+    public void setShowDelay(final boolean b) {
+        addAction(Actions.delay(0.3F,Actions.run(new Runnable() {
+            @Override
+            public void run() {
+                setShow(b);
+            }
+        })));
     }
 }
