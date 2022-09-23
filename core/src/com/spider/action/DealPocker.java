@@ -43,7 +43,7 @@ public class DealPocker extends Action{
         //打乱
         Random random = new Random();
         random.setSeed(seed);
-//        shuffle(cards,random);
+        shuffle(cards,random);
         cardPrint("shuffle after",cards);
         //发牌
         int pos = 0;
@@ -130,7 +130,6 @@ public class DealPocker extends Action{
         coener.clearChildren();
         return true;
     }
-
 
     //返回1维数组，各花色依次1-13点，共8*13=104张
     public Array<Card> genInitCard() {

@@ -121,7 +121,7 @@ public class GameScreen extends ScreenAdapter {
                 manager.OnLButtonUp();
             }
         });
-        stage.addAction(Actions.delay(6,Actions.run(new Runnable() {
+        stage.addAction(Actions.delay(1,Actions.run(new Runnable() {
             @Override
             public void run() {
                 new Thread(new Runnable() {

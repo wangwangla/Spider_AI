@@ -57,18 +57,18 @@ public class GameManager {
         action.doAction(pocker);
         initialImage();
         action.initPos(sendCardGroup,cardGroup);
-        action.startAnimation();
-//        setPos();
+//        action.startAnimation();
+        setPos();
     }
 
     public void setPos(){
         int index = 0;
-        float v1 = (Constant.worldWidth - 71 * 10) / 11.0F;
-        for (Array<Card> cards : pocker.getDesk()) {
+        for (int i = 0; i < pocker.getDesk().size; i++) {
+            Array<Card> cards = pocker.getDesk().get(i);
             index ++;
             float offSetY = 0;
             for (Card card : cards) {
-                card.setPosition(v1*(index+1)+71 * index,offSetY, Align.left);
+                card.setPosition(vecImageEmpty.get(i).getX(),offSetY);
                 offSetY -= 20;
             }
         }
@@ -233,8 +233,6 @@ public class GameManager {
         return dest;
     }
 
-
-
     private Vector2 GetCardEmptyPoint(int index) {
         //计算空牌位坐标
         int cardGap = (int) ((Constant.worldWidth - cardWidth * 10) / 11);
@@ -257,16 +255,11 @@ public class GameManager {
         action.setGroup(cardGroup);
         action.redo(pocker);
         action.redoAnimation();
-//        for (Action action : record) {
-//            System.out.println(action);
-//            action.Redo(pocker);
-//        }
-//        setPos();
     }
-
 
     class ClickPocker{
         private int i;
+
         private int j;
 
         public void setI(int i) {
@@ -354,36 +347,24 @@ public class GameManager {
         }
     }
 
-    public boolean AutoSolve(boolean playAnimation) {
-//        ReleaseCorner releaseCorner = new ReleaseCorner();
-//        releaseCorner.Do(pocker,cardGroup);
-//        setPos();
-        return false;
-    }
-
-    int num = 0;
     public boolean AutoSolve1() {
         HashSet<Integer> states = new HashSet<Integer>();
         autoSolveResult.setCalc(0);
         autoSolveResult.setSuccess(false);
         autoSolveResult.setSuit(pocker.getSuitNum());
         autoSolveResult.setSeed(pocker.getSeed());
-
         //1花色时，200可以解出83/100个；500可以解出90/100个；1000可以解出92/100个；2000可以解出93/100个；8000可以解出98/100个
         //2花色时，2000可以解出23/100个；8000可以解出32/100个；100000可以解出47/100个，耗时100min
         //4花色时，100000解出0/100个，耗时132min
         int calcLimited = 100000;
         //480时栈溢出，所以必须小于480。不建议提高保留栈大小
         int stackLimited = 400;
-
-
         DFS(autoSolveResult.getCalc(),
                 record,
                 states,
                 stackLimited,
                 calcLimited,false);
         //输出计算量
-        NLog.e("calc -- :"+autoSolveResult.getCalc());
         if (autoSolveResult.isSuccess() == true) {
             //输出步骤
             NLog.e("Finished. Step = "+record.size);
@@ -401,9 +382,7 @@ public class GameManager {
         return autoSolveResult.isSuccess();
     }
 
-
-    Array<Node> GetAllOperator(Array<Integer> emptyIndex,
-                               Pocker poker, HashSet<Integer> states) {
+    private Array<Node> GetAllOperator(Array<Integer> emptyIndex,Pocker poker, HashSet<Integer> states) {
         Array<Node> actions = new Array<Node>();
         for (int dest = 0; dest < poker.getDesk().size; ++dest) {
             Array<Card> destCards = poker.getDesk().get(dest);
@@ -614,10 +593,12 @@ public class GameManager {
                 }else {
                     it.getAction().doAction(pocker);
                 }
-
+                xx++;
+                System.out.println(xx);
+                if (xx == 160)
                 NLog.e("do ------------------ "+it.getAction());
-                it.getAction().startAnimation();
-//                setPos();
+//                it.getAction().startAnimation();
+                setPos();
                 //加入状态
                 states.add(it.getPoker().sss());
                 //push记录
@@ -634,8 +615,8 @@ public class GameManager {
                 }
 
                 it.getAction().redo(pocker);
-                it.getAction().redoAnimation();
-//                setPos();
+//                it.getAction().redoAnimation();
+                setPos();
                 NLog.e("redo ------------------ "+it.getAction());
                 it.getAction().setUpdateGroup(false);
                 if (pocker.isHasGUI()) {

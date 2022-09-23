@@ -245,9 +245,11 @@ public class Pocker {
     public int sss(){
         int ret = 0;
         StringBuilder builder = new StringBuilder();
+        int index = 0;
         for (Array<Card> cards : desk) {
             for (Card card : cards) {
                 builder.append(card.toString());
+                index ++;
             }
             ret^=builder.toString().hashCode();
             builder.setLength(0);
@@ -266,6 +268,7 @@ public class Pocker {
             ret^=builder.toString().hashCode();
             builder.setLength(0);
         }
+        ret^=index;
         return ret;
     }
 }
