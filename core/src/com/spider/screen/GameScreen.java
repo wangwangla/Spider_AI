@@ -28,6 +28,7 @@ public class GameScreen extends ScreenAdapter {
 
     public GameScreen(){
         NLog.e("create gameScreen !");
+        //点击下的位置
         touchDownPos = new Vector2();
         stage = new Stage(SpiderGame.getViewport(),SpiderGame.getBatch());
         Gdx.input.setInputProcessor(stage);
@@ -48,12 +49,7 @@ public class GameScreen extends ScreenAdapter {
     }
 
     private void showGameGroup() {
-        cardGroup = new Group(){
-            @Override
-            protected void positionChanged() {
-                super.positionChanged();
-            }
-        };
+        cardGroup = new Group();
         cardGroup.setSize(Constant.worldWidth,92F);
         cardGroup.setY(Constant.worldHeight-100);
         cardGroup.setDebug(true);
