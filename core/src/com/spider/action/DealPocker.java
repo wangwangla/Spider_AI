@@ -13,13 +13,16 @@ import com.spider.pocker.Pocker;
 
 import java.util.Random;
 
+/**
+ * 处理牌局
+ */
 public class DealPocker extends Action{
     private int suitNum;
     private int seed;
 
     public DealPocker(int suitNum) {
         this.suitNum = suitNum;
-        this.seed =1;
+        this.seed = (int) System.currentTimeMillis();
         NLog.e("seed is %s",seed);
     }
 
@@ -84,7 +87,7 @@ public class DealPocker extends Action{
     public void shuffle(Array<Card> array, Random random) {
         Object [] items = array.toArray();
         int size = items.length;
-        random.setSeed(1);
+        random.setSeed(seed);
         for (int i = size - 1; i >= 0; i--) {
             int ii = random.nextInt(i+1);
             Object temp = items[i];

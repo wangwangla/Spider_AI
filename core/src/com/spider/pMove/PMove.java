@@ -157,7 +157,7 @@ public class PMove extends Action {
         for (int i = 0; i < num; ++i) {
             Image image = vecImageEmpty.get(dest);
             if(cards.size-num<0){
-                System.out.println();
+
             }
             Card card = cards.get(cards.size - num+i);
             card.addAction(Actions.moveTo(image.getX(),baseY-20*(i+1),0.3F));

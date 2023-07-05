@@ -24,12 +24,9 @@ public class App {
 
         pocker1.getDesk().add(array1);
 
-        if (pocker.equals(pocker1)) {
-            System.out.println("-----------------------");
-        }
 
         hashSet.add(pocker);
 
-        System.out.println("----------------------------------");
+
     }
 }

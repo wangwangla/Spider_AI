@@ -88,6 +88,10 @@ public class Pocker {
         hasGUI = false;
     }
 
+    /**
+     * 牌局
+     * @param pocker
+     */
     public Pocker(Pocker pocker){
         this.seed = pocker.getSeed();//种子
         this.suitNum = pocker.getSuitNum();//花色

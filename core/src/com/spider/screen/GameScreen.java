@@ -52,17 +52,14 @@ public class GameScreen extends ScreenAdapter {
         cardGroup = new Group();
         cardGroup.setSize(Constant.worldWidth,92F);
         cardGroup.setY(Constant.worldHeight-100);
-        cardGroup.setDebug(true);
 
         finishGroup = new Group();
         finishGroup.setSize(76,92);
-        finishGroup.setDebug(true);
         finishGroup.setPosition(100,20);
 
         sendCardGroup = new Group();
         sendCardGroup.setSize(76,92);
         sendCardGroup.setPosition(Constant.worldWidth - 100,20);
-        sendCardGroup.setDebug(true);
 
         Image image = new Image(SpiderGame.getAssetUtil().loadTexture("Resource/cardmask.png"));
         stage.addActor(image);
@@ -73,7 +70,7 @@ public class GameScreen extends ScreenAdapter {
                 manager.recod();
             }
         });
-
+        image.setPosition(92,92);
         stage.addActor(cardGroup);
         stage.addActor(finishGroup);
         stage.addActor(sendCardGroup);

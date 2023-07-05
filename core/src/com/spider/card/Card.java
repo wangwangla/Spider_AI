@@ -32,6 +32,7 @@ public class Card extends Group {
         this.img = null;
         this.imgBack = null;
     }
+
     public Card(int suit, int point, boolean show) {
         this.suit = suit;
         this.point = point;
@@ -144,8 +145,8 @@ public class Card extends Group {
         return Objects.hash(z_index, visible, img, imgBack, suit, point, show, position);
     }
 
-    public void setShowDelay(final boolean b) {
-        addAction(Actions.delay(0.3F,Actions.run(new Runnable() {
+    public void setShowDelay(final boolean b, int index) {
+        addAction(Actions.delay(0.1F * index + 0.2f,Actions.run(new Runnable() {
             @Override
             public void run() {
                 setShow(b);
