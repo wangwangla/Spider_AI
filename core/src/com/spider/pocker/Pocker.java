@@ -1,11 +1,7 @@
 package com.spider.pocker;
 
 import com.badlogic.gdx.utils.Array;
-import com.badlogic.gdx.utils.ArrayMap;
 import com.spider.card.Card;
-
-import java.util.HashMap;
-import java.util.Objects;
 
 /**
 桌面上共10摞牌，前4摞6张，后6摞5张，共6*4+5*6=54张
@@ -239,38 +235,25 @@ public class Pocker {
         return true;
     }
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(seed, suitNum, score, operation, hasGUI, desk, corner, finished);
-    }
-
-    public int sss(){
-        int ret = 0;
+    public String buildString(){
         StringBuilder builder = new StringBuilder();
-        int index = 0;
         for (Array<Card> cards : desk) {
             for (Card card : cards) {
                 builder.append(card.toString());
-                index ++;
             }
-            ret^=builder.toString().hashCode();
-            builder.setLength(0);
         }
         for (Array<Card> cards : corner) {
             for (Card card : cards) {
                 builder.append(card.toString());
             }
-            ret^=builder.toString().hashCode();
             builder.setLength(0);
         }
         for (Array<Card> cards : finished) {
             for (Card card : cards) {
                 builder.append(card.toString());
             }
-            ret^=builder.toString().hashCode();
             builder.setLength(0);
         }
-        ret^=index;
-        return ret;
+        return builder.toString();
     }
 }

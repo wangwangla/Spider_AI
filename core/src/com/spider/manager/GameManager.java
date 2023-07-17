@@ -388,6 +388,7 @@ public class GameManager {
         autoSolveResult.setSeed(pocker.getSeed());
         int calcLimited = 100000;
         int stackLimited = 400;
+
         DFS(autoSolveResult.getCalc(),
                 record,
                 states,
@@ -522,17 +523,19 @@ public class GameManager {
      * @param playAnimation 是否有动画
      * @return
      */
-    boolean DFS(int calc, Array<Action> record,
-                      HashSet<Pocker> states, int stackLimited, int calcLimited,
-                        boolean playAnimation) {
-
+    boolean DFS(int calc,
+                Array<Action> record,
+                HashSet<Pocker> states,
+                int stackLimited,
+                int calcLimited,
+                boolean playAnimation) {
         if (pocker.isFinished()) {
             autoSolveResult.setSuccess(true);
             return true;
         }
         //操作次数超出限制，计算量超出限制
         if (calc >= calcLimited) {
-            return true;
+            return false;
         }
         if (pocker.getOperation() >= stackLimited) {
             return false;
@@ -674,6 +677,7 @@ public class GameManager {
     };
 
     public boolean compare(HashSet<Pocker> arrayMap,Pocker pocker){
+
         return arrayMap.contains(pocker);
     }
 }
