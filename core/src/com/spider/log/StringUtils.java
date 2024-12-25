@@ -42,23 +42,4 @@ public class StringUtils {
     public void testFormatRankInHud(){
 //        System.out.println(formatRankInHud(1));
     }
-
-//    public static String formatRankInHud(int rank) {
-//        switch (rank) {
-//            case 1:
-//                return defaultImplementation.trc("1st",null);
-//            case 2:
-//                return defaultImplementation.trc("2nd",null);
-//            case 3:
-//                return defaultImplementation.trc("3rd",null);
-//            case 4:
-//                return defaultImplementation.trc("4th",null);
-//            case 5:
-//                return defaultImplementation.trc("5th",null);
-//            case 6:
-//                return defaultImplementation.trc("6th",null);
-//            default:
-//                return String.valueOf(rank);
-//        }
-//    }
 }

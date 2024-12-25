@@ -40,13 +40,13 @@ public class GameScreen extends ScreenAdapter {
         showBg();
         showGameGroup();
         initManager();
-        initConfig();
+//        initConfig();
     }
 
-    private void initConfig() {
-        Configuration configuration = new Configuration();
-        configuration.readFromFile("");
-    }
+//    private void initConfig() {
+//        Configuration configuration = new Configuration();
+//        configuration.readFromFile("");
+//    }
 
     private void showGameGroup() {
         cardGroup = new Group();
@@ -62,6 +62,7 @@ public class GameScreen extends ScreenAdapter {
         sendCardGroup.setPosition(Constant.worldWidth - 100,20);
 
         Image image = new Image(SpiderGame.getAssetUtil().loadTexture("Resource/cardmask.png"));
+        image.setSize(100,100);
         stage.addActor(image);
         image.addListener(new ClickListener(){
             @Override
@@ -71,9 +72,9 @@ public class GameScreen extends ScreenAdapter {
             }
         });
         image.setPosition(92,92);
-        stage.addActor(cardGroup);
-        stage.addActor(finishGroup);
         stage.addActor(sendCardGroup);
+        stage.addActor(finishGroup);
+        stage.addActor(cardGroup);
     }
 
     private void initManager() {
@@ -114,17 +115,6 @@ public class GameScreen extends ScreenAdapter {
                 manager.OnLButtonUp();
             }
         });
-//        stage.addAction(Actions.delay(1,Actions.run(new Runnable() {
-//            @Override
-//            public void run() {
-//                new Thread(new Runnable() {
-//                    @Override
-//                    public void run() {
-//                        manager.AutoSolve1();
-//                    }
-//                }).start();
-//            }
-//        })));
     }
 
     private void showBg() {

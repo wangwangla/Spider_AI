@@ -123,7 +123,7 @@ public class ReleaseCorner extends Action {
     }
 
     public void startAnimation() {
-        assert (poker.isHasGUI());
+
         assert (success);
         //如果发生了回收事件，先恢复到回收前
         if (restored != null)

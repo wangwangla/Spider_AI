@@ -97,14 +97,14 @@ public class PMove extends Action {
                 itDest.add(cards.get(i));
                 temp.add(cards.get(i));
             }
-            if (poker.isHasGUI()) {
-                //加入点集
-                vecStartPt.clear();
-                for (int i = cards.size - num; i < cards.size; i++) {
-                    Card card = cards.get(i);
-                    vecStartPt.add(new Vector2(card.getX(), card.getY()));
-                }
+
+            //加入点集
+            vecStartPt.clear();
+            for (int i = cards.size - num; i < cards.size; i++) {
+                Card card = cards.get(i);
+                vecStartPt.add(new Vector2(card.getX(), card.getY()));
             }
+
             //擦除移走的牌
             Array<Card> array = poker.getDesk().get(orig);
             for (Card card : temp) {
@@ -138,10 +138,10 @@ public class PMove extends Action {
     public void startAnimation() {
         startAnimation_inner();
     }
-
+    int zIndex = 0;
     public void startAnimation_inner() {
-        assert (poker.isHasGUI());
-        assert (success);
+
+
         //如果发生了回收事件，先恢复到回收前
         if (restored!=null){
             restored.redo(poker);
@@ -160,7 +160,8 @@ public class PMove extends Action {
 
             }
             Card card = cards.get(cards.size - num+i);
-            card.addAction(Actions.moveTo(image.getX(),baseY-20*(i+1),0.3F));
+            zIndex = 0;
+            extracted(card, image, baseY, i);
         }
 
         if (restored!=null){
@@ -169,8 +170,21 @@ public class PMove extends Action {
         }
     }
 
+    private void extracted(final Card card, Image image, float baseY, int i) {
+        card.addAction(
+                Actions.sequence(
+                        Actions.moveTo(image.getX(), baseY -20*(i +1),0.3F),
+                        Actions.run(new Runnable() {
+                            @Override
+                            public void run() {
+                                card.toFront();
+                            }
+                        })
+                        ));
+    }
+
     public void redoAnimation() {
-        assert (poker.isHasGUI());
+
         Array<Image> vecImageEmpty = GameManager.vecImageEmpty;
         Image image = vecImageEmpty.get(orig);
         Array<Card> cards = poker.getDesk().get(orig);

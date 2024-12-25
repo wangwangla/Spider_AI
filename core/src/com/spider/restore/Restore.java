@@ -61,11 +61,11 @@ public class Restore extends Action {
 
             poker.getFinished().add(array1);
             //预存起点位置
-            if (poker.isHasGUI()){
-                for (Card card : array) {
-                    oper.getVecStartPt().add(card.getPosition());
-                }
+
+            for (Card card : array) {
+                oper.getVecStartPt().add(card.getPosition());
             }
+
             //去掉牌堆叠的13张
             for (Card card : array1) {
                 array.removeValue(card,true);

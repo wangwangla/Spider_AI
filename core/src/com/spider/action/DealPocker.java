@@ -33,7 +33,6 @@ public class DealPocker extends Action{
      */
     public boolean doAction(Pocker inpoker) {
         poker = inpoker;
-        poker.setHasGUI(true);
         poker.setSuitNum(suitNum);
         poker.setSeed(seed);
         //先清理
