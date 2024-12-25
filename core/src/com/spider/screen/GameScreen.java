@@ -114,17 +114,17 @@ public class GameScreen extends ScreenAdapter {
                 manager.OnLButtonUp();
             }
         });
-        stage.addAction(Actions.delay(1,Actions.run(new Runnable() {
-            @Override
-            public void run() {
-                new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        manager.AutoSolve1();
-                    }
-                }).start();
-            }
-        })));
+//        stage.addAction(Actions.delay(1,Actions.run(new Runnable() {
+//            @Override
+//            public void run() {
+//                new Thread(new Runnable() {
+//                    @Override
+//                    public void run() {
+//                        manager.AutoSolve1();
+//                    }
+//                }).start();
+//            }
+//        })));
     }
 
     private void showBg() {
