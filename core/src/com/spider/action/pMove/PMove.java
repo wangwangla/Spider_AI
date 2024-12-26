@@ -1,30 +1,26 @@
-package com.spider.pMove;
+package com.spider.action.pMove;
 
-import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
-import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
 import com.spider.action.Action;
 import com.spider.card.Card;
-import com.spider.constant.Constant;
 import com.spider.manager.GameManager;
 import com.spider.pocker.Pocker;
-import com.spider.restore.Restore;
+import com.spider.action.restore.Restore;
 
 public class PMove extends Action {
     private int orig;
     private int dest;
     private int num;
     private Pocker poker;
-    private Array<Vector2> vecStartPt = new Array<Vector2>();
     private boolean shownLastCard;
     private Restore restored;
     private boolean success;
     private Group finishGroup;
     private Group cardGroup;
-
+    private Array<Card> temp;
     public PMove(){}
 
     public PMove(int origIndex, int destIndex,int num,Group finishGroup,Group cardGroup){
@@ -35,6 +31,15 @@ public class PMove extends Action {
         this.num = num;
     }
 
+    /**
+     * 能否拾起
+     *
+     * 起始列  的最下方向上找
+     * @param poker
+     * @param origIndex
+     * @param num
+     * @return
+     */
     //返回是否可以移动
     //deskNum 牌堆编号
     //pos 牌编号
@@ -43,37 +48,46 @@ public class PMove extends Action {
         assert (num > 0 && num > poker.getDesk().get(origIndex).size);
         //暂存最外张牌
         //eg. size=10, card[9].suit
+        //获取最外层的序号  以及  花色
         Array<Card> cards = poker.getDesk().get(origIndex);
         int suit = cards.get(cards.size - 1).getSuit();
         int point = cards.get(cards.size - 1).getPoint();
 
         //从下数第2张牌开始遍历
         //eg. num==4, i=[0,1,2]
+        /**
+         * 第一张牌拿过了
+         * 从倒数第二张开始和前一张比较
+         */
         for (int i = 0; i < num - 1; ++i) {
             int index = poker.getDesk().get(origIndex).size - i - 2;
             Card card = poker.getDesk().get(origIndex).get(index);
-            if (card.getSuit() != suit)
+            if (card.getSuit() != suit) {
                 return false;
-            if (!card.isShow())
+            }
+            if (!card.isShow()) {
                 return false;
-            if (point + 1 == card.getPoint())
+            }
+            if (point + 1 == card.getPoint()) {
                 point++;
-            else
+            } else {
                 return false;
+            }
         }
         return true;
     }
 
     public boolean canMove(Pocker poker, int origIndex, int destIndex, int num) {
         //不能拾取返回false
-        if (!canPick(poker, origIndex, num))
+        if (!canPick(poker, origIndex, num)) {
             return false;
+        }
         Array<Card> cards = poker.getDesk().get(origIndex);
         Card origTopCard = cards.get(cards.size - num);
         Array<Card> destCards = poker.getDesk().get(destIndex);
-        if (destCards.size <= 0)
+        if (destCards.size <= 0) {
             return true;
-        else if (origTopCard.getPoint() + 1 == destCards.get(destCards.size - 1).getPoint())//目标堆叠的最外牌==移动牌顶层+1
+        } else if (origTopCard.getPoint() + 1 == destCards.get(destCards.size - 1).getPoint())//目标堆叠的最外牌==移动牌顶层+1
             return true;
         return false;
     }
@@ -98,12 +112,6 @@ public class PMove extends Action {
                 temp.add(cards.get(i));
             }
 
-            //加入点集
-            vecStartPt.clear();
-            for (int i = cards.size - num; i < cards.size; i++) {
-                Card card = cards.get(i);
-                vecStartPt.add(new Vector2(card.getX(), card.getY()));
-            }
 
             //擦除移走的牌
             Array<Card> array = poker.getDesk().get(orig);
@@ -130,11 +138,12 @@ public class PMove extends Action {
 
     public void restore(){
         restored = new Restore(finishGroup,cardGroup);
-        restored.setUpdateGroup(updateGroup);
         if (restored.doAction(poker)) {
             cardGroup.addAction(Actions.delay(0.3F,Actions.run(()->{
                 restored.startAnimation();
             })));
+        }else {
+            restored = null;
         }
     }
 
@@ -160,7 +169,6 @@ public class PMove extends Action {
     }
 
     public void redoAnimation() {
-
         Array<Image> vecImageEmpty = GameManager.vecImageEmpty;
         Image image = vecImageEmpty.get(orig);
         Array<Card> cards = poker.getDesk().get(orig);
@@ -168,9 +176,10 @@ public class PMove extends Action {
         for (Card card : temp) {
             card.addAction(Actions.moveTo(image.getX(),offSetY,1));
             offSetY-=20;
+            cardGroup.addActor(card);
         }
     }
-    private Array<Card> temp;
+
     public boolean redo(Pocker inpoker) {
         assert (success);
         poker = inpoker;

@@ -13,7 +13,6 @@ import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.Align;
 import com.spider.SpiderGame;
-import com.spider.config.Configuration;
 import com.spider.constant.Constant;
 import com.spider.log.NLog;
 import com.spider.manager.GameManager;
@@ -81,7 +80,6 @@ public class GameScreen extends ScreenAdapter {
             public void clicked(InputEvent event, float x, float y) {
                 super.clicked(event, x, y);
                 manager.faPai();
-//                manager.test();
             }
         });
         stage.addListener(new ClickListener(){

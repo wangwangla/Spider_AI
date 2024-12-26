@@ -8,8 +8,6 @@ import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.spider.SpiderGame;
 
 public class Card extends Group {
-    private int z_index;
-    private boolean visible;
     private Image img, imgBack;
     private int suit;//花色 1 2 3 4
     private int point;//点数 1-13
@@ -19,35 +17,15 @@ public class Card extends Group {
         this(suit, point, false);
     }
 
-    public Card(Card card) {
-        this.suit = card.suit;
-        this.point = card.point;
-        this.show = card.show;
-        this.z_index = card.z_index;
-        this.visible = card.visible;
-        this.img = null;
-        this.imgBack = null;
-    }
-
     public Card(int suit, int point, boolean show) {
         this.suit = suit;
         this.point = point;
         this.show = show;
-        this.visible = true;
     }
 
     public int getPoint() {
         return point;
     }
-
-    public void setSuit(int suit) {
-        this.suit = suit;
-    }
-
-    public void setPoint(int point) {
-        this.point = point;
-    }
-
 
     public void setShow(boolean show) {
         this.show = show;
@@ -62,10 +40,6 @@ public class Card extends Group {
                 imgBack.setVisible(true);
             }
         }
-    }
-
-    public void setVisible(boolean visible) {
-        this.visible = visible;
     }
 
     //返回花色 C D H S

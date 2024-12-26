@@ -62,8 +62,6 @@ public class Pocker {
         this.operation = operation;
     }
 
-
-
     public Array<Array<Card>> getDesk() {
         return desk;
     }

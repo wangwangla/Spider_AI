@@ -10,11 +10,6 @@ public class Oper {
     private Vector2 ptEnd;
 
     public Oper(){}
-    public Oper(int origDeskIndex,boolean shownLastCard){
-        this.origDeskIndex = origDeskIndex;
-        this.shownLastCard = shownLastCard;
-    }
-
     public int getOrigDeskIndex() {
         return origDeskIndex;
     }

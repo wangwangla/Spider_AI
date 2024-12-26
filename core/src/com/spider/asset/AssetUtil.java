@@ -6,11 +6,6 @@ import com.spider.log.NLog;
 
 public class AssetUtil {
     private AssetManager assetManager;
-
-    public AssetManager getAssetManager() {
-        return assetManager;
-    }
-
     public AssetUtil(){
         NLog.e("init assetUtil ");
         assetManager = new AssetManager();

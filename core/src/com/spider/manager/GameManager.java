@@ -14,7 +14,7 @@ import com.spider.bean.DragInfo;
 import com.spider.card.Card;
 import com.spider.constant.Constant;
 import com.spider.log.NLog;
-import com.spider.pMove.PMove;
+import com.spider.action.pMove.PMove;
 import com.spider.pocker.Pocker;
 
 
@@ -39,7 +39,6 @@ public class GameManager {
         this.dragInfo = new DragInfo();
         this.pMove = new PMove();
         this.corner = new ReleaseCorner(sendCardGroup,cardGroup,finishGroup);
-        this.corner.setUpdateGroup(true);
         this.origionTouchDownVector = new Vector2();
         this.cardGroup = cardGroup;
         this.finishGroup = finishGroup;
@@ -238,30 +237,30 @@ public class GameManager {
     }
 
     public void faPai() {
-        corner.doAction(pocker);
-        record.add(corner);
-        corner.startAnimation();
+        if (corner.doAction(pocker)) {
+            record.add(corner);
+            corner.startAnimation();
+        }
     }
 
     public void recod() {
         if (record.size<=0)return;
         Array<Action> record = this.record;
         Action action = record.removeIndex(record.size - 1);
-        action.setGroup(cardGroup);
         action.redo(pocker);
         action.redoAnimation();
     }
 
-    public void test() {
-        Array<Card> cards = pocker.getDesk().get(1);
-        for (Card card : cards) {
-            Vector2 temp = new Vector2(card.getX(Align.center),card.getY(Align.center));
-            cardGroup.localToStageCoordinates(temp);
-            finishGroup.stageToLocalCoordinates(temp);
-            card.setPosition(temp.x,temp.y,Align.center);
-            finishGroup.addActor(card);
-        }
-    }
+//    public void test() {
+//        Array<Card> cards = pocker.getDesk().get(1);
+//        for (Card card : cards) {
+//            Vector2 temp = new Vector2(card.getX(Align.center),card.getY(Align.center));
+//            cardGroup.localToStageCoordinates(temp);
+//            finishGroup.stageToLocalCoordinates(temp);
+//            card.setPosition(temp.x,temp.y,Align.center);
+//            finishGroup.addActor(card);
+//        }
+//    }
 
     class ClickPocker{
         private int i;
@@ -305,7 +304,6 @@ public class GameManager {
         if (orig!=dest && dest!=-1) {
             if (canMove(orig,dest,num)) {
                 PMove action = new PMove(orig, dest, num,finishGroup,cardGroup);
-                action.setUpdateGroup(true);
                 if (action.doAction(poker)) {
                     record.add(action);
                 }
@@ -313,23 +311,29 @@ public class GameManager {
 
             }else {
                 PMove action = new PMove(orig, orig, num,finishGroup,cardGroup);
-                action.setUpdateGroup(true);
                 action.setPocker(poker);
                 action.startAnimation();
             }
         }else {
             PMove action = new PMove(orig, orig, num,finishGroup,cardGroup);
-            action.setUpdateGroup(true);
             action.setPocker(poker);
             action.startAnimation();
         }
         return false;
     }
 
+    /**
+     * 目标列没用牌可以放置
+     * @param orig
+     * @param dest
+     * @param num
+     * @return
+     */
     private boolean canMove(int orig, int dest, int num) {
         Array<Card> cards = pocker.getDesk().get(orig);
         if (cards.size<num)return false;
         Card card = cards.get(cards.size - num);
+        // 目标列  没用牌到时候
         Array<Card> cards1 = pocker.getDesk().get(dest);
         if (cards1.size > 0){
             Card card1 = cards1.get(cards1.size-1);
@@ -341,7 +345,7 @@ public class GameManager {
                 return false;
             }
         }else {
-            return false;
+            return true;
         }
     }
 
@@ -352,7 +356,7 @@ public class GameManager {
         for (int i = 0; i < 10; i++) {
             Image image = new Image(SpiderGame.getAssetUtil().loadTexture("Resource/cardempty.png"));
             image.setOrigin(Align.center);
-            image.setScale(0);
+            image.setScale(1);
             vecImageEmpty.add(image);
             cardGroup.addActor(image);
             image.setX(v1*(i+1)+71 * i);

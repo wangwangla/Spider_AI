@@ -10,7 +10,7 @@ public class DragInfo {
     int orig = -1;
     int cardIndex = -1;
     int num = -1;
-    Array<ArrayMap<Card, Vector2>> vecCard = new Array<ArrayMap<Card, Vector2>>();
+    Array<ArrayMap<Card, Vector2>> vecCard = new Array<>();
     public DragInfo(){
     }
 
@@ -50,7 +50,4 @@ public class DragInfo {
         return vecCard;
     }
 
-    public void setVecCard(Array<ArrayMap<Card, Vector2>> vecCard) {
-        this.vecCard = vecCard;
-    }
 }

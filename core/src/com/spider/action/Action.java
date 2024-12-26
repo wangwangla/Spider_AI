@@ -5,13 +5,8 @@ import com.spider.pocker.Pocker;
 
 public class Action {
     protected Pocker poker;
-    protected boolean updateGroup;
     public Action() {
 
-    }
-
-    public void setUpdateGroup(boolean updateGroup) {
-        this.updateGroup = updateGroup;
     }
 
     public boolean doAction(Pocker inpoker) {
@@ -27,10 +22,6 @@ public class Action {
     }
 
     public void redoAnimation(){
-
-    }
-
-    public void setGroup(Group cardGroup) {
 
     }
 }

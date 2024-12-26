@@ -1,6 +1,5 @@
 package com.spider.action;
 
-import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
@@ -8,11 +7,10 @@ import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.GdxRuntimeException;
-import com.spider.action.Action;
 import com.spider.card.Card;
 import com.spider.manager.GameManager;
 import com.spider.pocker.Pocker;
-import com.spider.restore.Restore;
+import com.spider.action.restore.Restore;
 
 public class ReleaseCorner extends Action {
     private Restore restored;
@@ -74,7 +72,6 @@ public class ReleaseCorner extends Action {
 
         //进行回收
         restored = new Restore(finishGroup,cardGroup);
-        restored.setUpdateGroup(updateGroup);
         if (restored.doAction(poker) == false)
             restored = null;
         return true;

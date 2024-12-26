@@ -1,4 +1,4 @@
-package com.spider.restore;
+package com.spider.action.restore;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.math.Vector2;
@@ -151,18 +151,6 @@ public class Restore extends Action {
             for (int i = 0; i < it1.size; i++) {
                 Card card = it1.get(it1.size - 1-i);
                 array.add(card);
-//                if (cardGroup!=null) {
-//                    Vector2 vector2 = new Vector2();
-//                    vector2.set(card.getX(), card.getY());
-//                    card.getParent().localToStageCoordinates(vector2);
-//                    cardGroup.stageToLocalCoordinates(vector2);
-//                    card.setPosition(vector2.x, vector2.y);
-////                card.addAction(Actions.moveTo(array));
-//                    cardGroup.addActor(card);
-////                    card.addAction(Actions.moveTo(it.getOrigDeskIndex()*v,baseY,1F));
-//                    card.setPosition(it.getOrigDeskIndex()*v,baseY);
-//
-//                }
                 baseY -= 40;
             }
             //完成的牌消掉
