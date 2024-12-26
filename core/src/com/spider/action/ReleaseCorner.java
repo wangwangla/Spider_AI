@@ -5,6 +5,7 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
+import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.GdxRuntimeException;
 import com.spider.action.Action;
@@ -47,34 +48,22 @@ public class ReleaseCorner extends Action {
             return false;
         //取得角落区坐标
         Array<Array<Card>> corner = poker.getCorner();
+        //待发区亮牌
+        Array<Card> cards = corner.get(corner.size - 1);
         //遍历一摞待发区牌
         for (int i = 0; i < 10; ++i) {
-            //待发区亮牌
-            Array<Card> cards = corner.get(corner.size - 1);
             //逐个堆叠加上
             poker.getDesk().get(i).add(cards.get(i));
             Card card = cards.get(i);
-
             //检测是否不可以点击
             if (poker.getDesk().get(i).size>=2) {
-                Array<Card> cards1 = poker.getDesk().get(i);
-                Card card1 = cards1.get(cards1.size - 1);
-                Card card2 = cards1.get(cards1.size - 2);
-                if (card2.getSuit() != card1.getSuit()) {
-//
-                }else if (card2.getPoint() + 1 != card1.getPoint()){
-//                    cards.get(i).setShow(true);/**/
-                }
                 cards.get(i).setShow(true);
             }
-            if (updateGroup){
-                Group parent = card.getParent();
-                Vector2 vector2 = new Vector2(0, 0);
-                parent.localToStageCoordinates(vector2);
-                sendCardGroup.stageToLocalCoordinates(vector2);
-                cards.get(i).setPosition(vector2.x, vector2.y);
-                cardGroup.addActor(cards.get(i));
-            }
+            Vector2 vector2 = new Vector2(card.getX(Align.center),card.getY(Align.center));
+            card.localToStageCoordinates(vector2);
+            cardGroup.addActor(cards.get(i));
+            card.stageToLocalCoordinates(vector2);
+            cards.get(i).setPosition(vector2.x, vector2.y,Align.center);
         }
         //去掉一摞待发区
         corner.removeIndex(corner.size - 1);
@@ -123,11 +112,9 @@ public class ReleaseCorner extends Action {
     }
 
     public void startAnimation() {
-
-        assert (success);
         //如果发生了回收事件，先恢复到回收前
-        if (restored != null)
-            restored.redo(poker);
+//        if (restored != null)
+//            restored.redo(poker);
         Array<Image> vecImageEmpty = GameManager.vecImageEmpty;
         for (int i = 0; i < poker.getDesk().size; i++) {
             Array<Card> cards =poker.getDesk().get(i);
@@ -135,7 +122,7 @@ public class ReleaseCorner extends Action {
                 Card card = cards.get(cards.size - 2);
                 final Card card1 = cards.get(cards.size - 1);
                 card1.addAction(Actions.delay(i*0.1F,Actions.moveTo(card.getX(),card.getY()-20,0.2F)));
-            }else {
+            }else if (cards.size>0){
                 Image image = vecImageEmpty.get(i);
                 Card card = cards.get(cards.size - 1);
                 card.addAction(Actions.delay(i*0.1F,Actions.moveTo(image.getX(),image.getY()-20,0.2F)));

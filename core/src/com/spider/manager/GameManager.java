@@ -86,16 +86,16 @@ public class GameManager {
                 card.setPosition((index-1)*10,0,Align.bottom);
             }
         }
-        updateZIndex();
+
     }
 
     public void updateZIndex(){
-        int zIndex=0;
-        for (Array<Card> array : pocker.getDesk()) {
-            for (Card card : array) {
-                card.setZIndex(10+zIndex++);
-            }
-        }
+//        int zIndex=0;
+//        for (Array<Card> array : pocker.getDesk()) {
+//            for (Card card : array) {
+//                card.setZIndex(10+zIndex++);
+//            }
+//        }
     }
 
     public void initialImage() {
@@ -252,6 +252,17 @@ public class GameManager {
         action.redoAnimation();
     }
 
+    public void test() {
+        Array<Card> cards = pocker.getDesk().get(1);
+        for (Card card : cards) {
+            Vector2 temp = new Vector2(card.getX(Align.center),card.getY(Align.center));
+            cardGroup.localToStageCoordinates(temp);
+            finishGroup.stageToLocalCoordinates(temp);
+            card.setPosition(temp.x,temp.y,Align.center);
+            finishGroup.addActor(card);
+        }
+    }
+
     class ClickPocker{
         private int i;
 
@@ -299,6 +310,7 @@ public class GameManager {
                     record.add(action);
                 }
                 action.startAnimation();
+
             }else {
                 PMove action = new PMove(orig, orig, num,finishGroup,cardGroup);
                 action.setUpdateGroup(true);
@@ -316,7 +328,7 @@ public class GameManager {
 
     private boolean canMove(int orig, int dest, int num) {
         Array<Card> cards = pocker.getDesk().get(orig);
-        if (cards.size<=num)return false;
+        if (cards.size<num)return false;
         Card card = cards.get(cards.size - num);
         Array<Card> cards1 = pocker.getDesk().get(dest);
         if (cards1.size > 0){

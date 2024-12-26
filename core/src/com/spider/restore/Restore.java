@@ -4,6 +4,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
+import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
 import com.spider.action.Action;
 import com.spider.bean.Oper;
@@ -15,7 +16,8 @@ import com.spider.pocker.Pocker;
 public class Restore extends Action {
     private Group finished;
     private Group cardGroup;
-
+    private Array<Card> array1;
+    private Pocker poker;
     public Restore(Group finished,Group cardGroup){
         this.finished = finished;
         this.cardGroup = cardGroup;
@@ -46,7 +48,6 @@ public class Restore extends Action {
         return true;
     }
 
-    private Array<Card> array1;
     boolean doRestore(Pocker poker,int deskNum) {
         if (canRestore(poker,deskNum)) {
             final Oper oper = new Oper();
@@ -71,24 +72,7 @@ public class Restore extends Action {
                 array.removeValue(card,true);
                 NLog.e("huishou : %s",card.getPoint());
             }
-            Gdx.app.postRunnable(new Runnable() {
-                @Override
-                public void run() {
-                    //翻开下面的牌
-//                    for (Card card : array1) {
-//                        array.removeValue(card,true);
-//                        NLog.e("huishou : %s",card.getPoint());
-//                        Vector2 vs = new Vector2();
-//                        vs.set(card.getX(),card.getY());
-//                        if (card.getParent()!=null && finished!=null) {
-//                            card.getParent().localToStageCoordinates(vs);
-//                            finished.stageToLocalCoordinates(vs);
-//                            card.setPosition(vs.x,vs.y);
-//                            finished.addActor(card);
-//                        }
-//                    }
-                }
-            });
+
             if (!(array.size<=0) && array.get(array.size-1).isShow() == false) {
                 array.get(array.size-1).setShow(true);
                 oper.setShownLastCard(true);
@@ -103,7 +87,7 @@ public class Restore extends Action {
     }
 
 
-    private Pocker poker;
+
     public boolean doAction(Pocker inpoker) {
         poker = inpoker;
         if (vecOper.size<=0) {
@@ -122,57 +106,29 @@ public class Restore extends Action {
     }
 
     public void  startAnimation() {
+        /**
+         * 改变位置   播放动画
+         *
+         */
+        Vector2 vector2 = new Vector2(0,0);
+        Array<Array<Card>> finished1 = poker.getFinished();
+        int size = finished1.size;
+        vector2.x = size*10;
+        //最终位置
+        array1.reverse();
+        finished.toFront();
         for (Card card : array1) {
-            card.addAction(Actions.moveTo(0,0,1));
+            Vector2 temp = new Vector2(card.getX(Align.center),card.getY(Align.center));
+            card.getParent().localToStageCoordinates(temp);
+            finished.stageToLocalCoordinates(temp);
+            finished.addActor(card);
+//            card.setPosition(0,0);
+            card.clearActions();
+            card.setPosition(temp.x,temp.y,Align.center);
+            card.addAction(Actions.moveTo(vector2.x,0,1));
         }
     }
 
-    void redoAnimation(boolean bOnAnimation, boolean bStopAnimation) {
-        //刷新终点位置
-//        SendMessage(hWnd, WM_SIZE, 0, 0);
-
-//        SequentialAnimation* seq = new SequentialAnimation;
-//
-//        //每个回收组
-//        for (auto& oper : vecOper)
-//        {
-//
-//            auto& cards = poker->desk[oper.origDeskIndex];
-//            int sz = cards.size();
-//
-//            //先盖回去
-//            if (oper.shownLastCard)
-//            {
-//                auto& card = cards[sz - 14];
-//                seq->Add(CardTurnOverAnimation::AddFrontToBackAnimation(card));
-//            }
-//
-//            //13-1
-//            for (int i = sz - 13; i < sz; ++i)
-//            {
-//                auto& card = cards[i];
-//
-//                //设置起点
-//                card.SetPos(oper.ptEnd);
-//
-//                //
-//                card.SetZIndex(999 - i);
-//
-//                //移动
-//                seq->Add(new ValueAnimation<Card, POINT>(&card, 25, &Card::SetPos,oper.ptEnd ,oper.vecStartPt[i] ));
-//
-//                //恢复z-index
-//                seq->Add(new SettingAnimation<Card, int>(&card, 0, &Card::SetZIndex, 0));
-//            }
-//        }
-//
-//
-//        bStopAnimation = false;
-//        bOnAnimation = true;
-//        seq->Start(hWnd, bStopAnimation);
-//        delete seq;
-//        bOnAnimation = false;
-    }
 
     public boolean redo(Pocker inpoker) {
         super.redo(inpoker);
@@ -217,9 +173,4 @@ public class Restore extends Action {
         return true;
     }
 
-    @Override
-    public void setGroup(Group cardGroup) {
-        super.setGroup(cardGroup);
-        this.cardGroup = cardGroup;
-    }
 }

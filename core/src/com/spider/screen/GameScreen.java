@@ -40,13 +40,7 @@ public class GameScreen extends ScreenAdapter {
         showBg();
         showGameGroup();
         initManager();
-//        initConfig();
     }
-
-//    private void initConfig() {
-//        Configuration configuration = new Configuration();
-//        configuration.readFromFile("");
-//    }
 
     private void showGameGroup() {
         cardGroup = new Group();
@@ -81,12 +75,13 @@ public class GameScreen extends ScreenAdapter {
         NLog.e("init manager");
         manager = new GameManager(cardGroup,finishGroup,sendCardGroup);
         manager.setGuiProperty();
-        manager.newGame(4);
+        manager.newGame(1);
         sendCardGroup.addListener(new ClickListener(){
             @Override
             public void clicked(InputEvent event, float x, float y) {
                 super.clicked(event, x, y);
                 manager.faPai();
+//                manager.test();
             }
         });
         stage.addListener(new ClickListener(){

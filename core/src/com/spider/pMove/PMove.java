@@ -122,33 +122,30 @@ public class PMove extends Action {
             poker.minusOne();
             poker.addOperation();
             success = true;
-            restored = new Restore(finishGroup,cardGroup);
-            restored.setUpdateGroup(updateGroup);
-
-            if (restored.doAction(poker) == false) {
-                restored = null;
-            }
-
             return true;
         } else {
             return false;
         }
     }
 
+    public void restore(){
+        restored = new Restore(finishGroup,cardGroup);
+        restored.setUpdateGroup(updateGroup);
+        if (restored.doAction(poker)) {
+            cardGroup.addAction(Actions.delay(0.3F,Actions.run(()->{
+                restored.startAnimation();
+            })));
+        }
+    }
+
     public void startAnimation() {
         startAnimation_inner();
     }
-    int zIndex = 0;
+
     public void startAnimation_inner() {
-
-
-        //如果发生了回收事件，先恢复到回收前
-        if (restored!=null){
-            restored.redo(poker);
-        }
         Array<Card> cards = poker.getDesk().get(dest);
         int i1 = cards.size - num;
-        float baseY = 0;
+        float baseY = 20;
         if (i1 >0) {
             Card card1 = cards.get(cards.size - num-1);
             baseY = card1.getY();
@@ -156,31 +153,10 @@ public class PMove extends Action {
         Array<Image> vecImageEmpty = GameManager.vecImageEmpty;
         for (int i = 0; i < num; ++i) {
             Image image = vecImageEmpty.get(dest);
-            if(cards.size-num<0){
-
-            }
             Card card = cards.get(cards.size - num+i);
-            zIndex = 0;
-            extracted(card, image, baseY, i);
+            card.addAction(Actions.moveTo(image.getX(), baseY -20*(i + 1),0.3F));
         }
-
-        if (restored!=null){
-            restored.doAction(poker);
-            restored.startAnimation();
-        }
-    }
-
-    private void extracted(final Card card, Image image, float baseY, int i) {
-        card.addAction(
-                Actions.sequence(
-                        Actions.moveTo(image.getX(), baseY -20*(i +1),0.3F),
-                        Actions.run(new Runnable() {
-                            @Override
-                            public void run() {
-                                card.toFront();
-                            }
-                        })
-                        ));
+        restore();
     }
 
     public void redoAnimation() {
@@ -224,6 +200,7 @@ public class PMove extends Action {
             Card card = array1.get(i);
             array.add(card);
             temp.add(card);
+            card.toFront();
         }
         for (Card card : temp) {
             array1.removeValue(card,true);
