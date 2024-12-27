@@ -132,11 +132,11 @@ public class ReleaseCorner extends Action {
         if (poker.getCorner().size<0) {
             throw new GdxRuntimeException("error ");
         }
-
+        int size = poker.getCorner().size;
         Array<Card> cards = poker.getCorner().get(poker.getCorner().size - 1);
         int index = 0;
         for (Card card : cards) {
-            card.addAction(Actions.delay(index * 0.1F,Actions.moveTo(0, 0,0.1F)));
+            card.addAction(Actions.delay(index * 0.1F,Actions.moveTo(size*10, 0,0.1F)));
             card.setShowDelay(false,index);
             index ++;
         }

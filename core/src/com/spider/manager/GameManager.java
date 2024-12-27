@@ -2,6 +2,7 @@ package com.spider.manager;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Group;
+import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
@@ -10,8 +11,10 @@ import com.spider.SpiderGame;
 import com.spider.action.Action;
 import com.spider.action.DealPocker;
 import com.spider.action.ReleaseCorner;
+import com.spider.action.restore.Restore;
 import com.spider.bean.DragInfo;
 import com.spider.card.Card;
+import com.spider.card.ClickCard;
 import com.spider.constant.Constant;
 import com.spider.log.NLog;
 import com.spider.action.pMove.PMove;
@@ -33,6 +36,7 @@ public class GameManager {
     private float border = 10;
     private Vector2 origionTouchDownVector;
 
+    private ClickCard clickPocker = new ClickCard();
     public GameManager(Group cardGroup, Group finishGroup, Group sendCardGroup){
         //记录
         this.record = new Array<Action>();
@@ -115,8 +119,6 @@ public class GameManager {
 
     }
 
-
-
     public boolean touchDown(Actor target,float x,float y) {
         if(target == null){
             return false;
@@ -124,19 +126,24 @@ public class GameManager {
         if (!(target instanceof Card)){
             return false;
         }
+        //开始点击 都为-1
         clickPocker.setI(-1);
         clickPocker.setJ(-1);
         //取得按下的牌编号
         GetIndexFromPoint(target);
         //没有牌
-        if (clickPocker.i == -1)
+        if (clickPocker.i == -1) {
             return false;
+        }
         origionTouchDownVector.set(x, y);
+        //坐标点转换到牌面上
         target.stageToLocalCoordinates(origionTouchDownVector);
+        //第几张牌
         int num = pocker.getDesk().get(clickPocker.i).size - clickPocker.j;
-        //不能够拾取
-        if (!pMove.canPick(pocker, clickPocker.i, num))
+        //是否能够拾取
+        if (!pMove.canPick(pocker, clickPocker.i, num)) {
             return false;
+        }
         //开始拖动设置
         dragInfo.getVecCard().clear();
         for (int i = 0; i < num; ++i) {
@@ -164,6 +171,7 @@ public class GameManager {
     }
 
     public boolean OnMouseMove(Vector2 pt) {
+        //存在有效的牌
         if (dragInfo.isbOnDrag()) {
             //没有按下左键，释放拖动
             //抬起
@@ -190,7 +198,6 @@ public class GameManager {
             int dest = GetDestIndex(pocker, ptUpCard, dragInfo.getOrig(), dragInfo.getNum());
             //恢复拖动设置
             dragInfo.setbOnDrag(false);
-
             dragInfo.getVecCard().clear();
             //有目标牌位，且可以移动
             Move(pocker,dragInfo.getOrig(),dest,dragInfo.getNum());
@@ -249,46 +256,18 @@ public class GameManager {
         Action action = record.removeIndex(record.size - 1);
         action.redo(pocker);
         action.redoAnimation();
-    }
-
-//    public void test() {
-//        Array<Card> cards = pocker.getDesk().get(1);
-//        for (Card card : cards) {
-//            Vector2 temp = new Vector2(card.getX(Align.center),card.getY(Align.center));
-//            cardGroup.localToStageCoordinates(temp);
-//            finishGroup.stageToLocalCoordinates(temp);
-//            card.setPosition(temp.x,temp.y,Align.center);
-//            finishGroup.addActor(card);
-//        }
-//    }
-
-    class ClickPocker{
-        private int i;
-
-        private int j;
-
-        public void setI(int i) {
-            this.i = i;
-        }
-
-        public void setJ(int j) {
-            this.j = j;
-        }
-
-        public int getI() {
-            return i;
-        }
-
-        public int getJ() {
-            return j;
+        if (action instanceof Restore){
+            cardGroup.addAction(Actions.delay(0.3f,Actions.run(()->{
+                recod();
+            })));
         }
     }
 
-    private ClickPocker clickPocker = new ClickPocker();
 
     public void GetIndexFromPoint(Object object) {
-        if (pocker == null)
+        if (pocker == null) {
             return;
+        }
         for (int i = 0; i < pocker.getDesk().size; ++i) {
             for (int j = 0; j < pocker.getDesk().get(i).size; ++j) {
                 Card card = pocker.getDesk().get(i).get(j);
@@ -308,7 +287,10 @@ public class GameManager {
                     record.add(action);
                 }
                 action.startAnimation();
-
+                Restore restore = action.restore();
+                if (restore!=null){
+                    record.add(restore);
+                }
             }else {
                 PMove action = new PMove(orig, orig, num,finishGroup,cardGroup);
                 action.setPocker(poker);

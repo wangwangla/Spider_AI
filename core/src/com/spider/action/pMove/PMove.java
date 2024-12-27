@@ -95,6 +95,9 @@ public class PMove extends Action {
     public boolean doAction(Pocker inpoker) {
         poker = inpoker;
         //不能拾取返回false
+        /**
+         * 移动之前再次检查是否可以拾起
+         */
         if (!canPick(poker, orig, num)) {
             return false;
         }
@@ -111,8 +114,6 @@ public class PMove extends Action {
                 itDest.add(cards.get(i));
                 temp.add(cards.get(i));
             }
-
-
             //擦除移走的牌
             Array<Card> array = poker.getDesk().get(orig);
             for (Card card : temp) {
@@ -136,21 +137,27 @@ public class PMove extends Action {
         }
     }
 
-    public void restore(){
+    public Restore restore(){
         restored = new Restore(finishGroup,cardGroup);
         if (restored.doAction(poker)) {
+
             cardGroup.addAction(Actions.delay(0.3F,Actions.run(()->{
                 restored.startAnimation();
             })));
         }else {
             restored = null;
         }
+        return restored;
     }
 
     public void startAnimation() {
         startAnimation_inner();
     }
 
+    /**
+     * 执行完移动之后    会检测一下  是否存在回收任务   然后在播放动画，  但是有的时候 并不需要这个操作
+     * 仅仅为了快速泡跑关卡
+     */
     public void startAnimation_inner() {
         Array<Card> cards = poker.getDesk().get(dest);
         int i1 = cards.size - num;
@@ -165,7 +172,6 @@ public class PMove extends Action {
             Card card = cards.get(cards.size - num+i);
             card.addAction(Actions.moveTo(image.getX(), baseY -20*(i + 1),0.3F));
         }
-        restore();
     }
 
     public void redoAnimation() {

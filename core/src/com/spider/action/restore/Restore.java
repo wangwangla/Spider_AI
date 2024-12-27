@@ -4,6 +4,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
+import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
 import com.spider.action.Action;
@@ -11,6 +12,7 @@ import com.spider.bean.Oper;
 import com.spider.card.Card;
 import com.spider.constant.Constant;
 import com.spider.log.NLog;
+import com.spider.manager.GameManager;
 import com.spider.pocker.Pocker;
 
 public class Restore extends Action {
@@ -90,10 +92,16 @@ public class Restore extends Action {
 
     public boolean doAction(Pocker inpoker) {
         poker = inpoker;
+        /**
+         * 未指定  就需要全部遍历一下
+         *
+         * 指定了仅仅操作指定的列
+         */
         if (vecOper.size<=0) {
             //未指定回收组号
             //扫描每个堆叠寻找能回收的组
             for (int i = 0; i < poker.getDesk().size; ++i) {
+                //检测所有可以回收的列
                 doRestore(poker, i);
             }
         } else {
@@ -130,9 +138,13 @@ public class Restore extends Action {
     }
 
 
+    /**
+     * 这里完全没用必要考虑一次回收两次的情况  如果存在， 开始就已经回收了   除非写的有bug（之前的bug ，非当前的）
+     * @param inpoker
+     * @return
+     */
     public boolean redo(Pocker inpoker) {
         super.redo(inpoker);
-        assert(vecOper.size<=0);
         poker = inpoker;
         for (Oper it : vecOper) {
             poker.setScore(poker.getScore()-100);
@@ -145,13 +157,21 @@ public class Restore extends Action {
             //把完成的牌放回堆叠
             Array<Array<Card>> finished1 = poker.getFinished();
             Array<Card> it1 = finished1.get(finished1.size-1);
-            float v = Constant.worldWidth / 10.0F;
-            Array<Card> array = poker.getDesk().get(it.getOrigDeskIndex());
-            float baseY = array.size>0 ? array.get(array.size-1).getY() : 0;
+            Array<Card> cards = poker.getDesk().get(it.getOrigDeskIndex());
+            float baseY = cards.size>0 ? cards.get(cards.size-1).getY() : -20;
+            Array<Image> vecImageEmpty = GameManager.vecImageEmpty;
+            Image image = vecImageEmpty.get(it.getOrigDeskIndex());
             for (int i = 0; i < it1.size; i++) {
-                Card card = it1.get(it1.size - 1-i);
-                array.add(card);
-                baseY -= 40;
+                Card card = it1.get(i);
+                Vector2 temp = new Vector2();
+                temp.set(card.getX(Align.center),card.getY(Align.center));
+                card.getParent().localToStageCoordinates(temp);
+                cardGroup.stageToLocalCoordinates(temp);
+                card.setPosition(temp.x, temp.y,Align.center);
+
+                cards.add(card);
+                cardGroup.addActor(card);
+                card.addAction(Actions.moveTo(image.getX(), baseY -20*(i + 1),0.3F));
             }
             //完成的牌消掉
             Array<Array<Card>> finished = poker.getFinished();
