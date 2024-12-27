@@ -140,7 +140,6 @@ public class PMove extends Action {
     public Restore restore(){
         restored = new Restore(finishGroup,cardGroup);
         if (restored.doAction(poker)) {
-
             cardGroup.addAction(Actions.delay(0.3F,Actions.run(()->{
                 restored.startAnimation();
             })));
@@ -170,7 +169,7 @@ public class PMove extends Action {
         for (int i = 0; i < num; ++i) {
             Image image = vecImageEmpty.get(dest);
             Card card = cards.get(cards.size - num+i);
-            card.addAction(Actions.moveTo(image.getX(), baseY -20*(i + 1),0.3F));
+            card.addAction(Actions.moveTo(image.getX(), baseY -20*(i + 1),0.1F));
         }
     }
 
@@ -180,7 +179,7 @@ public class PMove extends Action {
         Array<Card> cards = poker.getDesk().get(orig);
         float offSetY = -(cards.size-num) * 20;
         for (Card card : temp) {
-            card.addAction(Actions.moveTo(image.getX(),offSetY,1));
+            card.addAction(Actions.moveTo(image.getX(),offSetY,0.1f));
             offSetY-=20;
             cardGroup.addActor(card);
         }

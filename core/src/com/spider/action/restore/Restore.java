@@ -42,10 +42,9 @@ public class Restore extends Action {
             if (pos >= 0 && poker.getDesk().get(deskNum).get(pos).getPoint() == i
                     && poker.getDesk().get(deskNum).get(pos).getSuit() == suit) {
                 pos--;
-                continue;
-            }
-            else
+            } else {
                 return false;
+            }
         }
         return true;
     }
@@ -61,20 +60,16 @@ public class Restore extends Action {
             for (int i = 0; i < 13; i++) {
                 array1.add(array.get(array.size-1-i));
             }
-
             poker.getFinished().add(array1);
             //预存起点位置
-
             for (Card card : array) {
                 oper.getVecStartPt().add(card.getPosition());
             }
-
             //去掉牌堆叠的13张
             for (Card card : array1) {
                 array.removeValue(card,true);
                 NLog.e("huishou : %s",card.getPoint());
             }
-
             if (!(array.size<=0) && array.get(array.size-1).isShow() == false) {
                 array.get(array.size-1).setShow(true);
                 oper.setShownLastCard(true);
@@ -133,7 +128,7 @@ public class Restore extends Action {
 //            card.setPosition(0,0);
             card.clearActions();
             card.setPosition(temp.x,temp.y,Align.center);
-            card.addAction(Actions.moveTo(vector2.x,0,1));
+            card.addAction(Actions.moveTo(vector2.x,0,0.1f));
         }
     }
 
