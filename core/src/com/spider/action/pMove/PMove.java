@@ -1,5 +1,6 @@
 package com.spider.action.pMove;
 
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
@@ -171,6 +172,32 @@ public class PMove extends Action {
             Card card = cards.get(cards.size - num+i);
             card.addAction(Actions.moveTo(image.getX(), baseY -20*(i + 1),0.1F));
         }
+        //开始列 结束列是都需要变色
+//        Array<Card> cards1 = poker.getDesk().get(orig);
+//        int size = cards1.size;
+//        if (size>0) {
+//            Card lastcard = cards1.get(size - 1);
+//            boolean isHui = false;
+//            for (int i = size - 2; i >= 0; i--) {
+//                Card card = cards1.get(i);
+//                boolean show = card.isShow();
+//                if (!show) {
+//                    break;
+//                }
+//                if (isHui){
+//                    card.setColor(Color.BLACK);
+//                }else {
+//                    card.setColor(Color.WHITE);
+//                    if (card.getSuit() != lastcard.getSuit()) {
+//                        //设置为灰色
+//                        isHui = true;
+//                    }
+//                    if (card.getPoint() - 1 != lastcard.getPoint()) {
+//                        isHui = true;
+//                    }
+//                }
+//            }
+//        }
     }
 
     public void redoAnimation() {
