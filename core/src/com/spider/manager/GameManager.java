@@ -42,7 +42,7 @@ public class GameManager {
     private float border = 10;
     private Vector2 origionTouchDownVector;
     private AutoSolveResult autoSolveResult;
-
+    private Array<Node> tempArrayNode = new Array<>();
     private ClickCard clickPocker = new ClickCard();
     public GameManager(Group cardGroup, Group finishGroup, Group sendCardGroup){
         //记录
@@ -87,7 +87,6 @@ public class GameManager {
             NLog.e("Fail.");
         }
         return autoSolveResult.isSuccess();
-
     }
 
     public boolean dfs(int calc, Array<Action> record, HashSet<Pocker> states,int stackLimited,
@@ -189,9 +188,6 @@ public class GameManager {
         xx(actions,record,states);
         return false;
     }
-
-    private Array<Node> tempArrayNode = new Array<>();
-
 
     private int step = 0;
     private boolean xx(Array<Node> array,Array<Action> record, HashSet<Pocker> states) {
