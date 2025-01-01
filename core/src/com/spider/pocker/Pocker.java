@@ -97,13 +97,29 @@ public class Pocker {
         pocker.operation = this.operation;//操作次数
         //桌上套牌
         pocker.desk = new Array<Array<Card>>(this.desk.size);//0为最里面
-        for (Array<Card> cards : this.desk) {
-
+        for (int i = 0; i < desk.size; i++) {
+            pocker.desk.add(new Array<>());
+            for (int i1 = 0; i1 < desk.get(i).size; i1++) {
+                pocker.desk.get(i).add(desk.get(i).get(i1).cloneInstance());
+            }
         }
         //发牌区
-        pocker.corner = new Array<Array<Card>>(this.corner);//0为最里面
+        pocker.corner = new Array<Array<Card>>(this.corner.size);//0为最里面
+        for (int i = 0; i < corner.size; i++) {
+            pocker.corner.add(new Array<>());
+            for (int i1 = 0; i1 < corner.get(i).size; i1++) {
+                pocker.corner.get(i).add(corner.get(i).get(i1).cloneInstance());
+            }
+        }
         //已完成套牌
         pocker.finished = new Array<Array<Card>>(this.finished);
+        for (int i = 0; i < finished.size; i++) {
+            pocker.finished.add(new Array<>());
+            for (int i1 = 0; i1 < finished.get(i).size; i1++) {
+                pocker.finished.get(i).add(finished.get(i).get(i1).cloneInstance());
+            }
+        }
+
         return pocker;
     }
 

@@ -106,4 +106,10 @@ public class Card extends Group {
             }
         })));
     }
+
+    public Card cloneInstance(){
+        Card card = new Card(suit,point,isShow());
+//        card.initCard();
+        return card;
+    }
 }

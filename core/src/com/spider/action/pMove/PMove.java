@@ -18,10 +18,11 @@ public class PMove extends Action {
     private boolean shownLastCard;
     private Restore restored;
     private boolean success;
-    private Group finishGroup;
-    private Group cardGroup;
     private Array<Card> temp;
     public PMove(){}
+
+    private Group finishGroup;
+    private Group cardGroup;
 
     public PMove(int origIndex, int destIndex,int num,Group finishGroup,Group cardGroup){
         this.finishGroup = finishGroup;
@@ -229,5 +230,12 @@ public class PMove extends Action {
     @Override
     public String toString() {
         return orig +"  "+dest +"   ";
+    }
+
+
+    @Override
+    public void print() {
+        super.print();
+        System.out.println(toString());
     }
 }

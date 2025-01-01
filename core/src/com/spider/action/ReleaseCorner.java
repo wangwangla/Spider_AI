@@ -141,4 +141,10 @@ public class ReleaseCorner extends Action {
             index ++;
         }
     }
+
+    @Override
+    public void print() {
+        super.print();
+        System.out.println("ReleaseCorner -----------------");
+    }
 }

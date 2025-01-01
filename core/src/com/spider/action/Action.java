@@ -24,4 +24,8 @@ public class Action {
     public void redoAnimation(){
 
     }
+
+    public void print() {
+
+    }
 }

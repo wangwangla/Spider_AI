@@ -71,7 +71,7 @@ public class GameManager {
                 record,
                 states,
                 stackLimited,
-                calcLimited,false);
+                calcLimited);
         //输出计算量
         if (autoSolveResult.isSuccess() == true) {
             //输出步骤
@@ -92,7 +92,7 @@ public class GameManager {
     }
 
     public boolean dfs(int calc, Array<Action> record, HashSet<Pocker> states,int stackLimited,
-                    int calcLimited,boolean playAnimation){
+                    int calcLimited){
         //成功
         if (pocker.isFinish()){
             autoSolveResult.setSuccess(true);
@@ -125,8 +125,8 @@ public class GameManager {
             }
         });
         //按照评估分大到小排序
-//        if (xxxxx(calc, record, states, stackLimited, calcLimited, playAnimation, actions))
-//            return true;
+        if (xxxxx(calc, record, states, stackLimited, calcLimited, actions))
+            return true;
         return false;
     }
 
@@ -153,19 +153,22 @@ public class GameManager {
     }
 
 
-    private boolean xxxxx(int calc, Array<Action> record, HashSet<Pocker> states, int stackLimited, int calcLimited, boolean playAnimation, Array<Node> actions) {
+    private boolean xxxxx(int calc, Array<Action> record, HashSet<Pocker> states, int stackLimited, int calcLimited, Array<Node> actions) {
         Array<Node> array = new Array<Node>();
         //开始递归
         for (final Node it : actions) {
-            gamewait();
             //没出现过的状态
             if (!compare(states,it.getPoker())) {
-                it.getAction().doAction(pocker);
+                gamewait();
+                Action action = it.getAction();
+                action.print();
+                action.doAction(pocker);
+                action.startAnimation();
                 //加入状态
                 states.add(it.getPoker());
                 //push记录
                 record.add(it.getAction());
-                if (dfs(calc, record, states, stackLimited, calcLimited, playAnimation)) {
+                if (dfs(calc, record, states, stackLimited, calcLimited)) {
                     //只有终止才会返回true，如果任意位置返回true，此处将逐级终止递归
                     ReleaseActions(actions);
                     return true;

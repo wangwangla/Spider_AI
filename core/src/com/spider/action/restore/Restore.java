@@ -148,7 +148,6 @@ public class Restore extends Action {
                 Array<Card> array = poker.getDesk().get(it.getOrigDeskIndex());
                 array.get(array.size - 1).setShow(false);
             }
-
             //把完成的牌放回堆叠
             Array<Array<Card>> finished1 = poker.getFinished();
             Array<Card> it1 = finished1.get(finished1.size-1);
@@ -176,4 +175,9 @@ public class Restore extends Action {
         return true;
     }
 
+    @Override
+    public void print() {
+        super.print();
+        System.out.println("Restored -----------------");
+    }
 }
