@@ -108,7 +108,7 @@ public class Restore extends Action {
         return !(vecOper.size<=0);
     }
 
-    public void  startAnimation() {
+    public void startAnimation() {
         /**
          * 改变位置   播放动画
          *

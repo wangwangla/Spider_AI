@@ -21,6 +21,7 @@ import com.spider.constant.Constant;
 import com.spider.log.NLog;
 import com.spider.action.pMove.PMove;
 import com.spider.pocker.Pocker;
+import com.sun.org.apache.xpath.internal.operations.Mod;
 
 import java.util.Comparator;
 import java.util.HashMap;
@@ -164,10 +165,18 @@ public class GameManager {
                 action.print();
                 action.doAction(pocker);
                 action.startAnimation();
+                if (action instanceof PMove){
+                    PMove action1 = (PMove) action;
+                    Restore restore = action1.getRestore();
+                    if(restore!=null){
+                        record.add(restore);
+                    }
+                }
                 //加入状态
                 states.add(it.getPoker());
                 //push记录
                 record.add(it.getAction());
+
                 if (dfs(calc, record, states, stackLimited, calcLimited)) {
                     //只有终止才会返回true，如果任意位置返回true，此处将逐级终止递归
                     ReleaseActions(actions);
@@ -230,7 +239,7 @@ public class GameManager {
                         continue;
                     }
                     Pocker newPoker = poker.copyInstance();
-                    Action action = new PMove(orig, dest, num,null,null);
+                    Action action = new PMove(orig, dest, num,finishGroup,cardGroup);
                     action.doAction(newPoker);
                     if (!compare(states,newPoker)) {
                         actions.add(new Node(newPoker.GetValue(), newPoker, action));
@@ -273,7 +282,7 @@ public class GameManager {
                         if (it.getPoint() + 1 == pCardDest.getPoint())//it->suit == pCard->suit &&
                         {
                             Pocker tempPoker = pocker.copyInstance();
-                            Action action = new PMove(orig, dest, num,null,null);
+                            Action action = new PMove(orig, dest, num,finishGroup,cardGroup);
 //                            boolean b = tempList.size() > 0 && tempPoker == tempList.get(tempList.size() - 1);
 //                            boolean b1 = stateLast(tempList, tempPoker);
                             if (action.doAction(tempPoker) &&!compare(states,tempPoker))
@@ -539,8 +548,8 @@ public class GameManager {
                     record.add(action);
                 }
                 action.startAnimation();
-                Restore restore = action.restore();
-                if (restore!=null){
+                Restore restore = action.getRestore();
+                if(restore!=null){
                     record.add(restore);
                 }
             }else {

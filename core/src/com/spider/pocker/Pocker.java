@@ -112,14 +112,13 @@ public class Pocker {
             }
         }
         //已完成套牌
-        pocker.finished = new Array<Array<Card>>(this.finished);
+        pocker.finished = new Array<Array<Card>>(this.finished.size);
         for (int i = 0; i < finished.size; i++) {
             pocker.finished.add(new Array<>());
             for (int i1 = 0; i1 < finished.get(i).size; i1++) {
                 pocker.finished.get(i).add(finished.get(i).get(i1).cloneInstance());
             }
         }
-
         return pocker;
     }
 
@@ -192,4 +191,21 @@ public class Pocker {
         return value;
     }
 
+    //去重复
+    @Override
+    public int hashCode() {
+        return super.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof Pocker) {
+            Pocker obj1 = (Pocker) (obj);
+            if (!desk.equals(obj1.desk))return false;
+            if (!finished.equals(obj1.finished))return false;
+            if (!corner.equals(obj1.corner))return false;
+            return true;
+        }
+        return false;
+    }
 }

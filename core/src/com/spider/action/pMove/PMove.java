@@ -141,17 +141,27 @@ public class PMove extends Action {
     public Restore restore(){
         restored = new Restore(finishGroup,cardGroup);
         if (restored.doAction(poker)) {
-            cardGroup.addAction(Actions.delay(0.3F,Actions.run(()->{
+            if (cardGroup == null) {
+                cardGroup.addAction(Actions.delay(0.3F, Actions.run(() -> {
+                    restored.startAnimation();
+                })));
+            }else {
                 restored.startAnimation();
-            })));
+            }
         }else {
             restored = null;
         }
         return restored;
     }
 
+    private Restore restore;
     public void startAnimation() {
         startAnimation_inner();
+        restore = restore();
+    }
+
+    public Restore getRestore() {
+        return restore;
     }
 
     /**
