@@ -96,7 +96,10 @@ public class Pocker {
         pocker.score = this.score;//分数
         pocker.operation = this.operation;//操作次数
         //桌上套牌
-        pocker.desk = new Array<Array<Card>>(this.desk);//0为最里面
+        pocker.desk = new Array<Array<Card>>(this.desk.size);//0为最里面
+        for (Array<Card> cards : this.desk) {
+
+        }
         //发牌区
         pocker.corner = new Array<Array<Card>>(this.corner);//0为最里面
         //已完成套牌

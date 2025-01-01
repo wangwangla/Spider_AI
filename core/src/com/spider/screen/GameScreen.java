@@ -34,6 +34,7 @@ public class GameScreen extends ScreenAdapter {
         Gdx.input.setInputProcessor(stage);
     }
 
+
     @Override
     public void show() {
         super.show();
@@ -41,8 +42,28 @@ public class GameScreen extends ScreenAdapter {
         showGameGroup();
         initManager();
         stage.addAction(Actions.delay(0.2f,Actions.run(()->{
-            manager.auto();
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    manager.auto();
+                }
+            }).start();
+/*
+            stage.addAction(Actions.delay(2,Actions.forever(Actions.delay(1,Actions.run(()->{
+                manager.nextStep();
+            })))));*/
         })));
+
+
+        Image image = new Image(new Texture("Resource/cardmask.png"));
+        stage.addActor(image);
+        image.addListener(new ClickListener(){
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                super.clicked(event, x, y);
+                manager.nextStep();
+            }
+        });
     }
 
     private void showGameGroup() {
