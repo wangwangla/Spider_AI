@@ -106,4 +106,19 @@ public class Card extends Group {
             }
         })));
     }
+
+    public Card cloneInstance(){
+        Card card = new Card(suit,point,isShow());
+//        card.initCard();
+        return card;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if(obj instanceof Card){
+            Card obj1 = (Card) (obj);
+            return suit == obj1.suit && point == obj1.point;
+        }
+        return false;
+    }
 }

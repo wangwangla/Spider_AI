@@ -18,10 +18,11 @@ public class PMove extends Action {
     private boolean shownLastCard;
     private Restore restored;
     private boolean success;
-    private Group finishGroup;
-    private Group cardGroup;
     private Array<Card> temp;
     public PMove(){}
+
+    private Group finishGroup;
+    private Group cardGroup;
 
     public PMove(int origIndex, int destIndex,int num,Group finishGroup,Group cardGroup){
         this.finishGroup = finishGroup;
@@ -140,17 +141,27 @@ public class PMove extends Action {
     public Restore restore(){
         restored = new Restore(finishGroup,cardGroup);
         if (restored.doAction(poker)) {
-            cardGroup.addAction(Actions.delay(0.3F,Actions.run(()->{
+            if (cardGroup == null) {
+                cardGroup.addAction(Actions.delay(0.3F, Actions.run(() -> {
+                    restored.startAnimation();
+                })));
+            }else {
                 restored.startAnimation();
-            })));
+            }
         }else {
             restored = null;
         }
         return restored;
     }
 
+    private Restore restore;
     public void startAnimation() {
         startAnimation_inner();
+        restore = restore();
+    }
+
+    public Restore getRestore() {
+        return restore;
     }
 
     /**
@@ -229,5 +240,12 @@ public class PMove extends Action {
     @Override
     public String toString() {
         return orig +"  "+dest +"   ";
+    }
+
+
+    @Override
+    public void print() {
+        super.print();
+        System.out.println(toString());
     }
 }
