@@ -113,23 +113,33 @@ public class Restore extends Action {
          * 改变位置   播放动画
          *
          */
-        Vector2 vector2 = new Vector2(0,0);
-        Array<Array<Card>> finished1 = poker.getFinished();
-        int size = finished1.size;
-        vector2.x = size*10;
-        //最终位置
-        array1.reverse();
-        finished.toFront();
-        for (Card card : array1) {
-            Vector2 temp = new Vector2(card.getX(Align.center),card.getY(Align.center));
-            card.getParent().localToStageCoordinates(temp);
-            finished.stageToLocalCoordinates(temp);
-            finished.addActor(card);
+        Gdx.app.postRunnable(new Runnable() {
+            @Override
+            public void run() {
+
+                Vector2 vector2 = new Vector2(0,0);
+                Array<Array<Card>> finished1 = poker.getFinished();
+                int size = finished1.size;
+                vector2.x = size*10;
+                //最终位置
+                array1.reverse();
+                finished.toFront();
+                for (Card card : array1) {
+                    Vector2 temp = new Vector2(card.getX(Align.center),card.getY(Align.center));
+                    card.getParent().localToStageCoordinates(temp);
+                    finished.stageToLocalCoordinates(temp);
+                    finished.addActor(card);
 //            card.setPosition(0,0);
-            card.clearActions();
-            card.setPosition(temp.x,temp.y,Align.center);
-            card.addAction(Actions.moveTo(vector2.x,0,0.1f));
-        }
+                    card.clearActions();
+                    card.setPosition(temp.x,temp.y,Align.center);
+                    if (Constant.animation){
+                        card.addAction(Actions.moveTo(vector2.x,0,0.1f));
+                    }else {
+                        card.setPosition(vector2.x,0);
+                    }
+                }
+            }
+        });
     }
 
 
@@ -152,7 +162,7 @@ public class Restore extends Action {
             Array<Array<Card>> finished1 = poker.getFinished();
             Array<Card> it1 = finished1.get(finished1.size-1);
             Array<Card> cards = poker.getDesk().get(it.getOrigDeskIndex());
-            float baseY = cards.size>0 ? cards.get(cards.size-1).getY() : -20;
+            float baseY = cards.size>0 ? cards.get(cards.size-1).getY() : 20;
             Array<Image> vecImageEmpty = GameManager.vecImageEmpty;
             Image image = vecImageEmpty.get(it.getOrigDeskIndex());
             for (int i = 0; i < it1.size; i++) {
@@ -162,10 +172,9 @@ public class Restore extends Action {
                 card.getParent().localToStageCoordinates(temp);
                 cardGroup.stageToLocalCoordinates(temp);
                 card.setPosition(temp.x, temp.y,Align.center);
-
                 cards.add(card);
-                cardGroup.addActor(card);
-                card.addAction(Actions.moveTo(image.getX(), baseY -20*(i + 1),0.3F));
+
+                extracted(card, image, baseY, i);
             }
             //完成的牌消掉
             Array<Array<Card>> finished = poker.getFinished();
@@ -173,6 +182,21 @@ public class Restore extends Action {
         }
         vecOper.clear();
         return true;
+    }
+
+    private void extracted(Card card, Image image, float baseY, int i) {
+        Gdx.app.postRunnable(new Runnable() {
+            @Override
+            public void run() {
+
+                cardGroup.addActor(card);
+                if (Constant.animation){
+                    card.addAction(Actions.moveTo(image.getX(), baseY -20*(i + 1),0.1F));
+                }else {
+                    card.setPosition(image.getX(), baseY -20*(i + 1));
+                }
+            }
+        });
     }
 
     @Override

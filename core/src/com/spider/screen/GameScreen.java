@@ -48,12 +48,10 @@ public class GameScreen extends ScreenAdapter {
                     manager.auto();
                 }
             }).start();
-/*
-            stage.addAction(Actions.delay(2,Actions.forever(Actions.delay(1,Actions.run(()->{
+            stage.addAction(Actions.delay(0.6f,Actions.forever(Actions.delay(0.2f,Actions.run(()->{
                 manager.nextStep();
-            })))));*/
+            })))));
         })));
-
 
         Image image = new Image(new Texture("Resource/cardmask.png"));
         stage.addActor(image);

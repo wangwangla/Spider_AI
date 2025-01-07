@@ -7,6 +7,8 @@ import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.spider.SpiderGame;
 
+import java.util.Objects;
+
 public class Card extends Group {
     private Image img, imgBack;
     private int suit;//花色 1 2 3 4
@@ -120,5 +122,10 @@ public class Card extends Group {
             return suit == obj1.suit && point == obj1.point;
         }
         return false;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(suit,point,isShow());
     }
 }

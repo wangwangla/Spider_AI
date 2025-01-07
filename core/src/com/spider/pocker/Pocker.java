@@ -3,6 +3,8 @@ package com.spider.pocker;
 import com.badlogic.gdx.utils.Array;
 import com.spider.card.Card;
 
+import java.util.Objects;
+
 /**
 桌面上共10摞牌，前4摞6张，后6摞5张，共6*4+5*6=54张
 角落共5叠，每叠10张，共10*5=50张
@@ -194,7 +196,8 @@ public class Pocker {
     //去重复
     @Override
     public int hashCode() {
-        return super.hashCode();
+        return Objects.hash(desk,finished,corner);
+
     }
 
     @Override

@@ -8,6 +8,7 @@ import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.GdxRuntimeException;
 import com.spider.card.Card;
+import com.spider.constant.Constant;
 import com.spider.manager.GameManager;
 import com.spider.pocker.Pocker;
 import com.spider.action.restore.Restore;
@@ -92,6 +93,7 @@ public class ReleaseCorner extends Action {
         for (int i = 0; i < 10; ++i) {
             //改为背面
             Array<Card> cards = poker.getDesk().get(i);
+            if (cards.size<=0)continue;
             Card card1 = cards.get(cards.size - 1);
             temp.add(cards.get(cards.size - 1));
             if (sendCardGroup!=null) {
@@ -118,11 +120,16 @@ public class ReleaseCorner extends Action {
             if (cards.size>1) {
                 Card card = cards.get(cards.size - 2);
                 final Card card1 = cards.get(cards.size - 1);
-                card1.addAction(Actions.delay(i*0.1F,Actions.moveTo(card.getX(),card.getY()-20,0.2F)));
+                if (Constant.animation){
+                    card1.addAction(Actions.delay(0,Actions.moveTo(card.getX(),card.getY()-20,0.2F)));
+                }else {
+                    card1.setPosition(card.getX(),card.getY()-20);
+                }
+
             }else if (cards.size>0){
                 Image image = vecImageEmpty.get(i);
                 Card card = cards.get(cards.size - 1);
-                card.addAction(Actions.delay(i*0.1F,Actions.moveTo(image.getX(),image.getY()-20,0.2F)));
+                card.addAction(Actions.delay(0,Actions.moveTo(image.getX(),image.getY()-20,0.2F)));
                 card.setPosition(1,1);
             }
         }

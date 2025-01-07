@@ -23,7 +23,8 @@ public class DealPocker extends Action{
     public DealPocker(int suitNum) {
         this.suitNum = suitNum;
         this.seed = (int) System.currentTimeMillis();
-        seed = 526353143;
+//        seed = 526353143;
+        seed = 707440650;
         NLog.e("seed is %s",seed);
     }
 

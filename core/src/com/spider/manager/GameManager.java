@@ -1,4 +1,5 @@
 package com.spider.manager;
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Group;
@@ -21,10 +22,8 @@ import com.spider.constant.Constant;
 import com.spider.log.NLog;
 import com.spider.action.pMove.PMove;
 import com.spider.pocker.Pocker;
-import com.sun.org.apache.xpath.internal.operations.Mod;
 
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.HashSet;
 
 
@@ -164,7 +163,8 @@ public class GameManager {
                 Action action = it.getAction();
                 action.print();
                 action.doAction(pocker);
-                action.startAnimation();
+
+                startAnimtion(action);
                 if (action instanceof PMove){
                     PMove action1 = (PMove) action;
                     Restore restore = action1.getRestore();
@@ -182,8 +182,11 @@ public class GameManager {
                     ReleaseActions(actions);
                     return true;
                 }
+                //撤销
+                gamewait();
                 it.getAction().redo(pocker);
-                setPos();
+                redoAnimation(it);
+
                 record.removeIndex(record.size - 1);
             } else{//已出现过的状态
                 array.add(it);
@@ -194,6 +197,21 @@ public class GameManager {
         }
         ReleaseActions(actions);
         return false;
+    }
+
+    private static void redoAnimation(Node it) {
+        Gdx.app.postRunnable(()->{
+            it.getAction().redoAnimation();
+        });
+    }
+
+    private static void startAnimtion(Action action) {
+        Gdx.app.postRunnable(new Runnable() {
+            @Override
+            public void run() {
+                action.startAnimation();
+            }
+        });
     }
 
     private void ReleaseActions(Array<Node> actions) {
@@ -243,6 +261,8 @@ public class GameManager {
                     action.doAction(newPoker);
                     if (!compare(states,newPoker)) {
                         actions.add(new Node(newPoker.GetValue(), newPoker, action));
+                    }else {
+                        System.out.println("---------------------------------");
                     }
                 }
             } else {
@@ -285,8 +305,11 @@ public class GameManager {
                             Action action = new PMove(orig, dest, num,finishGroup,cardGroup);
 //                            boolean b = tempList.size() > 0 && tempPoker == tempList.get(tempList.size() - 1);
 //                            boolean b1 = stateLast(tempList, tempPoker);
-                            if (action.doAction(tempPoker) &&!compare(states,tempPoker))
-                                actions.add(new Node(tempPoker.GetValue(),tempPoker,action));
+                            if (action.doAction(tempPoker) &&!compare(states,tempPoker)) {
+                                actions.add(new Node(tempPoker.GetValue(), tempPoker, action));
+                            }else {
+                                System.out.println("========================");
+                            }
                             break;
                         }
                     }
@@ -353,14 +376,6 @@ public class GameManager {
 
     }
 
-    public void updateZIndex(){
-//        int zIndex=0;
-//        for (Array<Card> array : pocker.getDesk()) {
-//            for (Card card : array) {
-//                card.setZIndex(10+zIndex++);
-//            }
-//        }
-    }
 
     public void initialImage() {
         //每张牌加入图片
@@ -463,7 +478,7 @@ public class GameManager {
             //有目标牌位，且可以移动
             Move(pocker,dragInfo.getOrig(),dest,dragInfo.getNum());
         }else {
-            updateZIndex();
+
         }
         return false;
     }

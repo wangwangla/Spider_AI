@@ -6,10 +6,14 @@ import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.utils.Array;
 import com.spider.action.Action;
 import com.spider.card.Card;
+import com.spider.constant.Constant;
 import com.spider.manager.GameManager;
 import com.spider.pocker.Pocker;
 import com.spider.action.restore.Restore;
 
+/**
+ * 此类仅仅作为一个   工具类存在
+ */
 public class PMove extends Action {
     private int orig;
     private int dest;
@@ -24,6 +28,14 @@ public class PMove extends Action {
     private Group finishGroup;
     private Group cardGroup;
 
+    /**
+     * 开始 -> 目标
+     * @param origIndex
+     * @param destIndex
+     * @param num
+     * @param finishGroup
+     * @param cardGroup
+     */
     public PMove(int origIndex, int destIndex,int num,Group finishGroup,Group cardGroup){
         this.finishGroup = finishGroup;
         this.cardGroup = cardGroup;
@@ -45,24 +57,25 @@ public class PMove extends Action {
     //deskNum 牌堆编号
     //pos 牌编号
     public boolean canPick(Pocker poker, int origIndex, int num) {
-        assert (origIndex >= 0 && origIndex < poker.getDesk().size);
-        assert (num > 0 && num > poker.getDesk().get(origIndex).size);
+//        assert (origIndex >= 0 && origIndex < poker.getDesk().size);
+//        assert (num > 0 && num <= poker.getDesk().get(origIndex).size);
         //暂存最外张牌
         //eg. size=10, card[9].suit
         //获取最外层的序号  以及  花色
         Array<Card> cards = poker.getDesk().get(origIndex);
         int suit = cards.get(cards.size - 1).getSuit();
         int point = cards.get(cards.size - 1).getPoint();
-
         //从下数第2张牌开始遍历
         //eg. num==4, i=[0,1,2]
         /**
          * 第一张牌拿过了
          * 从倒数第二张开始和前一张比较
+         *
+         * 这里不需要判断   因为不会出错
          */
         for (int i = 0; i < num - 1; ++i) {
-            int index = poker.getDesk().get(origIndex).size - i - 2;
-            Card card = poker.getDesk().get(origIndex).get(index);
+            int index = cards.size - i - 2;
+            Card card = cards.get(index);
             if (card.getSuit() != suit) {
                 return false;
             }
@@ -141,8 +154,8 @@ public class PMove extends Action {
     public Restore restore(){
         restored = new Restore(finishGroup,cardGroup);
         if (restored.doAction(poker)) {
-            if (cardGroup == null) {
-                cardGroup.addAction(Actions.delay(0.3F, Actions.run(() -> {
+            if (cardGroup != null) {
+                cardGroup.addAction(Actions.delay(0.5f, Actions.run(() -> {
                     restored.startAnimation();
                 })));
             }else {
@@ -180,7 +193,14 @@ public class PMove extends Action {
         for (int i = 0; i < num; ++i) {
             Image image = vecImageEmpty.get(dest);
             Card card = cards.get(cards.size - num+i);
-            card.addAction(Actions.moveTo(image.getX(), baseY -20*(i + 1),0.1F));
+
+
+            if (Constant.animation){
+                card.addAction(Actions.moveTo(image.getX(), baseY -20*(i + 1),0.1F));
+            }else {
+                card.setPosition(image.getX(), baseY -20*(i + 1));
+            }
+
         }
     }
 
@@ -233,19 +253,13 @@ public class PMove extends Action {
         return true;
     }
 
+
     public void setPocker(Pocker poker) {
         this.poker = poker;
     }
 
     @Override
-    public String toString() {
-        return orig +"  "+dest +"   ";
-    }
-
-
-    @Override
     public void print() {
-        super.print();
-        System.out.println(toString());
+        System.out.println(orig +"  "+dest +"   ");
     }
 }
