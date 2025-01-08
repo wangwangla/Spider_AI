@@ -8,6 +8,7 @@ import com.spider.asset.AssetUtil;
 import com.spider.constant.Constant;
 import com.spider.log.NLog;
 import com.spider.screen.GameScreen;
+import com.spider.screen.TestScreen;
 
 public class SpiderGame extends Game {
     private static SpriteBatch batch;
@@ -22,7 +23,8 @@ public class SpiderGame extends Game {
         Gdx.app.postRunnable(new Runnable() {
             @Override
             public void run() {
-                setScreen(new GameScreen());
+//                setScreen(new GameScreen());
+                setScreen(new TestScreen());
             }
         });
     }

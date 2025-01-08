@@ -23,13 +23,11 @@ public class PMove extends Action {
     private Restore restored;
     private boolean success;
     private Array<Card> temp;
-    public PMove(){}
-
     private Group finishGroup;
     private Group cardGroup;
-
+    public PMove(){}
     /**
-     * 开始 -> 目标
+     * 开始 -> 目标  移动的次数
      * @param origIndex
      * @param destIndex
      * @param num
@@ -47,39 +45,30 @@ public class PMove extends Action {
     /**
      * 能否拾起
      *
-     * 起始列  的最下方向上找
-     * @param poker
-     * @param origIndex
-     * @param num
-     * @return
+     * @param poker 牌局
+     * @param origIndex 开始的列
+     * @param num 牌数
+     * @return 返回是否可以移动
      */
-    //返回是否可以移动
-    //deskNum 牌堆编号
-    //pos 牌编号
     public boolean canPick(Pocker poker, int origIndex, int num) {
-//        assert (origIndex >= 0 && origIndex < poker.getDesk().size);
-//        assert (num > 0 && num <= poker.getDesk().get(origIndex).size);
-        //暂存最外张牌
-        //eg. size=10, card[9].suit
-        //获取最外层的序号  以及  花色
+        //开始列
         Array<Card> cards = poker.getDesk().get(origIndex);
+        //最后一张的颜色和点数
         int suit = cards.get(cards.size - 1).getSuit();
         int point = cards.get(cards.size - 1).getPoint();
-        //从下数第2张牌开始遍历
-        //eg. num==4, i=[0,1,2]
         /**
          * 第一张牌拿过了
          * 从倒数第二张开始和前一张比较
-         *
-         * 这里不需要判断   因为不会出错
+         * 这里不需要判断   因为不会出错  出错这不是这里的问题
          */
         for (int i = 0; i < num - 1; ++i) {
             int index = cards.size - i - 2;
             Card card = cards.get(index);
-            if (card.getSuit() != suit) {
+            //牌面是可点击状态的   这个需要修改，是为翻拍还是被压住
+            if (!card.isShow()) {
                 return false;
             }
-            if (!card.isShow()) {
+            if (card.getSuit() != suit) {
                 return false;
             }
             if (point + 1 == card.getPoint()) {
@@ -91,27 +80,43 @@ public class PMove extends Action {
         return true;
     }
 
+    /**
+     *  可以移动
+     * @param poker
+     * @param origIndex 开始
+     * @param destIndex 目标
+     * @param num 牌数
+     * @return
+     */
     public boolean canMove(Pocker poker, int origIndex, int destIndex, int num) {
-        //不能拾取返回false
+        //不能拾取返回
         if (!canPick(poker, origIndex, num)) {
             return false;
         }
         Array<Card> cards = poker.getDesk().get(origIndex);
+
+        //移动的最大牌是否和目标的最小数是想匹配的
+
+        //可以拾起然后开始取牌
         Card origTopCard = cards.get(cards.size - num);
+        //目标
         Array<Card> destCards = poker.getDesk().get(destIndex);
+        //目标小于0 是可以放牌的  【没有K的限制】
         if (destCards.size <= 0) {
             return true;
-        } else if (origTopCard.getPoint() + 1 == destCards.get(destCards.size - 1).getPoint())//目标堆叠的最外牌==移动牌顶层+1
+        } else if (origTopCard.getPoint() + 1 == destCards.get(destCards.size - 1).getPoint()) {//目标堆叠的最外牌==移动牌顶层+1
             return true;
+        }
         return false;
     }
 
+    /**
+     * 执行移动
+     * @param inpoker
+     * @return
+     */
     public boolean doAction(Pocker inpoker) {
         poker = inpoker;
-        //不能拾取返回false
-        /**
-         * 移动之前再次检查是否可以拾起
-         */
         if (!canPick(poker, orig, num)) {
             return false;
         }
@@ -120,10 +125,11 @@ public class PMove extends Action {
         Array<Card> itDest = poker.getDesk().get(dest);
         //目标位置为空 或者
         //目标堆叠的最外牌==移动牌顶层+1
-        if (poker.getDesk().get(dest).size <= 0 ||
+        if (itDest.size <= 0 ||
                 (itOrigBegin.getPoint() + 1 == itDest.get(itDest.size - 1).getPoint())) {
             //加上移来的牌
             temp = new Array<Card>();
+            //将牌一张一张的给目标堆
             for (int i = cards.size - num; i < cards.size; i++) {
                 itDest.add(cards.get(i));
                 temp.add(cards.get(i));
@@ -182,10 +188,11 @@ public class PMove extends Action {
      * 仅仅为了快速泡跑关卡
      */
     public void startAnimation_inner() {
+        //数据上面已经移动过来了   还差动画
         Array<Card> cards = poker.getDesk().get(dest);
         int i1 = cards.size - num;
         float baseY = 20;
-        if (i1 >0) {
+        if (i1 > 0) {
             Card card1 = cards.get(cards.size - num-1);
             baseY = card1.getY();
         }
@@ -193,14 +200,11 @@ public class PMove extends Action {
         for (int i = 0; i < num; ++i) {
             Image image = vecImageEmpty.get(dest);
             Card card = cards.get(cards.size - num+i);
-
-
             if (Constant.animation){
                 card.addAction(Actions.moveTo(image.getX(), baseY -20*(i + 1),0.1F));
             }else {
                 card.setPosition(image.getX(), baseY -20*(i + 1));
             }
-
         }
     }
 
@@ -209,10 +213,12 @@ public class PMove extends Action {
         Image image = vecImageEmpty.get(orig);
         Array<Card> cards = poker.getDesk().get(orig);
         float offSetY = -(cards.size-num) * 20;
+        //撤销的时候加入到temp
         for (Card card : temp) {
             card.addAction(Actions.moveTo(image.getX(),offSetY,0.1f));
             offSetY-=20;
             cardGroup.addActor(card);
+            //少一个牌面返回去
         }
     }
 

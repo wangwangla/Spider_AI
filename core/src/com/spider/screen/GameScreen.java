@@ -24,11 +24,11 @@ public class GameScreen extends ScreenAdapter {
     private Group cardGroup;
     private Group finishGroup;
     private Group sendCardGroup;
+    //点击位置
     private final Vector2 touchDownPos;
 
     public GameScreen(){
         NLog.e("create gameScreen !");
-        //点击下的位置
         touchDownPos = new Vector2();
         stage = new Stage(SpiderGame.getViewport(),SpiderGame.getBatch());
         Gdx.input.setInputProcessor(stage);

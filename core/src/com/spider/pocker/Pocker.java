@@ -91,8 +91,6 @@ public class Pocker {
 
     public Pocker copyInstance(){
         Pocker pocker = new Pocker();
-
-
         pocker.seed = this.seed;//种子
         pocker.suitNum = this.suitNum;//花色
         pocker.score = this.score;//分数

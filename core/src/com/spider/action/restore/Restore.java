@@ -20,27 +20,28 @@ public class Restore extends Action {
     private Group cardGroup;
     private Array<Card> array1;
     private Pocker poker;
+    //已回收成功的操作
+    private Array<Oper> vecOper = new Array<Oper>();
     public Restore(Group finished,Group cardGroup){
         this.finished = finished;
         this.cardGroup = cardGroup;
     }
 
-    //已回收成功的操作
-    private Array<Oper> vecOper = new Array<Oper>();
     //若所有堆叠有可回收的情况则回收
     //若对应堆叠能回收则回收
-
-        //返回对应堆叠能否回收
+    //返回对应堆叠能否回收
     public boolean canRestore(Pocker poker, int deskNum) {
-        if (poker.getDesk().get(deskNum).size<=0)
+        Array<Array<Card>> desk = poker.getDesk();
+        if (desk.get(deskNum).size<12) {
             return false;
-        int pos = poker.getDesk().get(deskNum).size - 1;
-        int suit = poker.getDesk().get(deskNum).get(pos).getSuit();
+        }
+        int pos = desk.get(deskNum).size - 1;
+        int suit = desk.get(deskNum).get(pos).getSuit();
         //i是点数
         for (int i = 1; i <= 13; ++i) {
             //从最后一张牌开始，点数升序，花色一致 则可以回收
-            if (pos >= 0 && poker.getDesk().get(deskNum).get(pos).getPoint() == i
-                    && poker.getDesk().get(deskNum).get(pos).getSuit() == suit) {
+            if (pos >= 0 && desk.get(deskNum).get(pos).getPoint() == i
+                    && desk.get(deskNum).get(pos).getSuit() == suit) {
                 pos--;
             } else {
                 return false;
@@ -56,21 +57,19 @@ public class Restore extends Action {
             //进行回收
             //加入套牌，从最低下一张倒数13张，所以顺序为1-13
             final Array<Card> array = poker.getDesk().get(deskNum);
+            //需要处理的
             array1 = new Array<Card>();
             for (int i = 0; i < 13; i++) {
                 array1.add(array.get(array.size-1-i));
             }
             poker.getFinished().add(array1);
-            //预存起点位置
-            for (Card card : array) {
-                oper.getVecStartPt().add(card.getPosition());
-            }
             //去掉牌堆叠的13张
             for (Card card : array1) {
                 array.removeValue(card,true);
                 NLog.e("huishou : %s",card.getPoint());
             }
-            if (!(array.size<=0) && array.get(array.size-1).isShow() == false) {
+
+            if (array.size>0 && array.get(array.size-1).isShow() == false) {
                 array.get(array.size-1).setShow(true);
                 oper.setShownLastCard(true);
             } else {
@@ -82,8 +81,6 @@ public class Restore extends Action {
         }
         return false;
     }
-
-
 
     public boolean doAction(Pocker inpoker) {
         poker = inpoker;
@@ -111,12 +108,10 @@ public class Restore extends Action {
     public void startAnimation() {
         /**
          * 改变位置   播放动画
-         *
          */
         Gdx.app.postRunnable(new Runnable() {
             @Override
             public void run() {
-
                 Vector2 vector2 = new Vector2(0,0);
                 Array<Array<Card>> finished1 = poker.getFinished();
                 int size = finished1.size;
@@ -188,7 +183,6 @@ public class Restore extends Action {
         Gdx.app.postRunnable(new Runnable() {
             @Override
             public void run() {
-
                 cardGroup.addActor(card);
                 if (Constant.animation){
                     card.addAction(Actions.moveTo(image.getX(), baseY -20*(i + 1),0.1F));
