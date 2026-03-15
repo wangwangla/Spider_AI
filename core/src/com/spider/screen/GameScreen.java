@@ -77,9 +77,13 @@ public class GameScreen extends ScreenAdapter {
                 new Thread(() -> {
                     NLog.e("start solve and play...");
                     moves = SpiderSolverAdapter.solveMoves(manager.getPocker());
-                    long delay = 1000; // ms per move
-                    for (int raw : moves) {
-                        com.badlogic.gdx.Gdx.app.postRunnable(() -> manager.applySolverMove(raw));
+                    for (int move : moves) {
+                        long delay = 1000; // ms per move
+                        try {
+                            Gdx.app.postRunnable(() -> manager.applySolverMove1(move));
+                            Thread.sleep(1000);
+                        }catch (Exception e){}
+
                     }
                     NLog.e("playback done, total moves=%s", moves.length);
                 }).start();
