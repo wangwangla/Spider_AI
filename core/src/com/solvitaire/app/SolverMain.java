@@ -279,7 +279,7 @@ public final class SolverMain {
          deleteIfExists(actualSolutionFile);
 
          SolverContext context = new SolverContext();
-         context.logLevel = 1;
+         context.logLevel = 100;
          context.variantId = sanitizedInput.variant;
          context.files = new SolverFileSet(actualInputFile);
          context.files.b = 1;

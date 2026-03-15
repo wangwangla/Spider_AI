@@ -40,7 +40,7 @@ public class GameScreen extends ScreenAdapter {
         showGameGroup();
         initManager();
     }
-
+    int[] moves;
     private void showGameGroup() {
         cardGroup = new Group();
         cardGroup.setSize(Constant.worldWidth,92F);
@@ -66,7 +66,7 @@ public class GameScreen extends ScreenAdapter {
         });
         image.setPosition(92,92);
 
-        // 求解按钮：调用 SolverCard 生成解并打印到日志
+        // 求解按钮：调用 SolverCard 生成解并自动播放
         Image solveImage = new Image(SpiderGame.getAssetUtil().loadTexture("Resource/cardmask.png"));
         solveImage.setSize(100, 100);
         stage.addActor(solveImage);
@@ -75,11 +75,13 @@ public class GameScreen extends ScreenAdapter {
             public void clicked(InputEvent event, float x, float y) {
                 super.clicked(event, x, y);
                 new Thread(() -> {
-                    NLog.e("start solve...");
-                    com.badlogic.gdx.utils.Array<String> steps = SpiderSolverAdapter.solve(manager.getPocker());
-                    for (String step : steps) {
-                        NLog.e(step);
+                    NLog.e("start solve and play...");
+                    moves = SpiderSolverAdapter.solveMoves(manager.getPocker());
+                    long delay = 1000; // ms per move
+                    for (int raw : moves) {
+                        com.badlogic.gdx.Gdx.app.postRunnable(() -> manager.applySolverMove(raw));
                     }
+                    NLog.e("playback done, total moves=%s", moves.length);
                 }).start();
             }
         });
@@ -88,7 +90,24 @@ public class GameScreen extends ScreenAdapter {
         stage.addActor(sendCardGroup);
         stage.addActor(finishGroup);
         stage.addActor(cardGroup);
+
+        {
+            // 求解按钮：调用 SolverCard 生成解并自动播放
+            Image stepM = new Image(SpiderGame.getAssetUtil().loadTexture("Resource/cardmask.png"));
+            stepM.setSize(100, 100);
+            stage.addActor(stepM);
+            stepM.addListener(new ClickListener(){
+                @Override
+                public void clicked(InputEvent event, float x, float y) {
+                    super.clicked(event, x, y);
+                    com.badlogic.gdx.Gdx.app.postRunnable(() -> manager.applySolverMove1(moves[cxxcx++]));
+                }
+            });
+            stepM.setPosition(510, 92);
+        }
     }
+
+    private int cxxcx = 0;
 
     private void initManager() {
         NLog.e("init manager");

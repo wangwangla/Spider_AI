@@ -335,6 +335,65 @@ public class GameManager {
         }
     }
 
+    public void applySolverMove(int rawMove) {
+        int moveTypeFlags = rawMove >>> 24;
+        if ((moveTypeFlags & 8) != 0) { // special -> deal
+            System.out.println("fapia");
+
+            return;
+        }
+        int num = (rawMove & 0xF0000) >> 16;
+        int srcGroup = (rawMove >> 8 & 0xFF) / 10;
+        int src = (rawMove >> 8 & 0xFF) % 10;
+        int dstGroup = (rawMove & 0xFF) / 10;
+        int dst = (rawMove & 0xFF) % 10;
+        if (srcGroup != 0 || dstGroup != 0) {
+            return; // 只处理桌面移动
+        }
+        if (num <= 0) {
+            num = 1;
+        }
+        System.out.println(src +"   "+dst);
+
+    }
+    public void applySolverMove1(int rawMove) {
+        int moveTypeFlags = rawMove >>> 24;
+        if ((moveTypeFlags & 8) != 0) { // special -> deal
+            System.out.println("fapia");
+            faPai();
+            return;
+        }
+        int num = (rawMove & 0xF0000) >> 16;
+        int srcGroup = (rawMove >> 8 & 0xFF) / 10;
+        int src = (rawMove >> 8 & 0xFF) % 10;
+        int dstGroup = (rawMove & 0xFF) / 10;
+        int dst = (rawMove & 0xFF) % 10;
+        if (srcGroup != 0 || dstGroup != 0) {
+            return; // 只处理桌面移动
+        }
+        if (num <= 0) {
+            num = 1;
+        }
+        System.out.println(src +"   "+dst);
+        performMove(src,dst,num);
+    }
+
+    public void performMove(int orig, int dest, int num) {
+        if (orig == dest || dest == -1) {
+            return;
+        }
+        PMove action = new PMove(orig, dest, num, finishGroup, cardGroup);
+        if (!action.doAction(pocker)) {
+            return;
+        }
+        record.add(action);
+        action.startAnimation();
+        Restore restore = action.restore();
+        if (restore != null) {
+            record.add(restore);
+        }
+    }
+
     public void setGuiProperty() {
         //创建空牌位
         float v1 = (Constant.worldWidth - 71 * 10) / 11.0F;
