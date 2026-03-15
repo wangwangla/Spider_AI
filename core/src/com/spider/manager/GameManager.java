@@ -19,6 +19,7 @@ import com.spider.constant.Constant;
 import com.spider.log.NLog;
 import com.spider.action.pMove.PMove;
 import com.spider.pocker.Pocker;
+import com.solvitaire.app.Move;
 
 
 public class GameManager {
@@ -37,6 +38,9 @@ public class GameManager {
     private Vector2 origionTouchDownVector;
 
     private ClickCard clickPocker = new ClickCard();
+    public Pocker getPocker() {
+        return pocker;
+    }
     public GameManager(Group cardGroup, Group finishGroup, Group sendCardGroup){
         //记录
         this.record = new Array<Action>();

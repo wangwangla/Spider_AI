@@ -35,6 +35,7 @@ allprojects {
         gdxVersion = '1.9.1'
     }
 
+
     repositories {
         maven {
             url 'https://maven.aliyun.com/repository/central'

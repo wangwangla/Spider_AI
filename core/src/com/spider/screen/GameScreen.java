@@ -15,6 +15,7 @@ import com.spider.SpiderGame;
 import com.spider.constant.Constant;
 import com.spider.log.NLog;
 import com.spider.manager.GameManager;
+import com.spider.solver.SpiderSolverAdapter;
 
 public class GameScreen extends ScreenAdapter {
     private Stage stage;
@@ -64,6 +65,26 @@ public class GameScreen extends ScreenAdapter {
             }
         });
         image.setPosition(92,92);
+
+        // 求解按钮：调用 SolverCard 生成解并打印到日志
+        Image solveImage = new Image(SpiderGame.getAssetUtil().loadTexture("Resource/cardmask.png"));
+        solveImage.setSize(100, 100);
+        stage.addActor(solveImage);
+        solveImage.addListener(new ClickListener(){
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                super.clicked(event, x, y);
+                new Thread(() -> {
+                    NLog.e("start solve...");
+                    com.badlogic.gdx.utils.Array<String> steps = SpiderSolverAdapter.solve(manager.getPocker());
+                    for (String step : steps) {
+                        NLog.e(step);
+                    }
+                }).start();
+            }
+        });
+        solveImage.setPosition(210, 92);
+
         stage.addActor(sendCardGroup);
         stage.addActor(finishGroup);
         stage.addActor(cardGroup);

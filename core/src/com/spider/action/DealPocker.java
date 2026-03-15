@@ -10,99 +10,133 @@ import com.spider.constant.Constant;
 import com.spider.log.NLog;
 import com.spider.manager.GameManager;
 import com.spider.pocker.Pocker;
+import com.solvitaire.app.DealCardCodec;
+import com.solvitaire.app.DealVariant;
 
-import java.util.Random;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * 处理牌局
+ * 处理发牌与初始布局
  */
-public class DealPocker extends Action{
+public class DealPocker extends Action {
     private int suitNum;
     private int seed;
 
     public DealPocker(int suitNum) {
         this.suitNum = suitNum;
         this.seed = (int) System.currentTimeMillis();
-//        seed = 28047093;
-        NLog.e("seed is %s",seed);
+        NLog.e("seed is %s", seed);
     }
 
     /**
-     * 发牌
-     * @param inpoker
-     * @return
+     * 发牌并生成牌局
      */
     public boolean doAction(Pocker inpoker) {
         poker = inpoker;
         poker.setSuitNum(suitNum);
         poker.setSeed(seed);
-        //先清理
         poker.getDesk().clear();
         poker.getCorner().clear();
         poker.getFinished().clear();
-        //生成整齐牌
-        Array<Card> cards = genInitCard();
-        cardPrint("shuffle pre",cards);
-        //打乱
-        Random random = new Random();
-        random.setSeed(seed);
-        shuffle(cards,random);
-        cardPrint("shuffle after",cards);
-        //发牌
-        int pos = 0;
-        //4摞6张的=24
-        for (int i = 0; i < 4; ++i) {
-            Array<Card> deskOne = new Array<Card>();
-            for (int j = 0; j < 6; ++j){
-                deskOne.add(cards.get(pos++));
-            }
-            poker.getDesk().add(deskOne);
-        }
-        //6摞5张的=30
-        for (int i = 0; i < 6; ++i){
-            Array<Card> deskOne = new Array<Card>();
-            for (int j = 0; j < 5; ++j) {
-                deskOne.add(cards.get(pos++));
-            }
-            poker.getDesk().add(deskOne);
+
+        // 使用 SolverCard 的 Spider 生成器，确保与求解器保持一致
+        String dealText = DealVariant.SPIDER.generate(suitNum, seed);
+        poker.setDealString(dealText);
+        ParsedDeal parsedDeal = parseDeal(dealText);
+        if (parsedDeal.tableau.size() != 54 || parsedDeal.stock.size() != 50) {
+            NLog.e("Deal parse error, tableau=%s stock=%s", parsedDeal.tableau.size(), parsedDeal.stock.size());
+            return false;
         }
 
-        //5摞 待发区=50
-        for (int i = 0; i < 5; ++i) {
+        // 桌面 10 列：前 5 行各 10 张，第 6 行前 4 列各 1 张
+        int index = 0;
+        for (int row = 0; row < 6; row++) {
+            int columns = row == 5 ? 4 : 10;
+            for (int col = 0; col < columns; col++) {
+                if (poker.getDesk().size <= col) {
+                    poker.getDesk().add(new Array<Card>());
+                }
+                Card card = toGameCard(parsedDeal.tableau.get(index++));
+                card.setShow(false);
+                poker.getDesk().get(col).add(card);
+            }
+        }
+        for (Array<Card> cardArray : poker.getDesk()) {
+            if (cardArray.size > 0) {
+                cardArray.get(cardArray.size - 1).setShow(true);
+            }
+        }
+
+        // 牌库 5 叠，每叠 10 张
+        int stockIndex = 0;
+        for (int pack = 0; pack < 5; ++pack) {
             Array<Card> cornerOne = new Array<Card>();
             for (int j = 0; j < 10; ++j) {
-                cornerOne.add(cards.get(pos++));
+                Card card = toGameCard(parsedDeal.stock.get(stockIndex++));
+                card.setShow(false);
+                cornerOne.add(card);
             }
             poker.getCorner().add(cornerOne);
         }
-        //每摞最外的牌亮牌
-        for (Array<Card> cardArray : poker.getDesk()) {
-            cardArray.get(cardArray.size-1).setShow(true);
-        }
+
         poker.setScore(500);
         poker.setOperation(0);
         return true;
     }
 
-    public void shuffle(Array<Card> array, Random random) {
-        Object [] items = array.toArray();
-        int size = items.length;
-        random.setSeed(seed);
-        for (int i = size - 1; i >= 0; i--) {
-            int ii = random.nextInt(i+1);
-            Object temp = items[i];
-            items[i] = items[ii];
-            items[ii] = temp;
+    private Card toGameCard(int solverCardId) {
+        int solverSuit = solverCardId / 100;
+        int rank = solverCardId % 100;
+        // Solver: 1=spade,2=heart,3=diamond,4=club
+        // Game:   1=club,2=diamond,3=heart,4=spade
+        int gameSuit;
+        switch (solverSuit) {
+            case 1:
+                gameSuit = 4;
+                break;
+            case 2:
+                gameSuit = 3;
+                break;
+            case 3:
+                gameSuit = 2;
+                break;
+            case 4:
+            default:
+                gameSuit = 1;
+                break;
         }
-        array.clear();
-        for (Object item : items) {
-            array.add((Card) item);
-        }
+        return new Card(gameSuit, rank);
     }
 
-    private void cardPrint(String preShuffle,Array<Card> cards) {
-        for (Card card : cards) {
-//            NLog.e("%s cards \n: %s",preShuffle,card);
+    private ParsedDeal parseDeal(String dealText) {
+        List<Integer> tableau = new ArrayList<>();
+        List<Integer> stock = new ArrayList<>();
+        String[] lines = dealText.split("\\r?\\n");
+        for (int i = 1; i < lines.length; i++) { // skip header
+            if (lines[i].trim().isEmpty()) continue;
+            String[] tokens = lines[i].split(",");
+            for (String token : tokens) {
+                String value = token.trim();
+                if (value.isEmpty()) continue;
+                int cardId = DealCardCodec.parse(value);
+                if (tableau.size() < 54) {
+                    tableau.add(cardId);
+                } else {
+                    stock.add(cardId);
+                }
+            }
+        }
+        return new ParsedDeal(tableau, stock);
+    }
+
+    private static class ParsedDeal {
+        final List<Integer> tableau;
+        final List<Integer> stock;
+
+        ParsedDeal(List<Integer> tableau, List<Integer> stock) {
+            this.tableau = tableau;
+            this.stock = stock;
         }
     }
 
@@ -115,15 +149,15 @@ public class DealPocker extends Action{
             Array<Card> cards = deskPocker.get(i);
             Image image = vecImageEmpty.get(i);
             for (Card card : cards) {
-                card.addAction(Actions.delay(indexX*0.1F+1F*y,
-                        Actions.moveTo(image.getX(),image.getY()-y*20,0.1F)));
+                card.addAction(Actions.delay(indexX * 0.1F + 1F * y,
+                    Actions.moveTo(image.getX(), image.getY() - y * 20, 0.1F)));
                 y++;
             }
             indexX++;
         }
     }
 
-    public boolean redo(Pocker inpoker,Group deskGroup,Group finishGroup,Group coener) {
+    public boolean redo(Pocker inpoker, Group deskGroup, Group finishGroup, Group coener) {
         poker = inpoker;
         poker.getDesk().clear();
         poker.getCorner().clear();
@@ -134,48 +168,22 @@ public class DealPocker extends Action{
         return true;
     }
 
-    //返回1维数组，各花色依次1-13点，共8*13=104张
-    public Array<Card> genInitCard() {
-        Array<Card> result = new Array<Card>();
-        switch (suitNum) {
-            case 1:
-                for (int i = 0; i < 8; ++i)
-                    for (int j = 1; j <= 13; ++j)
-                        result.add(new Card(4, j));//1个花色：黑桃
-                break;
-            case 2:
-                for (int i = 0; i < 8; ++i)
-                    for (int j = 1; j <= 13; ++j)
-                        result.add(new Card((i>3) ? 3 : 4, j));//2个花色：红桃，黑桃
-                break;
-            case 4:
-                for (int i = 0; i < 8; ++i)
-                    for (int j = 1; j <= 13; ++j)
-                        result.add(new Card( i % 4 + 1, j));//4个花色
-                break;
-            default:
-                return result;
-        }
-        return result;
-    }
-
     public void initPos(Group sendCardGroup, Group cardGroup) {
         for (int i = 0; i < poker.getCorner().size; i++) {
             Array<Card> cards = poker.getCorner().get(i);
             for (int i1 = 0; i1 < cards.size; i1++) {
                 Card card = cards.get(i1);
-                card.setPosition(i * 10,0);
+                card.setPosition(i * 10, 0);
             }
         }
 
-
         Array<Array<Card>> deskPocker = poker.getDesk();
-        Vector2 pos = new Vector2(0,0);
+        Vector2 pos = new Vector2(0, 0);
         sendCardGroup.localToStageCoordinates(pos);
         cardGroup.stageToLocalCoordinates(pos);
         for (Array<Card> array : deskPocker) {
             for (Card card : array) {
-                card.setPosition(pos.x,pos.y);
+                card.setPosition(pos.x, pos.y);
             }
         }
     }

@@ -17,6 +17,7 @@ public class Pocker {
     private int suitNum;//花色
     private int score;//分数
     private int operation;//操作次数
+    private String dealString; // solver deal text for integration
     public Pocker() {
         seed = -1;
         suitNum = -1;
@@ -60,6 +61,14 @@ public class Pocker {
 
     public void setOperation(int operation) {
         this.operation = operation;
+    }
+
+    public String getDealString() {
+        return dealString;
+    }
+
+    public void setDealString(String dealString) {
+        this.dealString = dealString;
     }
 
     public Array<Array<Card>> getDesk() {

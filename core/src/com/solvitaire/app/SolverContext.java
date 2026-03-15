@@ -1,0 +1,221 @@
+package com.solvitaire.app;
+
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
+public class SolverContext {
+   static final String[] INPUT_SOURCE_MODE_NAMES = new String[]{"", "PLAY", "MSFT", "FILE", "PLAYBACK", "CAPTURE", "ALL_CARDS"};
+   static final String[] SOLVER_MODE_NAMES = new String[]{"NORMAL", "ALL_CARDS", "FROM_FILE", "CAPTURE", "PLAYBACK", "UNUSED", "UNUSED2"};
+   static final String[] VARIANT_NAMES = new String[]{"", "Klondike", "Spider", "FreeCell", "Pyramid", "TriPeaks"};
+
+   int logLevel = 0;
+   int variantId = 3;
+   int solverMode = 3;
+   int inputSourceMode = 0;
+   int bk = 0;
+   int searchCredit = 0;
+   int complexity = 0;
+   int playbackMoveIndex = 0;
+   int V = 0;
+   int U = 0;
+   long searchStepCount = 0L;
+   boolean abortAllReads = false;
+   boolean foundCompleteSolution = false;
+   boolean t = true;
+   boolean ad = false;
+   boolean aN = false;
+   boolean ag = false;
+   boolean ah = false;
+   boolean ai = false;
+   boolean Y = false;
+   boolean aX = false;
+   boolean aG = false;
+   boolean az = false;
+   boolean x = false;
+   boolean S = false;
+   String workspaceRoot = "";
+   long aF = 0L;
+
+   BaseSolver solver;
+   SolverBridge bridge;
+   GameState initialState;
+   GameState searchState;
+   GameState bestSolutionState = new GameState();
+   GameState playbackState = new GameState();
+   SolverFileSet files;
+
+   BpStub fontStats = new BpStub();
+   TableStub table = new TableStub();
+
+   void log(String message) {
+      System.out.println(message);
+      try (PrintWriter out = new PrintWriter(new FileWriter("log.txt", true))) {
+         out.println(message);
+      } catch (IOException e) {
+         e.printStackTrace();
+      }
+   }
+
+   void fail(String message) {
+      throw new IllegalStateException(message.replace("<br>", System.lineSeparator()));
+   }
+
+   void invalidInput(String message, boolean ignored) {
+      throw new IllegalArgumentException(message);
+   }
+
+   void sleepBriefly(long millis, String reason) {
+      if (millis <= 0L) {
+         return;
+      }
+
+      try {
+         Thread.sleep(Math.min(millis, 5L));
+      } catch (InterruptedException interruptedException) {
+         Thread.currentThread().interrupt();
+      }
+   }
+
+   void writeTextFile(String path, String contents, boolean append) {
+      try {
+         Path target = Paths.get(path);
+         Path parent = target.getParent();
+         if (parent != null) {
+            Files.createDirectories(parent);
+         }
+
+         if (append && Files.exists(target)) {
+            Files.writeString(target, contents, StandardCharsets.UTF_8, java.nio.file.StandardOpenOption.APPEND);
+         } else {
+            Files.writeString(target, contents, StandardCharsets.UTF_8);
+         }
+      } catch (IOException iOException) {
+         throw new IllegalStateException("Failed to write " + path, iOException);
+      }
+   }
+
+   String[] readAllLines(String path) {
+      try {
+         return Files.readAllLines(Paths.get(path), StandardCharsets.UTF_8).toArray(new String[0]);
+      } catch (IOException iOException) {
+         throw new IllegalStateException("Failed to read " + path, iOException);
+      }
+   }
+
+   String readTextFile(String path) {
+      try {
+         return Files.readString(Paths.get(path), StandardCharsets.UTF_8);
+      } catch (IOException iOException) {
+         throw new IllegalStateException("Failed to read " + path, iOException);
+      }
+   }
+
+   static void ensureDirectory(String path) {
+      try {
+         Files.createDirectories(Paths.get(path));
+      } catch (IOException iOException) {
+         throw new IllegalStateException("Failed to create directory " + path, iOException);
+      }
+   }
+
+   final int parseCardCode(String string) {
+      if (this.x) {
+         return 0;
+      }
+
+      string = string.trim().toLowerCase();
+      if (string.isEmpty()) {
+         return 0;
+      }
+
+      int n2 = string.length();
+      if (n2 != 2 && (n2 != 3 || string.charAt(0) != '1' || string.charAt(1) != '0')) {
+         this.invalidInput("Invalid card " + string + " in input file", false);
+      }
+
+      int suit = 0;
+      char rankChar = string.charAt(0);
+      char suitChar = string.charAt(1);
+      if (rankChar == '1') {
+         if (suitChar != '0') {
+            this.invalidInput("Invalid card " + string + " in input file", false);
+            return 0;
+         }
+         suitChar = string.charAt(2);
+      }
+
+      switch (suitChar) {
+         case 's':
+            suit = 100;
+            break;
+         case 'h':
+            suit = 200;
+            break;
+         case 'd':
+            suit = 300;
+            break;
+         case 'c':
+            suit = 400;
+            break;
+         case '?':
+            suit = 0;
+            break;
+         default:
+            this.invalidInput("Invalid card " + string + " in input file", false);
+      }
+
+      switch (rankChar) {
+         case 'a':
+            return suit + 1;
+         case 'j':
+            return suit + 11;
+         case 'q':
+            return suit + 12;
+         case 'k':
+            return suit + 13;
+         case '1':
+            return suit + 10;
+         case '2':
+         case '3':
+         case '4':
+         case '5':
+         case '6':
+         case '7':
+         case '8':
+         case '9':
+            return suit + rankChar - '0';
+         case '?':
+            return suit;
+         default:
+            this.invalidInput("Invalid card " + string + " in input file", false);
+            return 0;
+      }
+   }
+
+   static String describeThrowable(Throwable throwable) {
+      return throwable.toString();
+   }
+
+   static final class BpStub {
+      final FontStub font = new FontStub();
+      int e = 0;
+      int f = 0;
+   }
+
+   static final class FontStub {
+      String name = "solver";
+   }
+
+   static final class TableStub {
+      int drawCount = 1;
+   }
+}
+
+
+
+
