@@ -26,14 +26,14 @@ public class ReleaseCorner extends Action {
         this.finishGroup = finishGroup;
     }
 
-    //释放一摞右下角，检查收牌情况
+    //释放一摞右下角，检查收牌情�?
     public boolean doAction(Pocker inpoker) {
         poker = inpoker;
-        //角落区没牌
+        //角落区没�?
         if (poker.getCorner().size <= 0) {
             return false;
         }
-        //有空位不能发牌，但总牌数小于10张不受限制
+        //有空位不能发牌，但总牌数小�?0张不受限�?
         int sum = 0;
         boolean hasEmpty = false;
         for (Array<Card> cards : poker.getDesk()) {
@@ -44,11 +44,11 @@ public class ReleaseCorner extends Action {
         }
         if (hasEmpty && sum >= 10)
             return false;
-        //取得角落区坐标
+        //取得角落区坐�?
         Array<Array<Card>> corner = poker.getCorner();
-        //待发区亮牌
-        Array<Card> cards = corner.get(corner.size - 1);
-        //遍历一摞待发区牌
+        //待发区亮�?
+        Array<Card> cards = corner.first();
+        //遍历一摞待发区�?
         for (int i = 0; i < 10; ++i) {
             //逐个堆叠加上
             poker.getDesk().get(i).add(cards.get(i));
@@ -64,7 +64,7 @@ public class ReleaseCorner extends Action {
             cards.get(i).setPosition(vector2.x, vector2.y,Align.center);
         }
         //去掉一摞待发区
-        corner.removeIndex(corner.size - 1);
+        corner.removeIndex(0);
         success = true;
 
         poker.setScore(poker.getScore() - 1);
@@ -99,17 +99,17 @@ public class ReleaseCorner extends Action {
                 card1.getParent().localToStageCoordinates(vector2);
                 sendCardGroup.stageToLocalCoordinates(vector2);
                 card1.setPosition(vector2.x,vector2.y);
-                //从桌上取掉
+                //从桌上取�?
                 sendCardGroup.addActor(cards.get(cards.size - 1));
             }
             cards.removeIndex(cards.size - 1);
         }
-        poker.getCorner().add(temp);
+        poker.getCorner().insert(0, temp);
         return true;
     }
 
     public void startAnimation() {
-        //如果发生了回收事件，先恢复到回收前
+        //如果发生了回收事件，先恢复到回收�?
 //        if (restored != null)
 //            restored.redo(poker);
         Array<Image> vecImageEmpty = GameManager.vecImageEmpty;
@@ -133,10 +133,10 @@ public class ReleaseCorner extends Action {
             throw new GdxRuntimeException("error ");
         }
         int size = poker.getCorner().size;
-        Array<Card> cards = poker.getCorner().get(poker.getCorner().size - 1);
+        Array<Card> cards = poker.getCorner().first();
         int index = 0;
         for (Card card : cards) {
-            card.addAction(Actions.delay(index * 0.1F,Actions.moveTo(size*10, 0,0.1F)));
+            card.addAction(Actions.delay(index * 0.1F,Actions.moveTo(0, 0,0.1F)));
             card.setShowDelay(false,index);
             index ++;
         }
