@@ -14,7 +14,6 @@ public class AssetUtil {
     public Texture loadTexture(String file){
         NLog.e("loading texture file %s",file);
         if (!assetManager.isLoaded(file)) {
-            NLog.e("%s is not load !",file);
             assetManager.load(file, Texture.class);
             assetManager.finishLoading();
         }

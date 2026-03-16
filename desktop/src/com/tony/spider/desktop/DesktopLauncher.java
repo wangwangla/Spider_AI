@@ -1,4 +1,4 @@
-package com.siondream.superjumper.desktop;
+package com.tony.spider.desktop;
 
 import com.badlogic.gdx.backends.lwjgl.LwjglApplication;
 import com.badlogic.gdx.backends.lwjgl.LwjglApplicationConfiguration;

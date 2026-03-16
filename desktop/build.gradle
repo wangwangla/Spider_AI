@@ -1,12 +1,14 @@
-apply plugin: "java"
-
+//使用 Java 8 语法编译
 sourceCompatibility = 1.8
+//源代码目录
 sourceSets.main.java.srcDirs = [ "src/" ]
-sourceSets.main.resources.srcDirs = [ "../android/assets" ]
+//资源目录
+sourceSets.main.resources.srcDirs = [ "../assets" ]
 
-project.ext.mainClassName = "com.siondream.superjumper.desktop.DesktopLauncher"
-project.ext.assetsDir = new File("../android/assets");
+project.ext.mainClassName = "com.tony.spider.desktop.DesktopLauncher"
+project.ext.assetsDir = new File("../assets");
 
+//运行任务
 task run(dependsOn: classes, type: JavaExec) {
     main = project.mainClassName
     classpath = sourceSets.main.runtimeClasspath

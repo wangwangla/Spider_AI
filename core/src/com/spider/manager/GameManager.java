@@ -36,23 +36,22 @@ public class GameManager implements CardViewProvider {
     private float cardHeight = 96;
     private float border = 10;
     private Vector2 origionTouchDownVector;
-
     private ClickCard clickPocker = new ClickCard();
     private final ObjectMap<CardModel, Card> cardViews = new ObjectMap<CardModel, Card>();
     private static final float STACK_GAP = 20f;
 
-    public Pocker getPocker() {
-        return pocker;
-    }
-
     public GameManager(Group cardGroup, Group finishGroup, Group sendCardGroup){
-        this.record = new Array<Action>();
+        this.record = new Array();
         this.dragInfo = new DragInfo();
         this.corner = new ReleaseCorner(sendCardGroup,cardGroup,finishGroup, this);
         this.origionTouchDownVector = new Vector2();
         this.cardGroup = cardGroup;
         this.finishGroup = finishGroup;
         this.sendCardGroup = sendCardGroup;
+    }
+
+    public Pocker getPocker() {
+        return pocker;
     }
 
     /**
@@ -384,7 +383,7 @@ public class GameManager implements CardViewProvider {
     }
 
     public void setGuiProperty() {
-        float v1 = (cardGroup.getWidth() - 71 * 10) / 11.0F;
+        float v1 = (cardGroup.getWidth() - 71 * 10) / 10.0F;
         vecImageEmpty = new Array<Image>();
         for (int i = 0; i < 10; i++) {
             Image image = new Image(SpiderGame.getAssetUtil().loadTexture("Resource/cardempty.png"));
