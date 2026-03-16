@@ -82,7 +82,7 @@ public class GameScreen extends ScreenAdapter {
                         long delay = 1000; // ms per move
                         try {
                             Gdx.app.postRunnable(() -> manager.applySolverMove1(move));
-                            Thread.sleep(1000);
+                            Thread.sleep(500);
                         }catch (Exception e){}
 
                     }
