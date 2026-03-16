@@ -396,7 +396,7 @@ public class GameManager {
 
     public void setGuiProperty() {
         //创建空牌位
-        float v1 = (Constant.worldWidth - 71 * 10) / 11.0F;
+        float v1 = (cardGroup.getWidth() - 71 * 10) / 11.0F;
         vecImageEmpty = new Array<Image>();
         for (int i = 0; i < 10; i++) {
             Image image = new Image(SpiderGame.getAssetUtil().loadTexture("Resource/cardempty.png"));

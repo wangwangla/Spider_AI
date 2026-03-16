@@ -43,8 +43,9 @@ public class GameScreen extends ScreenAdapter {
     int[] moves;
     private void showGameGroup() {
         cardGroup = new Group();
-        cardGroup.setSize(Constant.worldWidth,92F);
+        cardGroup.setSize(800,92F);
         cardGroup.setY(Constant.worldHeight-100);
+        cardGroup.setDebug(true);
 
         finishGroup = new Group();
         finishGroup.setSize(76,92);
