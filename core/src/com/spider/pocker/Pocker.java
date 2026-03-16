@@ -1,35 +1,30 @@
 package com.spider.pocker;
 
 import com.badlogic.gdx.utils.Array;
-import com.spider.card.Card;
+import com.spider.model.CardModel;
 
 /**
-桌面上共10摞牌，前4摞6张，后6摞5张，共6*4+5*6=54张
-角落共5叠，每叠10张，共10*5=50张
-总计104张，104=13*8，为两套牌去掉大小王得到
-heart 红桃
-spade 黑桃
-club 梅花
-diamond 方块
-*/
+ * 纯数据的牌局状态，用于驱动游戏逻辑与求解器。
+ */
 public class Pocker {
     private int seed;//种子
-    private int suitNum;//花色
-    private int score;//分数
+    private int suitNum;//花色数
+    private int score;//得分
     private int operation;//操作次数
     private String dealString; // solver deal text for integration
+
+    //桌面10列牌堆，0 为最左
+    private final Array<Array<CardModel>> desk = new Array<Array<CardModel>>();
+    //待发牌堆（5 叠，每叠 10 张）
+    final Array<Array<CardModel>> corner = new Array<Array<CardModel>>();
+    //已完成的 13 张顺子堆
+    final Array<Array<CardModel>> finished = new Array<Array<CardModel>>();
+
     public Pocker() {
         seed = -1;
         suitNum = -1;
         score = -1;
     }
-
-    //桌上套牌
-    private Array<Array<Card>> desk = new Array<Array<Card>>();//0为最里面
-    //发牌区
-    Array<Array<Card>> corner = new Array<Array<Card>>();//0为最里面
-    //已完成套牌
-    Array<Array<Card>> finished = new Array<Array<Card>>();
 
     public int getSeed() {
         return seed;
@@ -71,15 +66,15 @@ public class Pocker {
         this.dealString = dealString;
     }
 
-    public Array<Array<Card>> getDesk() {
+    public Array<Array<CardModel>> getDesk() {
         return desk;
     }
 
-    public Array<Array<Card>> getCorner() {
+    public Array<Array<CardModel>> getCorner() {
         return corner;
     }
 
-    public Array<Array<Card>> getFinished() {
+    public Array<Array<CardModel>> getFinished() {
         return finished;
     }
 

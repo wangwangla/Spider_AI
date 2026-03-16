@@ -3,14 +3,14 @@ package com.spider.bean;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ArrayMap;
-import com.spider.card.Card;
+import com.spider.model.CardModel;
 
 public class DragInfo {
     private boolean bOnDrag;
     int orig = -1;
     int cardIndex = -1;
     int num = -1;
-    Array<ArrayMap<Card, Vector2>> vecCard = new Array<>();
+    Array<ArrayMap<CardModel, Vector2>> vecCard = new Array<>();
     public DragInfo(){
     }
 
@@ -46,7 +46,7 @@ public class DragInfo {
         this.num = num;
     }
 
-    public Array<ArrayMap<Card, Vector2>> getVecCard() {
+    public Array<ArrayMap<CardModel, Vector2>> getVecCard() {
         return vecCard;
     }
 

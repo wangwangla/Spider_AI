@@ -7,6 +7,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ArrayMap;
+import com.badlogic.gdx.utils.ObjectMap;
 import com.spider.SpiderGame;
 import com.spider.action.Action;
 import com.spider.action.DealPocker;
@@ -14,22 +15,21 @@ import com.spider.action.ReleaseCorner;
 import com.spider.action.restore.Restore;
 import com.spider.bean.DragInfo;
 import com.spider.card.Card;
+import com.spider.card.CardViewProvider;
 import com.spider.card.ClickCard;
 import com.spider.constant.Constant;
 import com.spider.log.NLog;
 import com.spider.action.pMove.PMove;
+import com.spider.model.CardModel;
 import com.spider.pocker.Pocker;
-import com.solvitaire.app.Move;
 
-
-public class GameManager {
+public class GameManager implements CardViewProvider {
     private Pocker pocker;
     private Array<Action> record;
     public static Array<Image> vecImageEmpty;
-    private Group cardGroup;
-    private Group finishGroup;
-    private Group sendCardGroup;
-    private PMove pMove;
+    private final Group cardGroup;
+    private final Group finishGroup;
+    private final Group sendCardGroup;
     private DragInfo dragInfo;
     private ReleaseCorner corner;
     private float cardWidth = 71;
@@ -38,15 +38,17 @@ public class GameManager {
     private Vector2 origionTouchDownVector;
 
     private ClickCard clickPocker = new ClickCard();
+    private final ObjectMap<CardModel, Card> cardViews = new ObjectMap<CardModel, Card>();
+    private static final float STACK_GAP = 20f;
+
     public Pocker getPocker() {
         return pocker;
     }
+
     public GameManager(Group cardGroup, Group finishGroup, Group sendCardGroup){
-        //记录
         this.record = new Array<Action>();
         this.dragInfo = new DragInfo();
-        this.pMove = new PMove();
-        this.corner = new ReleaseCorner(sendCardGroup,cardGroup,finishGroup);
+        this.corner = new ReleaseCorner(sendCardGroup,cardGroup,finishGroup, this);
         this.origionTouchDownVector = new Vector2();
         this.cardGroup = cardGroup;
         this.finishGroup = finishGroup;
@@ -54,13 +56,13 @@ public class GameManager {
     }
 
     /**
-     * 开始游戏
+     * 开始新游戏
      * @param suitNum
      */
     public void newGame(int suitNum){
         this.record.clear();
         this.pocker = new Pocker();
-        DealPocker action = new DealPocker(suitNum);
+        DealPocker action = new DealPocker(suitNum, this);
         action.doAction(pocker);
         initialImage();
         //发牌
@@ -68,59 +70,65 @@ public class GameManager {
         setPos();
     }
 
+    @Override
+    public Card viewOf(CardModel model) {
+        return cardViews.get(model);
+    }
+
+    private Card ensureCardView(CardModel model) {
+        Card card = cardViews.get(model);
+        if (card == null) {
+            card = new Card(model);
+            card.initCard();
+            cardViews.put(model, card);
+        }
+        return card;
+    }
+
     public void setPos(){
         int index = 0;
         for (int i = 0; i < pocker.getDesk().size; i++) {
-            Array<Card> cards = pocker.getDesk().get(i);
+            Array<CardModel> cards = pocker.getDesk().get(i);
             index ++;
             float offSetY = 0;
-            for (Card card : cards) {
+            for (CardModel cardModel : cards) {
+                Card card = ensureCardView(cardModel);
                 card.setPosition(vecImageEmpty.get(i).getX(),offSetY);
                 offSetY -= 20;
             }
         }
         index=0;
-        for (Array<Card> cards : pocker.getCorner()) {
+        for (Array<CardModel> cards : pocker.getCorner()) {
             index ++;
-            for (Card card : cards) {
+            for (CardModel cardModel : cards) {
+                Card card = ensureCardView(cardModel);
                 card.setPosition((index-1)*10,0,Align.bottom);
             }
         }
         index = 0;
-        for (Array<Card> cards : pocker.getFinished()) {
+        for (Array<CardModel> cards : pocker.getFinished()) {
             index++;
-            for (Card card : cards) {
+            for (CardModel cardModel : cards) {
+                Card card = ensureCardView(cardModel);
                 card.setPosition((index-1)*10,0,Align.bottom);
             }
         }
 
     }
 
-    public void updateZIndex(){
-//        int zIndex=0;
-//        for (Array<Card> array : pocker.getDesk()) {
-//            for (Card card : array) {
-//                card.setZIndex(10+zIndex++);
-//            }
-//        }
-    }
-
     public void initialImage() {
-        //每张牌加入图片
-        for (Array<Card> cards : pocker.getDesk()) {
-            for (Card card : cards) {
-                card.initCard();
-                cardGroup.addActor(card);
+        for (Array<CardModel> cards : pocker.getDesk()) {
+            for (CardModel cardModel : cards) {
+                Card card = ensureCardView(cardModel);
+                card.setShow(cardModel.isFaceUp());
             }
         }
-        //角落牌加入图片
-        for (Array<Card> cards : pocker.getCorner()) {
-            for (Card card : cards) {
-                card.initCard();
-                sendCardGroup.addActor(card);
+        for (Array<CardModel> cards : pocker.getCorner()) {
+            for (CardModel cardModel : cards) {
+                Card card = ensureCardView(cardModel);
+                card.setShow(cardModel.isFaceUp());
             }
         }
-
     }
 
     public boolean touchDown(Actor target,float x,float y) {
@@ -130,32 +138,30 @@ public class GameManager {
         if (!(target instanceof Card)){
             return false;
         }
-        //开始点击 都为-1
+        Card cardView = (Card) target;
+        CardModel targetModel = cardView.getModel();
+        //重置点击记录
         clickPocker.setI(-1);
         clickPocker.setJ(-1);
-        //取得按下的牌编号
-        GetIndexFromPoint(target);
-        //没有牌
+        //获取被点的卡索引
+        GetIndexFromPoint(targetModel);
         if (clickPocker.i == -1) {
             return false;
         }
         origionTouchDownVector.set(x, y);
-        //坐标点转换到牌面上
         target.stageToLocalCoordinates(origionTouchDownVector);
-        //第几张牌
         int num = pocker.getDesk().get(clickPocker.i).size - clickPocker.j;
-        //是否能够拾取
+        PMove pMove = new PMove(clickPocker.i, clickPocker.i, num, finishGroup, cardGroup, this);
         if (!pMove.canPick(pocker, clickPocker.i, num)) {
             return false;
         }
-        //开始拖动设置
         dragInfo.getVecCard().clear();
         for (int i = 0; i < num; ++i) {
-            //拖动组设置z-index，加入牌指针及相对坐标
-            Card card = pocker.getDesk().get(clickPocker.i).get(clickPocker.j + i);
+            CardModel model = pocker.getDesk().get(clickPocker.i).get(clickPocker.j + i);
+            Card card = ensureCardView(model);
             card.toFront();
-            ArrayMap<Card,Vector2> arrayMap = new ArrayMap<Card, Vector2>();
-            arrayMap.put(card,card.getPosition());
+            ArrayMap<CardModel,Vector2> arrayMap = new ArrayMap<CardModel, Vector2>();
+            arrayMap.put(model,card.getPosition());
             dragInfo.getVecCard().add(arrayMap);
         }
         dragInfo.setbOnDrag(true);
@@ -167,24 +173,25 @@ public class GameManager {
 
     public void GiveUpDrag(){
         dragInfo.setbOnDrag(false);
-        //恢复z-index
-        for (ArrayMap<Card, Vector2> arrayMap : dragInfo.getVecCard()) {
-            arrayMap.getKeyAt(0).setZIndex(0);
+        for (ArrayMap<CardModel, Vector2> arrayMap : dragInfo.getVecCard()) {
+            CardModel model = arrayMap.getKeyAt(0);
+            Card view = viewOf(model);
+            if (view != null) {
+                view.setZIndex(0);
+            }
         }
         dragInfo.getVecCard().clear();
     }
 
     public boolean OnMouseMove(Vector2 pt) {
-        //存在有效的牌
         if (dragInfo.isbOnDrag()) {
-            //没有按下左键，释放拖动
-            //抬起
-            //移动拖动组
             int index = 0;
-            for (ArrayMap<Card, Vector2> arrayMap : dragInfo.getVecCard()) {
-                Vector2 position = arrayMap.getKeyAt(0).getPosition();
+            for (ArrayMap<CardModel, Vector2> arrayMap : dragInfo.getVecCard()) {
+                CardModel model = arrayMap.getKeyAt(0);
+                Card view = ensureCardView(model);
+                Vector2 position = arrayMap.getValueAt(0);
                 position.add(pt);
-                arrayMap.getKeyAt(0).setPosition(pt.x - origionTouchDownVector.x,
+                view.setPosition(pt.x - origionTouchDownVector.x,
                         pt.y-cardGroup.getY() - index*20 - origionTouchDownVector.y);
                 index++;
                 NLog.e(" x %s,y %s",pt.x-cardGroup.getX(),pt.y-cardGroup.getY());
@@ -196,17 +203,13 @@ public class GameManager {
 
     public boolean OnLButtonUp() {
         if (dragInfo.isbOnDrag()) {
-            //取得拖动牌最顶上一张坐标
-            Vector2 ptUpCard = dragInfo.getVecCard().get(0).getKeyAt(0).getPosition();
-            //取得目标牌位号
+            CardModel first = dragInfo.getVecCard().get(0).getKeyAt(0);
+            Card firstView = ensureCardView(first);
+            Vector2 ptUpCard = firstView.getPosition();
             int dest = GetDestIndex(pocker, ptUpCard, dragInfo.getOrig(), dragInfo.getNum());
-            //恢复拖动设置
             dragInfo.setbOnDrag(false);
             dragInfo.getVecCard().clear();
-            //有目标牌位，且可以移动
             Move(pocker,dragInfo.getOrig(),dest,dragInfo.getNum());
-        }else {
-            updateZIndex();
         }
         return false;
     }
@@ -216,21 +219,19 @@ public class GameManager {
         int dest = -1;
         float Smax = -1;
         for (int i = 0; i < 10; ++i) {
-            if (i == orig)//由于计算面积，自己和自己的面积必然最大，所以需要排除掉拖动源
+            if (i == orig)
                 continue;
-            Vector2 ptDest;//目标坐标
+            Vector2 ptDest;
             if (pocker.getDesk().get(i).size <= 0)
                 ptDest = GetCardEmptyPoint(i);
             else {
-                Array<Card> array = pocker.getDesk().get(i);
-                ptDest = array.get(array.size - 1).getPosition();
+                int topIndex = pocker.getDesk().get(i).size - 1;
+                ptDest = new Vector2(GetCardEmptyPoint(i).x, stackY(topIndex));
             }
-            float dx = Math.abs(ptUpCard.x - ptDest.x);//坐标之差
+            float dx = Math.abs(ptUpCard.x - ptDest.x);
             float dy = Math.abs(ptUpCard.y - ptDest.y);
-            float S = (cardWidth - dx) * (cardHeight - dy);//计算两个矩形的重合面积
-            //第一个判断条件是为了排除掉负负得正的情形
-            if (cardWidth - dx > 0 && S > Smax && pMove.canMove(pocker, orig, i, num)) {
-                //在被覆盖牌中，取得可以放置的，且被覆盖面积最大的一张作为拖动目的地
+            float S = (cardWidth - dx) * (cardHeight - dy);
+            if (cardWidth - dx > 0 && S > Smax && new PMove(orig, i, num, finishGroup, cardGroup, this).canMove(pocker, orig, i, num)) {
                 Smax = S;
                 dest = i;
             }
@@ -239,12 +240,14 @@ public class GameManager {
     }
 
     private Vector2 GetCardEmptyPoint(int index) {
-        //计算空牌位坐标
         int cardGap = (int) ((Constant.worldWidth - cardWidth * 10) / 11);
-        //空牌位位置
         float x = (int) (cardGap + index * (cardWidth + cardGap));
         float y = (int) border;
         return new Vector2(x,y);
+    }
+
+    public static float stackY(int cardIndex) {
+        return -STACK_GAP * cardIndex;
     }
 
     public void faPai() {
@@ -261,21 +264,19 @@ public class GameManager {
         action.redo(pocker);
         action.redoAnimation();
         if (action instanceof Restore){
-            cardGroup.addAction(Actions.delay(0.3f,Actions.run(()->{
-                recod();
-            })));
+            cardGroup.addAction(Actions.delay(0.3f,Actions.run(()-> recod())));
         }
     }
 
 
-    public void GetIndexFromPoint(Object object) {
-        if (pocker == null) {
+    public void GetIndexFromPoint(CardModel targetModel) {
+        if (pocker == null || targetModel == null) {
             return;
         }
         for (int i = 0; i < pocker.getDesk().size; ++i) {
             for (int j = 0; j < pocker.getDesk().get(i).size; ++j) {
-                Card card = pocker.getDesk().get(i).get(j);
-                if (card == object) {
+                CardModel cardModel = pocker.getDesk().get(i).get(j);
+                if (cardModel == targetModel) {
                     clickPocker.setI(i);
                     clickPocker.setJ(j);
                 }
@@ -285,44 +286,33 @@ public class GameManager {
 
     private boolean Move(final Pocker poker,int orig,final int dest,int num) {
         if (orig!=dest && dest!=-1) {
-            if (canMove(orig,dest,num)) {
-                PMove action = new PMove(orig, dest, num,finishGroup,cardGroup);
-                if (action.doAction(poker)) {
-                    record.add(action);
-                }
-                action.startAnimation();
-                Restore restore = action.restore();
-                if (restore!=null){
-                    record.add(restore);
-                }
-            }else {
-                PMove action = new PMove(orig, orig, num,finishGroup,cardGroup);
-                action.setPocker(poker);
-                action.startAnimation();
+            PMove action = new PMove(orig, dest, num,finishGroup,cardGroup, this);
+            if (action.doAction(poker)) {
+                record.add(action);
+            }
+            action.startAnimation();
+            Restore restore = action.restore();
+            if (restore!=null){
+                record.add(restore);
             }
         }else {
-            PMove action = new PMove(orig, orig, num,finishGroup,cardGroup);
-            action.setPocker(poker);
+            PMove action = new PMove(orig, orig, num,finishGroup,cardGroup, this);
+            action.doAction(poker);
             action.startAnimation();
         }
         return false;
     }
 
     /**
-     * 目标列没用牌可以放置
-     * @param orig
-     * @param dest
-     * @param num
-     * @return
+     * 目标列没有牌可以放
      */
     private boolean canMove(int orig, int dest, int num) {
-        Array<Card> cards = pocker.getDesk().get(orig);
+        Array<CardModel> cards = pocker.getDesk().get(orig);
         if (cards.size<num)return false;
-        Card card = cards.get(cards.size - num);
-        // 目标列  没用牌到时候
-        Array<Card> cards1 = pocker.getDesk().get(dest);
+        CardModel card = cards.get(cards.size - num);
+        Array<CardModel> cards1 = pocker.getDesk().get(dest);
         if (cards1.size > 0){
-            Card card1 = cards1.get(cards1.size-1);
+            CardModel card1 = cards1.get(cards1.size-1);
             if (card1.getSuit() != card.getSuit()) {
                 return false;
             }else if (card.getPoint() + 1 == card1.getPoint()){
@@ -339,7 +329,6 @@ public class GameManager {
         int moveTypeFlags = rawMove >>> 24;
         if ((moveTypeFlags & 8) != 0) { // special -> deal
             System.out.println("fapia");
-
             return;
         }
         int num = (rawMove & 0xF0000) >> 16;
@@ -348,7 +337,7 @@ public class GameManager {
         int dstGroup = (rawMove & 0xFF) / 10;
         int dst = (rawMove & 0xFF) % 10;
         if (srcGroup != 0 || dstGroup != 0) {
-            return; // 只处理桌面移动
+            return; // 只处理行内移动
         }
         if (num <= 0) {
             num = 1;
@@ -369,7 +358,7 @@ public class GameManager {
         int dstGroup = (rawMove & 0xFF) / 10;
         int dst = (rawMove & 0xFF) % 10;
         if (srcGroup != 0 || dstGroup != 0) {
-            return; // 只处理桌面移动
+            return; // 只处理行内移动
         }
         if (num <= 0) {
             num = 1;
@@ -382,7 +371,7 @@ public class GameManager {
         if (orig == dest || dest == -1) {
             return;
         }
-        PMove action = new PMove(orig, dest, num, finishGroup, cardGroup);
+        PMove action = new PMove(orig, dest, num, finishGroup, cardGroup, this);
         if (!action.doAction(pocker)) {
             return;
         }
@@ -395,7 +384,6 @@ public class GameManager {
     }
 
     public void setGuiProperty() {
-        //创建空牌位
         float v1 = (cardGroup.getWidth() - 71 * 10) / 11.0F;
         vecImageEmpty = new Array<Image>();
         for (int i = 0; i < 10; i++) {

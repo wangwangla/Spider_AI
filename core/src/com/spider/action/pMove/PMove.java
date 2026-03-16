@@ -1,72 +1,58 @@
 package com.spider.action.pMove;
 
-import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.utils.Array;
 import com.spider.action.Action;
-import com.spider.card.Card;
-import com.spider.manager.GameManager;
-import com.spider.pocker.Pocker;
 import com.spider.action.restore.Restore;
+import com.spider.card.Card;
+import com.spider.card.CardViewProvider;
+import com.spider.manager.GameManager;
+import com.spider.model.CardModel;
+import com.spider.pocker.Pocker;
 
 public class PMove extends Action {
-    private int orig;
-    private int dest;
-    private int num;
+    private final int orig;
+    private final int dest;
+    private final int num;
     private Pocker poker;
     private boolean shownLastCard;
     private Restore restored;
     private boolean success;
-    private Group finishGroup;
-    private Group cardGroup;
-    private Array<Card> temp;
-    public PMove(){}
+    private final Group finishGroup;
+    private final Group cardGroup;
+    private Array<CardModel> temp;
+    private final CardViewProvider viewProvider;
 
-    public PMove(int origIndex, int destIndex,int num,Group finishGroup,Group cardGroup){
+    public PMove(int origIndex, int destIndex, int num, Group finishGroup, Group cardGroup, CardViewProvider viewProvider){
         this.finishGroup = finishGroup;
         this.cardGroup = cardGroup;
         this.orig = origIndex;
         this.dest = destIndex;
         this.num = num;
+        this.viewProvider = viewProvider;
     }
 
-    /**
-     * 能否拾起
-     *
-     * 起始列  的最下方向上找
-     * @param poker
-     * @param origIndex
-     * @param num
-     * @return
-     */
-    //返回是否可以移动
-    //deskNum 牌堆编号
-    //pos 牌编号
+    //能否从 origIndex 拿 num 张
     public boolean canPick(Pocker poker, int origIndex, int num) {
-        assert (origIndex >= 0 && origIndex < poker.getDesk().size);
-        assert (num > 0 && num > poker.getDesk().get(origIndex).size);
-        //暂存最外张牌
-        //eg. size=10, card[9].suit
-        //获取最外层的序号  以及  花色
-        Array<Card> cards = poker.getDesk().get(origIndex);
+        if (origIndex < 0 || origIndex >= poker.getDesk().size) {
+            return false;
+        }
+        Array<CardModel> cards = poker.getDesk().get(origIndex);
+        if (num <= 0 || num > cards.size) {
+            return false;
+        }
         int suit = cards.get(cards.size - 1).getSuit();
         int point = cards.get(cards.size - 1).getPoint();
 
-        //从下数第2张牌开始遍历
-        //eg. num==4, i=[0,1,2]
-        /**
-         * 第一张牌拿过了
-         * 从倒数第二张开始和前一张比较
-         */
         for (int i = 0; i < num - 1; ++i) {
-            int index = poker.getDesk().get(origIndex).size - i - 2;
-            Card card = poker.getDesk().get(origIndex).get(index);
+            int index = cards.size - i - 2;
+            CardModel card = cards.get(index);
             if (card.getSuit() != suit) {
                 return false;
             }
-            if (!card.isShow()) {
+            if (!card.isFaceUp()) {
                 return false;
             }
             if (point + 1 == card.getPoint()) {
@@ -79,52 +65,48 @@ public class PMove extends Action {
     }
 
     public boolean canMove(Pocker poker, int origIndex, int destIndex, int num) {
-        //不能拾取返回false
         if (!canPick(poker, origIndex, num)) {
             return false;
         }
-        Array<Card> cards = poker.getDesk().get(origIndex);
-        Card origTopCard = cards.get(cards.size - num);
-        Array<Card> destCards = poker.getDesk().get(destIndex);
+        Array<CardModel> cards = poker.getDesk().get(origIndex);
+        CardModel origTopCard = cards.get(cards.size - num);
+        Array<CardModel> destCards = poker.getDesk().get(destIndex);
         if (destCards.size <= 0) {
             return true;
-        } else if (origTopCard.getPoint() + 1 == destCards.get(destCards.size - 1).getPoint())//目标堆叠的最外牌==移动牌顶层+1
+        } else if (origTopCard.getPoint() + 1 == destCards.get(destCards.size - 1).getPoint())
             return true;
         return false;
     }
 
     public boolean doAction(Pocker inpoker) {
         poker = inpoker;
-        //不能拾取返回false
-        /**
-         * 移动之前再次检查是否可以拾起
-         */
         if (!canPick(poker, orig, num)) {
             return false;
         }
-        Array<Card> cards = poker.getDesk().get(orig);
-        Card itOrigBegin = cards.get(cards.size - num);
-        Array<Card> itDest = poker.getDesk().get(dest);
-        //目标位置为空 或者
-        //目标堆叠的最外牌==移动牌顶层+1
-        if (poker.getDesk().get(dest).size <= 0 ||
-                (itOrigBegin.getPoint() + 1 == itDest.get(itDest.size - 1).getPoint())) {
-            //加上移来的牌
-            temp = new Array<Card>();
+        Array<CardModel> cards = poker.getDesk().get(orig);
+        CardModel itOrigBegin = cards.get(cards.size - num);
+        Array<CardModel> itDest = poker.getDesk().get(dest);
+        if (itDest.size <= 0 || (itOrigBegin.getPoint() + 1 == itDest.get(itDest.size - 1).getPoint())) {
+            temp = new Array<CardModel>();
             for (int i = cards.size - num; i < cards.size; i++) {
                 itDest.add(cards.get(i));
                 temp.add(cards.get(i));
             }
-            //擦除移走的牌
-            Array<Card> array = poker.getDesk().get(orig);
-            for (Card card : temp) {
-                card.toFront();
-                array.removeValue(card, true);
+            Array<CardModel> array = poker.getDesk().get(orig);
+            for (CardModel cardModel : temp) {
+                Card card = viewProvider.viewOf(cardModel);
+                if (card != null) {
+                    card.toFront();
+                }
+                array.removeValue(cardModel, true);
             }
-            //翻开暗牌
-            Array<Card> array1 = poker.getDesk().get(orig);
-            if (!(poker.getDesk().get(orig).size <= 0) && array1.get(array1.size - 1).isShow() == false) {
-                array1.get(array1.size - 1).setShow(true);
+            Array<CardModel> array1 = poker.getDesk().get(orig);
+            if (array1.size > 0 && !array1.get(array1.size - 1).isFaceUp()) {
+                array1.get(array1.size - 1).setFaceUp(true);
+                Card lastCardView = viewProvider.viewOf(array1.get(array1.size - 1));
+                if (lastCardView != null) {
+                    lastCardView.setShow(true);
+                }
                 shownLastCard = true;
             } else {
                 shownLastCard = false;
@@ -139,11 +121,9 @@ public class PMove extends Action {
     }
 
     public Restore restore(){
-        restored = new Restore(finishGroup,cardGroup);
+        restored = new Restore(finishGroup,cardGroup, viewProvider);
         if (restored.doAction(poker)) {
-            cardGroup.addAction(Actions.delay(0.3F,Actions.run(()->{
-                restored.startAnimation();
-            })));
+            cardGroup.addAction(Actions.delay(0.3F,Actions.run(()-> restored.startAnimation())));
         }else {
             restored = null;
         }
@@ -154,61 +134,34 @@ public class PMove extends Action {
         startAnimation_inner();
     }
 
-    /**
-     * 执行完移动之后    会检测一下  是否存在回收任务   然后在播放动画，  但是有的时候 并不需要这个操作
-     * 仅仅为了快速泡跑关卡
-     */
     public void startAnimation_inner() {
-        Array<Card> cards = poker.getDesk().get(dest);
-        int i1 = cards.size - num;
-        float baseY = 20;
-        if (i1 >0) {
-            Card card1 = cards.get(cards.size - num-1);
-            baseY = card1.getY();
-        }
+        Array<CardModel> cards = poker.getDesk().get(dest);
+        int firstNewIndex = cards.size - num; // index of the lowest card just added
         Array<Image> vecImageEmpty = GameManager.vecImageEmpty;
+        Image image = vecImageEmpty.get(dest);
         for (int i = 0; i < num; ++i) {
-            Image image = vecImageEmpty.get(dest);
-            Card card = cards.get(cards.size - num+i);
-            card.addAction(Actions.moveTo(image.getX(), baseY -20*(i + 1),0.1F));
+            CardModel cardModel = cards.get(firstNewIndex + i);
+            Card card = viewProvider.viewOf(cardModel);
+            if (card != null) {
+                float targetY = GameManager.stackY(firstNewIndex + i);
+                card.addAction(Actions.moveTo(image.getX(), targetY,0.1F));
+            }
         }
-        //开始列 结束列是都需要变色
-//        Array<Card> cards1 = poker.getDesk().get(orig);
-//        int size = cards1.size;
-//        if (size>0) {
-//            Card lastcard = cards1.get(size - 1);
-//            boolean isHui = false;
-//            for (int i = size - 2; i >= 0; i--) {
-//                Card card = cards1.get(i);
-//                boolean show = card.isShow();
-//                if (!show) {
-//                    break;
-//                }
-//                if (isHui){
-//                    card.setColor(Color.BLACK);
-//                }else {
-//                    card.setColor(Color.WHITE);
-//                    if (card.getSuit() != lastcard.getSuit()) {
-//                        //设置为灰色
-//                        isHui = true;
-//                    }
-//                    if (card.getPoint() - 1 != lastcard.getPoint()) {
-//                        isHui = true;
-//                    }
-//                }
-//            }
-//        }
     }
 
     public void redoAnimation() {
         Array<Image> vecImageEmpty = GameManager.vecImageEmpty;
         Image image = vecImageEmpty.get(orig);
-        Array<Card> cards = poker.getDesk().get(orig);
-        float offSetY = -(cards.size-num) * 20;
-        for (Card card : temp) {
-            card.addAction(Actions.moveTo(image.getX(),offSetY,0.1f));
-            offSetY-=20;
-            cardGroup.addActor(card);
+        Array<CardModel> cards = poker.getDesk().get(orig);
+        int firstIndex = cards.size - num; // after redo, temp cards are at the top end
+        for (int i = 0; i < temp.size; i++) {
+            CardModel cardModel = temp.get(i);
+            Card card = viewProvider.viewOf(cardModel);
+            if (card != null) {
+                float targetY = GameManager.stackY(firstIndex + i);
+                card.addAction(Actions.moveTo(image.getX(),targetY,0.1f));
+                cardGroup.addActor(card);
+            }
         }
     }
 
@@ -222,15 +175,19 @@ public class PMove extends Action {
         poker.setOperation(poker.getOperation() - 1);
         poker.setScore(poker.getScore() + 1);
         if (shownLastCard) {
-            Array<Card> array = poker.getDesk().get(orig);
-            array.get(array.size - 1).setShow(false);
+            Array<CardModel> array = poker.getDesk().get(orig);
+            array.get(array.size - 1).setFaceUp(false);
+            Card view = viewProvider.viewOf(array.get(array.size - 1));
+            if (view != null) {
+                view.setShow(false);
+            }
         }
-        Array<Array<Card>> desk = poker.getDesk();
-        Array<Card> array1 = desk.get(dest);
+        Array<Array<CardModel>> desk = poker.getDesk();
+        Array<CardModel> array1 = desk.get(dest);
         int start = array1.size - num;
         int end = array1.size - 1;
-        temp = new Array<Card>();
-        Array<Card> array = poker.getDesk().get(orig);
+        temp = new Array<CardModel>();
+        Array<CardModel> array = poker.getDesk().get(orig);
         if ((start<0)) {
             start = 0;
         }
@@ -238,19 +195,18 @@ public class PMove extends Action {
             end = array1.size-1;
         }
         for (int i = start; i <= end; i++) {
-            Card card = array1.get(i);
-            array.add(card);
-            temp.add(card);
-            card.toFront();
+            CardModel cardModel = array1.get(i);
+            array.add(cardModel);
+            temp.add(cardModel);
+            Card cardView = viewProvider.viewOf(cardModel);
+            if (cardView != null) {
+                cardView.toFront();
+            }
         }
-        for (Card card : temp) {
-            array1.removeValue(card,true);
+        for (CardModel cardModel : temp) {
+            array1.removeValue(cardModel,true);
         }
         return true;
-    }
-
-    public void setPocker(Pocker poker) {
-        this.poker = poker;
     }
 
     @Override

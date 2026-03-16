@@ -6,9 +6,10 @@ import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.utils.Array;
 import com.spider.card.Card;
-import com.spider.constant.Constant;
+import com.spider.card.CardViewProvider;
 import com.spider.log.NLog;
 import com.spider.manager.GameManager;
+import com.spider.model.CardModel;
 import com.spider.pocker.Pocker;
 import com.solvitaire.app.DealCardCodec;
 import com.solvitaire.app.DealVariant;
@@ -17,20 +18,22 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 处理发牌与初始布局
+ * 处理发牌与初始摆放。
  */
 public class DealPocker extends Action {
-    private int suitNum;
-    private int seed;
+    private final int suitNum;
+    private final int seed;
+    private final CardViewProvider viewProvider;
 
-    public DealPocker(int suitNum) {
+    public DealPocker(int suitNum, CardViewProvider viewProvider) {
         this.suitNum = suitNum;
+        this.viewProvider = viewProvider;
         this.seed = (int) System.currentTimeMillis();
         NLog.e("seed is %s", seed);
     }
 
     /**
-     * 发牌并生成牌局
+     * 发牌并生成牌面
      */
     public boolean doAction(Pocker inpoker) {
         poker = inpoker;
@@ -40,7 +43,7 @@ public class DealPocker extends Action {
         poker.getCorner().clear();
         poker.getFinished().clear();
 
-        // 使用 SolverCard 的 Spider 生成器，确保与求解器保持一致
+        // 使用 SolverCard 的 Spider 生成器，保证与求解器一致
         String dealText = DealVariant.SPIDER.generate(suitNum, seed);
         poker.setDealString(dealText);
         ParsedDeal parsedDeal = parseDeal(dealText);
@@ -49,33 +52,33 @@ public class DealPocker extends Action {
             return false;
         }
 
-        // 桌面 10 列：前 5 行各 10 张，第 6 行前 4 列各 1 张
+        // 桌面 10 列：前 4 列 6 张，其余 5 张
         int index = 0;
         for (int row = 0; row < 6; row++) {
             int columns = row == 5 ? 4 : 10;
             for (int col = 0; col < columns; col++) {
                 if (poker.getDesk().size <= col) {
-                    poker.getDesk().add(new Array<Card>());
+                    poker.getDesk().add(new Array<CardModel>());
                 }
-                Card card = toGameCard(parsedDeal.tableau.get(index++));
-                card.setShow(false);
-                poker.getDesk().get(col).add(card);
+                CardModel cardModel = toGameCard(parsedDeal.tableau.get(index++));
+                cardModel.setFaceUp(false);
+                poker.getDesk().get(col).add(cardModel);
             }
         }
-        for (Array<Card> cardArray : poker.getDesk()) {
+        for (Array<CardModel> cardArray : poker.getDesk()) {
             if (cardArray.size > 0) {
-                cardArray.get(cardArray.size - 1).setShow(true);
+                cardArray.get(cardArray.size - 1).setFaceUp(true);
             }
         }
 
-        // 牌库 5 叠，每叠 10 张
+        // 待发牌堆：5 叠 * 每叠 10 张
         int stockIndex = 0;
         for (int pack = 0; pack < 5; ++pack) {
-            Array<Card> cornerOne = new Array<Card>();
+            Array<CardModel> cornerOne = new Array<CardModel>();
             for (int j = 0; j < 10; ++j) {
-                Card card = toGameCard(parsedDeal.stock.get(stockIndex++));
-                card.setShow(false);
-                cornerOne.add(card);
+                CardModel cardModel = toGameCard(parsedDeal.stock.get(stockIndex++));
+                cardModel.setFaceUp(false);
+                cornerOne.add(cardModel);
             }
             poker.getCorner().add(cornerOne);
         }
@@ -85,7 +88,7 @@ public class DealPocker extends Action {
         return true;
     }
 
-    private Card toGameCard(int solverCardId) {
+    private CardModel toGameCard(int solverCardId) {
         int solverSuit = solverCardId / 100;
         int rank = solverCardId % 100;
         // Solver: 1=spade,2=heart,3=diamond,4=club
@@ -106,7 +109,7 @@ public class DealPocker extends Action {
                 gameSuit = 1;
                 break;
         }
-        return new Card(gameSuit, rank);
+        return new CardModel(gameSuit, rank);
     }
 
     private ParsedDeal parseDeal(String dealText) {
@@ -141,14 +144,16 @@ public class DealPocker extends Action {
     }
 
     public void startAnimation() {
-        Array<Array<Card>> deskPocker = poker.getDesk();
+        Array<Array<CardModel>> deskPocker = poker.getDesk();
         int indexX = 0;
         Array<Image> vecImageEmpty = GameManager.vecImageEmpty;
         for (int i = 0; i < deskPocker.size; i++) {
             int y = 0;
-            Array<Card> cards = deskPocker.get(i);
+            Array<CardModel> cards = deskPocker.get(i);
             Image image = vecImageEmpty.get(i);
-            for (Card card : cards) {
+            for (CardModel cardModel : cards) {
+                Card card = viewProvider.viewOf(cardModel);
+                if (card == null) continue;
                 card.addAction(Actions.delay(indexX * 0.1F + 1F * y,
                     Actions.moveTo(image.getX(), image.getY() - y * 20, 0.1F)));
                 y++;
@@ -170,20 +175,28 @@ public class DealPocker extends Action {
 
     public void initPos(Group sendCardGroup, Group cardGroup) {
         for (int i = 0; i < poker.getCorner().size; i++) {
-            Array<Card> cards = poker.getCorner().get(i);
+            Array<CardModel> cards = poker.getCorner().get(i);
             for (int i1 = 0; i1 < cards.size; i1++) {
-                Card card = cards.get(i1);
-                card.setPosition(i * 10, 0);
+                CardModel cardModel = cards.get(i1);
+                Card card = viewProvider.viewOf(cardModel);
+                if (card != null) {
+                    card.setPosition(i * 10, 0);
+                    sendCardGroup.addActor(card);
+                }
             }
         }
 
-        Array<Array<Card>> deskPocker = poker.getDesk();
+        Array<Array<CardModel>> deskPocker = poker.getDesk();
         Vector2 pos = new Vector2(0, 0);
         sendCardGroup.localToStageCoordinates(pos);
         cardGroup.stageToLocalCoordinates(pos);
-        for (Array<Card> array : deskPocker) {
-            for (Card card : array) {
-                card.setPosition(pos.x, pos.y);
+        for (Array<CardModel> array : deskPocker) {
+            for (CardModel cardModel : array) {
+                Card card = viewProvider.viewOf(cardModel);
+                if (card != null) {
+                    card.setPosition(pos.x, pos.y);
+                    cardGroup.addActor(card);
+                }
             }
         }
     }
