@@ -6,7 +6,7 @@ import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
-import com.spider.action.Action;
+import com.spider.action.CardAction;
 import com.spider.bean.Oper;
 import com.spider.card.Card;
 import com.spider.card.CardViewProvider;
@@ -15,12 +15,14 @@ import com.spider.manager.GameManager;
 import com.spider.model.CardModel;
 import com.spider.pocker.Pocker;
 
-public class Restore extends Action {
+public class Restore extends CardAction {
     private final Group finished;
     private final Group cardGroup;
     private Array<CardModel> array1;
     private Pocker poker;
     private final CardViewProvider viewProvider;
+    //已回收成功的操作
+    private final Array<Oper> vecOper = new Array<Oper>();
 
     public Restore(Group finished, Group cardGroup, CardViewProvider viewProvider){
         this.finished = finished;
@@ -28,8 +30,7 @@ public class Restore extends Action {
         this.viewProvider = viewProvider;
     }
 
-    //已回收成功的操作
-    private final Array<Oper> vecOper = new Array<Oper>();
+
 
     public boolean canRestore(Pocker poker, int deskNum) {
         if (poker.getDesk().get(deskNum).size<=0)

@@ -4,7 +4,7 @@ import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.utils.Array;
-import com.spider.action.Action;
+import com.spider.action.CardAction;
 import com.spider.action.restore.Restore;
 import com.spider.card.Card;
 import com.spider.card.CardViewProvider;
@@ -12,7 +12,7 @@ import com.spider.manager.GameManager;
 import com.spider.model.CardModel;
 import com.spider.pocker.Pocker;
 
-public class PMove extends Action {
+public class PMove extends CardAction {
     private final int orig;
     private final int dest;
     private final int num;

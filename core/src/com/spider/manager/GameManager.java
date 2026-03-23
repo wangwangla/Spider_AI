@@ -9,7 +9,7 @@ import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ArrayMap;
 import com.badlogic.gdx.utils.ObjectMap;
 import com.spider.SpiderGame;
-import com.spider.action.Action;
+import com.spider.action.CardAction;
 import com.spider.action.DealPocker;
 import com.spider.action.ReleaseCorner;
 import com.spider.action.restore.Restore;
@@ -25,7 +25,7 @@ import com.spider.pocker.Pocker;
 
 public class GameManager implements CardViewProvider {
     private Pocker pocker;
-    private Array<Action> record;
+    private Array<CardAction> record;
     public static Array<Image> vecImageEmpty;
     private final Group cardGroup;
     private final Group finishGroup;
@@ -46,7 +46,7 @@ public class GameManager implements CardViewProvider {
     }
 
     public GameManager(Group cardGroup, Group finishGroup, Group sendCardGroup){
-        this.record = new Array<Action>();
+        this.record = new Array<CardAction>();
         this.dragInfo = new DragInfo();
         this.corner = new ReleaseCorner(sendCardGroup,cardGroup,finishGroup, this);
         this.origionTouchDownVector = new Vector2();
@@ -259,11 +259,11 @@ public class GameManager implements CardViewProvider {
 
     public void recod() {
         if (record.size<=0)return;
-        Array<Action> record = this.record;
-        Action action = record.removeIndex(record.size - 1);
-        action.redo(pocker);
-        action.redoAnimation();
-        if (action instanceof Restore){
+        Array<CardAction> record = this.record;
+        CardAction cardAction = record.removeIndex(record.size - 1);
+        cardAction.redo(pocker);
+        cardAction.redoAnimation();
+        if (cardAction instanceof Restore){
             cardGroup.addAction(Actions.delay(0.3f,Actions.run(()-> recod())));
         }
     }

@@ -14,7 +14,7 @@ import com.spider.model.CardModel;
 import com.spider.pocker.Pocker;
 import com.spider.action.restore.Restore;
 
-public class ReleaseCorner extends Action {
+public class ReleaseCorner extends CardAction {
     private Restore restored;
     private boolean success;
     private Pocker poker;
