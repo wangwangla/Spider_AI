@@ -9,7 +9,7 @@ import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ArrayMap;
 import com.badlogic.gdx.utils.ObjectMap;
 import com.spider.SpiderGame;
-import com.spider.action.Action;
+import com.spider.action.CardAction;
 import com.spider.action.DealPocker;
 import com.spider.action.ReleaseCorner;
 import com.spider.action.restore.Restore;
@@ -25,7 +25,7 @@ import com.spider.pocker.Pocker;
 
 public class GameManager implements CardViewProvider {
     private Pocker pocker;
-    private Array<Action> record;
+    private Array<CardAction> record;
     public static Array<Image> vecImageEmpty;
     private final Group cardGroup;
     private final Group finishGroup;
@@ -36,22 +36,23 @@ public class GameManager implements CardViewProvider {
     private float cardHeight = 96;
     private float border = 10;
     private Vector2 origionTouchDownVector;
+
     private ClickCard clickPocker = new ClickCard();
     private final ObjectMap<CardModel, Card> cardViews = new ObjectMap<CardModel, Card>();
     private static final float STACK_GAP = 20f;
 
+    public Pocker getPocker() {
+        return pocker;
+    }
+
     public GameManager(Group cardGroup, Group finishGroup, Group sendCardGroup){
-        this.record = new Array();
+        this.record = new Array<CardAction>();
         this.dragInfo = new DragInfo();
         this.corner = new ReleaseCorner(sendCardGroup,cardGroup,finishGroup, this);
         this.origionTouchDownVector = new Vector2();
         this.cardGroup = cardGroup;
         this.finishGroup = finishGroup;
         this.sendCardGroup = sendCardGroup;
-    }
-
-    public Pocker getPocker() {
-        return pocker;
     }
 
     /**
@@ -258,11 +259,11 @@ public class GameManager implements CardViewProvider {
 
     public void recod() {
         if (record.size<=0)return;
-        Array<Action> record = this.record;
-        Action action = record.removeIndex(record.size - 1);
-        action.redo(pocker);
-        action.redoAnimation();
-        if (action instanceof Restore){
+        Array<CardAction> record = this.record;
+        CardAction cardAction = record.removeIndex(record.size - 1);
+        cardAction.redo(pocker);
+        cardAction.redoAnimation();
+        if (cardAction instanceof Restore){
             cardGroup.addAction(Actions.delay(0.3f,Actions.run(()-> recod())));
         }
     }
@@ -383,7 +384,7 @@ public class GameManager implements CardViewProvider {
     }
 
     public void setGuiProperty() {
-        float v1 = (cardGroup.getWidth() - 71 * 10) / 10.0F;
+        float v1 = (cardGroup.getWidth() - 71 * 10) / 11.0F;
         vecImageEmpty = new Array<Image>();
         for (int i = 0; i < 10; i++) {
             Image image = new Image(SpiderGame.getAssetUtil().loadTexture("Resource/cardempty.png"));

@@ -12,7 +12,6 @@ public class Pocker {
     private int score;//得分
     private int operation;//操作次数
     private String dealString; // solver deal text for integration
-
     //桌面10列牌堆，0 为最左
     private final Array<Array<CardModel>> desk = new Array<Array<CardModel>>();
     //待发牌堆（5 叠，每叠 10 张）

@@ -3,7 +3,7 @@
 Libgdx spider自动解题
 
 
-修正发牌堆出牌顺序：D:\work\addAi\Spider_AI\core\src\com\spider\action\ReleaseCorner.java 现在从 corner.first() 取牌并 
+修正发牌堆出牌顺序：D:\work\addAi\Spider_AI\core\src\com\spider\cardAction\ReleaseCorner.java 现在从 corner.first() 取牌并 
 removeIndex(0)，撤销时用 insert(0, …) 放回，确保发牌使用生成牌堆的正确顶部顺序（之前从末尾取导致发牌后点数错乱、无法出牌）。
 与顺序一致地更新了撤销动画：取第一个发牌包并移动到起始位置。
 后续可验证：

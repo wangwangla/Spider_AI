@@ -20,7 +20,7 @@ import java.util.List;
 /**
  * 处理发牌与初始摆放。
  */
-public class DealPocker extends Action {
+public class DealPocker extends CardAction {
     private final int suitNum;
     private final int seed;
     private final CardViewProvider viewProvider;
