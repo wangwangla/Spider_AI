@@ -1,5 +1,6 @@
 package com.spider;
 
+import com.actor.CardActor;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
@@ -12,7 +13,6 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
-import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
@@ -20,6 +20,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
+import com.constant.CardConstant;
 import com.kw.gdx.BaseBaseGame;
 import com.kw.gdx.asset.Asset;
 import com.kw.gdx.screen.BaseScreen;
@@ -27,6 +28,10 @@ import com.solvitaire.app.DealShuffler;
 import com.solvitaire.app.SpiderSolutionStep;
 import com.solvitaire.app.SpiderSolveResult;
 import com.solvitaire.app.SpiderSolverService;
+import com.utils.CardDrag;
+import com.utils.CardHit;
+import com.utils.CardModel;
+import com.utils.SpiderStack;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -36,6 +41,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
+import static com.constant.CardConstant.*;
+
 /**
  * Lightweight Spider implementation with a built-in solver.
  * - 10 tableau stacks, 5 stock deals (single suit for clarity).
@@ -43,24 +50,15 @@ import java.util.Random;
  * - SOLVE runs the bundled solver and steps/auto-plays the moves.
  */
 public class SpiderScreen extends BaseScreen {
-    private static final int COLS = 10;
-    private static final int STOCK_DEALS = 5;
-    private static final float CARD_W = 92f;
-    private static final float CARD_H = 132f;
-    private static final float COL_GAP = 16f;
-    private static final float ROW_GAP = 28f;
-    private static final float LEFT_X = 40f;
-    private static final float TOP_Y = 720f;
 
     private final BitmapFont font;
     private final Texture background;
-    private final Texture cardBack;
-    private final Map<Integer, Texture> cardFaces = new HashMap<>();
-    private final List<SpiderStack> stacks = new ArrayList<>(COLS);
-    private final Deque<CardModel> stockQueue = new ArrayDeque<>();
-    private final List<List<CardModel>> completedSuits = new ArrayList<>();
-    private final SpiderSolverService solverService = new SpiderSolverService();
-    private List<SpiderSolutionStep> solutionSteps = new ArrayList<>();
+    private final Map<Integer, Texture> cardFaces;
+    private final List<SpiderStack> stacks;
+    private final Deque<CardModel> stockQueue;
+    private final List<List<CardModel>> completedSuits;
+    private final SpiderSolverService solverService;
+    private List<SpiderSolutionStep> solutionSteps;
     private int currentStepIndex = 0;
     private boolean autoPlay = false;
     private float autoTimer = 0f;
@@ -68,11 +66,17 @@ public class SpiderScreen extends BaseScreen {
 
     public SpiderScreen(BaseBaseGame baseBaseGame) {
         super(baseBaseGame);
+        this.cardFaces = new HashMap<>();
+        this.stacks = new ArrayList<>();
+        this.stockQueue = new ArrayDeque<>();
+        this.completedSuits = new ArrayList<>();
+        this.solverService = new SpiderSolverService();
+        this.solutionSteps = new ArrayList<>();
         this.font = Asset.getAsset().loadBitFont("bitfont/ntcb_40.fnt");
         this.background = new Texture(Gdx.files.internal("background.png"));
-        this.cardBack = new Texture(Gdx.files.internal("cardback.png"));
 
-        for (int i = 0; i < COLS; i++) {
+        //10 列
+        for (int i = 0; i < CardConstant.COLS; i++) {
             stacks.add(new SpiderStack());
         }
 
@@ -155,13 +159,13 @@ public class SpiderScreen extends BaseScreen {
         autoPlay = false;
         completedSuits.clear();
         for (SpiderStack stack : stacks) {
-            stack.cards.clear();
+            stack.getCards().clear();
         }
         stockQueue.clear();
 
         int[] deck = DealShuffler.shuffleSpiderDeck(new Random().nextLong(), 1); // single suit
         int idx = 0;
-        for (int col = 0; col < COLS; col++) {
+        for (int col = 0; col < CardConstant.COLS; col++) {
             int cardsInCol = col < 4 ? 6 : 5;
             for (int i = 0; i < cardsInCol; i++) {
                 boolean faceUp = i == cardsInCol - 1;
@@ -178,7 +182,7 @@ public class SpiderScreen extends BaseScreen {
     }
 
     private void addCardToStack(SpiderStack stack, int code, boolean faceUp) {
-        stack.cards.add(toModel(code, faceUp));
+        stack.getCards().add(toModel(code, faceUp));
     }
 
     private CardModel toModel(int code, boolean faceUp) {
@@ -199,9 +203,9 @@ public class SpiderScreen extends BaseScreen {
             SpiderStack stack = stacks.get(col);
             float x = LEFT_X + col * (CARD_W + COL_GAP);
             float y = TOP_Y;
-            for (int i = 0; i < stack.cards.size(); i++) {
-                CardModel card = stack.cards.get(i);
-                CardActor actor = new CardActor(card, col, i);
+            for (int i = 0; i < stack.getCards().size(); i++) {
+                CardModel card = stack.getCards().get(i);
+                CardActor actor = new CardActor(card);
                 actor.setPosition(x, y - i * ROW_GAP);
                 stage.addActor(actor);
             }
@@ -214,15 +218,19 @@ public class SpiderScreen extends BaseScreen {
             return;
         }
         for (SpiderStack stack : stacks) {
-            if (stack.cards.isEmpty()) {
+            if (stack.getCards().isEmpty()) {
                 statusLabel.setText("Fill empty columns before dealing.");
                 return;
             }
         }
         for (SpiderStack stack : stacks) {
             CardModel card = stockQueue.removeFirst();
-            card.faceUp = true;
-            stack.cards.add(card);
+            card.setFaceUp(true);
+            stack.getCards().add(card);
+        }
+        // A fresh deal might complete a run (rare but possible); auto-collect.
+        for (SpiderStack stack : stacks) {
+            checkCompleted(stack);
         }
         refreshLayout();
         statusLabel.setText("Dealt 10 cards. Stock " + stockQueue.size());
@@ -260,36 +268,51 @@ public class SpiderScreen extends BaseScreen {
     private void applyMove(int from, int to, int count) {
         SpiderStack source = stacks.get(from);
         SpiderStack dest = stacks.get(to);
-        if (source.cards.isEmpty()) {
+        if (source.getCards().isEmpty()) {
             return;
         }
-        int start = Math.max(source.cards.size() - count, 0);
-        List<CardModel> moving = new ArrayList<>(source.cards.subList(start, source.cards.size()));
-        source.cards.subList(start, source.cards.size()).clear();
-        dest.cards.addAll(moving);
+        int start = Math.max(source.getCards().size() - count, 0);
+        List<CardModel> moving = new ArrayList<>(source.getCards().subList(start, source.getCards().size()));
+        source.getCards().subList(start, source.getCards().size()).clear();
+        dest.getCards().addAll(moving);
         flipTop(source);
+        checkCompleted(source);
         checkCompleted(dest);
     }
 
     private void flipTop(SpiderStack stack) {
-        if (!stack.cards.isEmpty()) {
-            stack.cards.get(stack.cards.size() - 1).faceUp = true;
+        if (!stack.getCards().isEmpty()) {
+            stack.getCards().get(stack.getCards().size() - 1).setFaceUp(true);
         }
     }
 
+    /**
+     * Auto-collect any completed K->A run on top of a stack. Loops in case multiple runs exist.
+     */
     private void checkCompleted(SpiderStack stack) {
-        if (stack.cards.size() < 13) return;
-        int start = stack.cards.size() - 13;
-        int suit = stack.cards.get(start).suit;
-        for (int i = 0; i < 13; i++) {
-            CardModel card = stack.cards.get(start + i);
-            if (!card.faceUp || card.suit != suit || card.rank != 13 - i) {
-                return;
+        boolean removed;
+        do {
+            removed = false;
+            if (stack.getCards().size() < 13) {
+                break;
             }
-        }
-        List<CardModel> run = new ArrayList<>(stack.cards.subList(start, stack.cards.size()));
-        stack.cards.subList(start, stack.cards.size()).clear();
-        completedSuits.add(run);
+            int start = stack.getCards().size() - 13;
+            int suit = stack.getCards().get(start).getSuit();
+            boolean ok = true;
+            for (int i = 0; i < 13; i++) {
+                CardModel card = stack.getCards().get(start + i);
+                if (!card.isFaceUp() || card.getSuit() != suit || card.getRank() != 13 - i) {
+                    ok = false;
+                    break;
+                }
+            }
+            if (ok) {
+                List<CardModel> run = new ArrayList<>(stack.getCards().subList(start, stack.getCards().size()));
+                stack.getCards().subList(start, stack.getCards().size()).clear();
+                completedSuits.add(run);
+                removed = true;
+            }
+        } while (removed);
     }
 
     private String buildBoardState() {
@@ -298,8 +321,8 @@ public class SpiderScreen extends BaseScreen {
         int max = 0;
         for (int c = 0; c < COLS; c++) {
             SpiderStack stack = stacks.get(c);
-            totals[c] = stack.cards.size();
-            faceDown[c] = (int) stack.cards.stream().filter(card -> !card.faceUp).count();
+            totals[c] = stack.getCards().size();
+            faceDown[c] = (int) stack.getCards().stream().filter(card -> !card.isFaceUp()).count();
             max = Math.max(max, totals[c]);
         }
         int dealsRemaining = stockQueue.size();
@@ -313,8 +336,8 @@ public class SpiderScreen extends BaseScreen {
             for (int col = 0; col < COLS; col++) {
                 SpiderStack stack = stacks.get(col);
                 String code = "";
-                if (row < stack.cards.size()) {
-                    code = toCode(stack.cards.get(row));
+                if (row < stack.getCards().size()) {
+                    code = toCode(stack.getCards().get(row));
                 }
                 sb.append(code).append(",");
             }
@@ -349,7 +372,7 @@ public class SpiderScreen extends BaseScreen {
 
     private String toCode(CardModel card) {
         String rank;
-        switch (card.rank) {
+        switch (card.getRank()) {
             case 1:
                 rank = "a";
                 break;
@@ -366,15 +389,10 @@ public class SpiderScreen extends BaseScreen {
                 rank = "k";
                 break;
             default:
-                rank = Integer.toString(card.rank);
+                rank = Integer.toString(card.getRank());
         }
-        char suitChar = "0shdc".charAt(card.suit); // 1=s,2=h,3=d,4=c
+        char suitChar = "0shdc".charAt(card.getSuit()); // 1=s,2=h,3=d,4=c
         return rank + suitChar;
-    }
-
-    private Texture faceFor(CardModel card) {
-        int index = (card.suit - 1) * 13 + card.rank;
-        return cardFaces.computeIfAbsent(index, k -> new Texture(Gdx.files.internal("card/CARD" + index + ".png")));
     }
 
     private final InputListener cardInput = new CardInputListener();
@@ -384,23 +402,23 @@ public class SpiderScreen extends BaseScreen {
 
         @Override public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
             CardHit hit = findTopCard(x, y);
-            if (hit == null || !hit.card.faceUp) {
+            if (hit == null || !hit.getCard().isFaceUp()) {
                 return false;
             }
-            List<CardModel> run = hit.stack.cards.subList(hit.index, hit.stack.cards.size());
+            List<CardModel> run = hit.getStack().getCards().subList(hit.getIndex(), hit.getStack().getCards().size());
             if (!isMovableRun(run)) {
                 if (run.size() > 1) {
                     run = run.subList(run.size() - 1, run.size());
                 }
             }
-            drag = new CardDrag(hit.stackIndex, new ArrayList<>(run));
-            bringToFront(drag.moving);
+            drag = new CardDrag(hit.getStackIndex(), new ArrayList<>(run));
+            bringToFront(drag.getMoving());
             return true;
         }
 
         @Override public void touchDragged(InputEvent event, float x, float y, int pointer) {
             if (drag == null) return;
-            for (CardModel card : drag.moving) {
+            for (CardModel card : drag.getMoving()) {
                 CardActor actor = findActor(card);
                 if (actor != null) {
                     actor.setPosition(x,y);
@@ -412,9 +430,9 @@ public class SpiderScreen extends BaseScreen {
             if (drag == null) return;
             Vector2 world = new Vector2(event.getStageX(), event.getStageY());
             int targetCol = columnAt(world.x, world.y);
-            if (targetCol >= 0 && canDrop(targetCol, drag.moving)) {
-                moveCards(drag.fromCol, targetCol, drag.moving.size());
-                statusLabel.setText("Moved " + drag.moving.size() + " card(s)");
+            if (targetCol >= 0 && canDrop(targetCol, drag.getMoving())) {
+                moveCards(drag.getFromCol(), targetCol, drag.getMoving().size());
+                statusLabel.setText("Moved " + drag.getMoving().size() + " card(s)");
             } else {
                 statusLabel.setText("Illegal move");
             }
@@ -427,7 +445,7 @@ public class SpiderScreen extends BaseScreen {
             for (int i = 0; i < run.size() - 1; i++) {
                 CardModel a = run.get(i);
                 CardModel b = run.get(i + 1);
-                if (a.rank != b.rank + 1 || a.suit != b.suit) {
+                if (a.getRank() != b.getRank() + 1 || a.getSuit() != b.getSuit()) {
                     return false;
                 }
             }
@@ -436,20 +454,21 @@ public class SpiderScreen extends BaseScreen {
 
         private boolean canDrop(int targetCol, List<CardModel> run) {
             SpiderStack dest = stacks.get(targetCol);
-            if (dest.cards.isEmpty()) return true;
-            CardModel top = dest.cards.get(dest.cards.size() - 1);
+            if (dest.getCards().isEmpty()) return true;
+            CardModel top = dest.getCards().get(dest.getCards().size() - 1);
             CardModel bottom = run.get(0);
-            return top.rank == bottom.rank + 1;
+            return top.getRank() == bottom.getRank() + 1;
         }
 
         private void moveCards(int fromCol, int toCol, int count) {
             SpiderStack source = stacks.get(fromCol);
             SpiderStack dest = stacks.get(toCol);
-            int start = source.cards.size() - count;
-            List<CardModel> moving = new ArrayList<>(source.cards.subList(start, source.cards.size()));
-            source.cards.subList(start, source.cards.size()).clear();
-            dest.cards.addAll(moving);
+            int start = source.getCards().size() - count;
+            List<CardModel> moving = new ArrayList<>(source.getCards().subList(start, source.getCards().size()));
+            source.getCards().subList(start, source.getCards().size()).clear();
+            dest.getCards().addAll(moving);
             flipTop(source);
+            checkCompleted(source);
             checkCompleted(dest);
         }
 
@@ -466,7 +485,7 @@ public class SpiderScreen extends BaseScreen {
     private CardActor findActor(CardModel card) {
         for (com.badlogic.gdx.scenes.scene2d.Actor actor : stage.getActors()) {
             if (actor instanceof CardActor) {
-                if (((CardActor) actor).card == card) {
+                if (((CardActor) actor).getCard() == card) {
                     return (CardActor) actor;
                 }
             }
@@ -487,12 +506,12 @@ public class SpiderScreen extends BaseScreen {
         CardHit hit = null;
         for (int col = 0; col < COLS; col++) {
             SpiderStack stack = stacks.get(col);
-            for (int i = stack.cards.size() - 1; i >= 0; i--) {
+            for (int i = stack.getCards().size() - 1; i >= 0; i--) {
                 float cx = LEFT_X + col * (CARD_W + COL_GAP);
                 float cy = TOP_Y - i * ROW_GAP;
                 Rectangle rect = new Rectangle(cx, cy, CARD_W, CARD_H);
                 if (rect.contains(x, y)) {
-                    hit = new CardHit(col, stack, i, stack.cards.get(i));
+                    hit = new CardHit(col, stack, i, stack.getCards().get(i));
                     return hit;
                 }
             }
@@ -526,61 +545,7 @@ public class SpiderScreen extends BaseScreen {
         super.dispose();
         font.dispose();
         background.dispose();
-        cardBack.dispose();
         cardFaces.values().forEach(Texture::dispose);
     }
 
-    private static class SpiderStack {
-        final List<CardModel> cards = new ArrayList<>();
-    }
-
-    private static class CardModel {
-        final int code;
-        final int suit; // 1 spade, 2 heart, 3 diamond, 4 club
-        final int rank; // 1..13
-        boolean faceUp;
-
-        CardModel(int code, int suit, int rank, boolean faceUp) {
-            this.code = code;
-            this.suit = suit;
-            this.rank = rank;
-            this.faceUp = faceUp;
-        }
-    }
-
-    private class CardActor extends Image {
-        final CardModel card;
-
-        CardActor(CardModel card, int col, int index) {
-            super(card.faceUp ? faceFor(card) : cardBack);
-            this.card = card;
-            setSize(CARD_W, CARD_H);
-            setTouchable(Touchable.disabled); // we handle input centrally
-        }
-    }
-
-    private static class CardHit {
-        final int stackIndex;
-        final SpiderStack stack;
-        final int index;
-        final CardModel card;
-
-        CardHit(int stackIndex, SpiderStack stack, int index, CardModel card) {
-            this.stackIndex = stackIndex;
-            this.stack = stack;
-            this.index = index;
-            this.card = card;
-        }
-    }
-
-    private static class CardDrag {
-        final int fromCol;
-        final List<CardModel> moving;
-
-        CardDrag(int fromCol, List<CardModel> moving) {
-            this.fromCol = fromCol;
-            this.moving = moving;
-
-        }
-    }
 }
