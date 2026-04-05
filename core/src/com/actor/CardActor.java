@@ -9,7 +9,6 @@ import com.utils.CardModel;
 public class CardActor extends Image {
     final CardModel card;
 
-
     public CardActor(CardModel card) {
         super(card.isFaceUp() ?
                 Asset.getAsset().getTexture("card/CARD" + ((card.getSuit() - 1) * 13 + card.getRank()) + ".png")

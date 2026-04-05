@@ -10,6 +10,7 @@ import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.math.Interpolation;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
@@ -18,6 +19,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
+import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
 import com.constant.CardConstant;
@@ -63,6 +65,8 @@ public class SpiderScreen extends BaseScreen {
     private boolean autoPlay = false;
     private float autoTimer = 0f;
     private final Label statusLabel;
+    private final Image stockPlaceholder;
+    private final List<Image> foundationSlots = new ArrayList<>(8);
 
     public SpiderScreen(BaseBaseGame baseBaseGame) {
         super(baseBaseGame);
@@ -85,6 +89,17 @@ public class SpiderScreen extends BaseScreen {
         Image bg = new Image(background);
         bg.setFillParent(true);
         stage.addActor(bg);
+        stockPlaceholder = new Image(new TextureRegionDrawable(new TextureRegion(makeColorTexture(0x37474f))));
+        stockPlaceholder.setSize(CARD_W, CARD_H);
+        stockPlaceholder.setPosition(STOCK_X, STOCK_Y);
+        stage.addActor(stockPlaceholder);
+        for (int i = 0; i < 8; i++) {
+            Image slot = new Image(new TextureRegionDrawable(new TextureRegion(makeColorTexture(0x263238))));
+            slot.setSize(CARD_W, CARD_H);
+            slot.setPosition(FOUNDATION_X + i * (CARD_W + FOUNDATION_GAP), FOUNDATION_Y);
+            foundationSlots.add(slot);
+            stage.addActor(slot);
+        }
         stage.addActor(topBar);
 
         statusLabel = new Label("Ready", new Label.LabelStyle(font, Color.WHITE));
@@ -210,6 +225,19 @@ public class SpiderScreen extends BaseScreen {
                 stage.addActor(actor);
             }
         }
+
+        // foundation display: show top card of each completed suit
+        for (int i = 0; i < completedSuits.size(); i++) {
+            List<CardModel> run = completedSuits.get(i);
+            if (run.isEmpty()) continue;
+            CardModel top = run.get(run.size() - 1);
+            CardActor actor = new CardActor(top);
+            actor.setPosition(FOUNDATION_X + i * (CARD_W + FOUNDATION_GAP), FOUNDATION_Y);
+            stage.addActor(actor);
+        }
+
+        // stock indicator
+        stockPlaceholder.setVisible(!stockQueue.isEmpty());
     }
 
     private void dealNext() {
@@ -232,7 +260,26 @@ public class SpiderScreen extends BaseScreen {
         for (SpiderStack stack : stacks) {
             checkCompleted(stack);
         }
+        // animate from stock to targets
+        List<CardModel> newlyDealt = new ArrayList<>();
+        for (SpiderStack stack : stacks) {
+            newlyDealt.add(stack.getCards().get(stack.getCards().size() - 1));
+        }
         refreshLayout();
+        for (int i = 0; i < newlyDealt.size(); i++) {
+            CardModel card = newlyDealt.get(i);
+            CardActor actor = findActor(card);
+            if (actor != null) {
+                float tx = actor.getX();
+                float ty = actor.getY();
+                actor.setPosition(STOCK_X, STOCK_Y);
+                actor.toFront();
+                actor.addAction(Actions.sequence(
+                        Actions.delay(0.02f * i),
+                        Actions.moveTo(tx, ty, 0.25f, Interpolation.pow2Out)
+                ));
+            }
+        }
         statusLabel.setText("Dealt 10 cards. Stock " + stockQueue.size());
     }
 
@@ -308,8 +355,24 @@ public class SpiderScreen extends BaseScreen {
             }
             if (ok) {
                 List<CardModel> run = new ArrayList<>(stack.getCards().subList(start, stack.getCards().size()));
+                // animate top card to foundation slot
+                int slot = completedSuits.size();
+                CardModel top = run.get(run.size() - 1);
+                CardActor actor = findActor(top);
+                float fx = FOUNDATION_X + slot * (CARD_W + FOUNDATION_GAP);
+                float fy = FOUNDATION_Y;
+                if (actor != null) {
+                    actor.toFront();
+                    actor.addAction(Actions.sequence(
+                            Actions.moveTo(fx, fy, 0.3f, Interpolation.pow2Out),
+                            Actions.run(this::refreshLayout)
+                    ));
+                }
                 stack.getCards().subList(start, stack.getCards().size()).clear();
                 completedSuits.add(run);
+                if (actor == null) {
+                    refreshLayout();
+                }
                 removed = true;
             }
         } while (removed);
