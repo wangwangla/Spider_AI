@@ -1,10 +1,11 @@
 package com.spider;
 
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.utils.viewport.ExtendViewport;
 import com.kw.gdx.BaseBaseGame;
+import com.badlogic.gdx.ScreenAdapter;
 
 public class SpiderGame extends BaseBaseGame {
-
+    @Override
+    protected void loadingView() {
+        setScreen(new SpiderScreen());
+    }
 }
