@@ -84,6 +84,8 @@ public class SpiderScreen extends BaseScreen {
             stacks.add(new SpiderStack());
         }
 
+        stage.setDebugAll(true);
+
         Table topBar = buildUi();
         topBar.setFillParent(true);
         Image bg = new Image(background);
@@ -394,39 +396,32 @@ public class SpiderScreen extends BaseScreen {
         for (int c = 0; c < COLS; c++) {
             sb.append(":").append(faceDown[c] * 100 + totals[c]);
         }
-        sb.append("\n# Stacks:\n");
+        sb.append("\n");
+        // Rows are output bottom-up to match solver format.
         for (int row = 0; row < max; row++) {
             for (int col = 0; col < COLS; col++) {
                 SpiderStack stack = stacks.get(col);
                 String code = "";
-                if (row < stack.getCards().size()) {
-                    code = toCode(stack.getCards().get(row));
+                int size = stack.getCards().size();
+                if (row < size) {
+                    code = safeCode(stack.getCards().get(row)); // index 0 is bottom
                 }
                 sb.append(code).append(",");
             }
             sb.append("\n");
         }
         sb.append("# Deck:\n");
-        int dealtDeals = (50 - dealsRemaining) / 10;
-        int deckSlots = STOCK_DEALS * COLS;
-        List<String> deckTokens = new ArrayList<>(deckSlots);
-        for (int i = 0; i < dealtDeals * COLS; i++) {
-            deckTokens.add("");
-        }
-        for (CardModel card : stockQueue) {
-            deckTokens.add(toCode(card));
-        }
-        while (deckTokens.size() < deckSlots) {
-            deckTokens.add("");
-        }
-        for (String token : deckTokens) {
+        // Deck: top of stock first. Fill exactly 50 entries.
+        List<CardModel> stockList = new ArrayList<>(stockQueue);
+        for (int i = 0; i < STOCK_DEALS * COLS; i++) {
+            String token = i < stockList.size() ? safeCode(stockList.get(i)) : "";
             sb.append(token).append(",");
         }
-        sb.append("\n# Suits:\n");
+        sb.append("\n");
         for (int i = 0; i < 8; i++) {
             if (i < completedSuits.size()) {
                 CardModel top = completedSuits.get(i).get(0);
-                sb.append(toCode(top));
+                sb.append(safeCode(top));
             }
             sb.append(",");
         }
@@ -456,6 +451,17 @@ public class SpiderScreen extends BaseScreen {
         }
         char suitChar = "0shdc".charAt(card.getSuit()); // 1=s,2=h,3=d,4=c
         return rank + suitChar;
+    }
+
+    /**
+     * Ensures token length is valid for solver; otherwise returns empty.
+     */
+    private String safeCode(CardModel card) {
+        String token = toCode(card);
+        int n2 = token.length();
+        if (n2 == 2) return token;
+        if (n2 == 3 && token.charAt(0) == '1' && token.charAt(1) == '0') return token;
+        return "";
     }
 
     private final InputListener cardInput = new CardInputListener();
