@@ -1,21 +1,17 @@
 package com.spider;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.InputMultiplexer;
-import com.badlogic.gdx.InputProcessor;
-import com.badlogic.gdx.ScreenAdapter;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
-import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
@@ -24,8 +20,9 @@ import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
-import com.badlogic.gdx.utils.viewport.FitViewport;
+import com.kw.gdx.BaseBaseGame;
 import com.kw.gdx.asset.Asset;
+import com.kw.gdx.screen.BaseScreen;
 import com.solvitaire.app.DealShuffler;
 import com.solvitaire.app.SpiderSolutionStep;
 import com.solvitaire.app.SpiderSolveResult;
@@ -45,7 +42,7 @@ import java.util.Random;
  * - Drag to move runs, tap DEAL for next 10 cards.
  * - SOLVE runs the bundled solver and steps/auto-plays the moves.
  */
-public class SpiderScreen extends ScreenAdapter {
+public class SpiderScreen extends BaseScreen {
     private static final int COLS = 10;
     private static final int STOCK_DEALS = 5;
     private static final float CARD_W = 92f;
@@ -55,8 +52,6 @@ public class SpiderScreen extends ScreenAdapter {
     private static final float LEFT_X = 40f;
     private static final float TOP_Y = 720f;
 
-    private final Stage stage;
-    private final SpriteBatch batch;
     private final BitmapFont font;
     private final Texture background;
     private final Texture cardBack;
@@ -71,9 +66,8 @@ public class SpiderScreen extends ScreenAdapter {
     private float autoTimer = 0f;
     private final Label statusLabel;
 
-    public SpiderScreen() {
-        this.batch = new SpriteBatch();
-        this.stage = new Stage(new FitViewport(1400, 900), batch);
+    public SpiderScreen(BaseBaseGame baseBaseGame) {
+        super(baseBaseGame);
         this.font = Asset.getAsset().loadBitFont("bitfont/ntcb_40.fnt");
         this.background = new Texture(Gdx.files.internal("background.png"));
         this.cardBack = new Texture(Gdx.files.internal("cardback.png"));
@@ -94,7 +88,7 @@ public class SpiderScreen extends ScreenAdapter {
         statusLabel.setPosition(LEFT_X, 860f);
         stage.addActor(statusLabel);
 
-        Gdx.input.setInputProcessor(new InputMultiplexer(stage, cardInput));
+        stage.addListener(cardInput);
         newGame();
     }
 
@@ -194,7 +188,7 @@ public class SpiderScreen extends ScreenAdapter {
     }
 
     private void refreshLayout() {
-        Array<com.badlogic.gdx.scenes.scene2d.Actor> actors = new Array<>(stage.getActors());
+        Array<Actor> actors = new Array<>(stage.getActors());
         for (com.badlogic.gdx.scenes.scene2d.Actor actor : actors) {
             if (actor instanceof CardActor) {
                 actor.remove();
@@ -383,14 +377,13 @@ public class SpiderScreen extends ScreenAdapter {
         return cardFaces.computeIfAbsent(index, k -> new Texture(Gdx.files.internal("card/CARD" + index + ".png")));
     }
 
-    private final InputProcessor cardInput = new InputAdapter();
+    private final InputListener cardInput = new CardInputListener();
 
-    private class InputAdapter implements InputProcessor {
+    private class CardInputListener extends InputListener {
         private CardDrag drag;
 
-        @Override public boolean touchDown(int screenX, int screenY, int pointer, int button) {
-            Vector2 world = stage.getViewport().unproject(new Vector2(screenX, screenY));
-            CardHit hit = findTopCard(world.x, world.y);
+        @Override public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
+            CardHit hit = findTopCard(x, y);
             if (hit == null || !hit.card.faceUp) {
                 return false;
             }
@@ -400,29 +393,24 @@ public class SpiderScreen extends ScreenAdapter {
                     run = run.subList(run.size() - 1, run.size());
                 }
             }
-            drag = new CardDrag(hit.stackIndex, new ArrayList<>(run), world);
+            drag = new CardDrag(hit.stackIndex, new ArrayList<>(run));
             bringToFront(drag.moving);
             return true;
         }
 
-        @Override public boolean touchDragged(int screenX, int screenY, int pointer) {
-            if (drag == null) return false;
-            Vector2 world = stage.getViewport().unproject(new Vector2(screenX, screenY));
-            drag.offset.set(world);
-            float dx = world.x - drag.start.x;
-            float dy = world.y - drag.start.y;
+        @Override public void touchDragged(InputEvent event, float x, float y, int pointer) {
+            if (drag == null) return;
             for (CardModel card : drag.moving) {
                 CardActor actor = findActor(card);
                 if (actor != null) {
-                    actor.moveBy(dx, dy);
+                    actor.setPosition(x,y);
                 }
             }
-            return true;
         }
 
-        @Override public boolean touchUp(int screenX, int screenY, int pointer, int button) {
-            if (drag == null) return false;
-            Vector2 world = stage.getViewport().unproject(new Vector2(screenX, screenY));
+        @Override public void touchUp(InputEvent event, float x, float y, int pointer, int button) {
+            if (drag == null) return;
+            Vector2 world = new Vector2(event.getStageX(), event.getStageY());
             int targetCol = columnAt(world.x, world.y);
             if (targetCol >= 0 && canDrop(targetCol, drag.moving)) {
                 moveCards(drag.fromCol, targetCol, drag.moving.size());
@@ -432,7 +420,6 @@ public class SpiderScreen extends ScreenAdapter {
             }
             drag = null;
             refreshLayout();
-            return true;
         }
 
         private boolean isMovableRun(List<CardModel> run) {
@@ -474,12 +461,6 @@ public class SpiderScreen extends ScreenAdapter {
             return -1;
         }
 
-        @Override public boolean keyDown(int keycode) { return false; }
-        @Override public boolean keyUp(int keycode) { return false; }
-        @Override public boolean keyTyped(char character) { return false; }
-        @Override public boolean scrolled(float amountX, float amountY) { return false; }
-        @Override public boolean mouseMoved(int screenX, int screenY) { return false; }
-        @Override public boolean touchCancelled(int screenX, int screenY, int pointer, int button) { return false; }
     }
 
     private CardActor findActor(CardModel card) {
@@ -532,8 +513,7 @@ public class SpiderScreen extends ScreenAdapter {
             }
         }
 
-        stage.act(delta);
-        stage.draw();
+        super.render(delta);
     }
 
     @Override
@@ -543,8 +523,7 @@ public class SpiderScreen extends ScreenAdapter {
 
     @Override
     public void dispose() {
-        stage.dispose();
-        batch.dispose();
+        super.dispose();
         font.dispose();
         background.dispose();
         cardBack.dispose();
@@ -597,13 +576,11 @@ public class SpiderScreen extends ScreenAdapter {
     private static class CardDrag {
         final int fromCol;
         final List<CardModel> moving;
-        final Vector2 start;
-        final Vector2 offset = new Vector2();
 
-        CardDrag(int fromCol, List<CardModel> moving, Vector2 start) {
+        CardDrag(int fromCol, List<CardModel> moving) {
             this.fromCol = fromCol;
             this.moving = moving;
-            this.start = new Vector2(start);
+
         }
     }
 }
