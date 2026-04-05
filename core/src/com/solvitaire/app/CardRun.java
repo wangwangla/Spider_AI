@@ -3,6 +3,9 @@
  */
 package com.solvitaire.app;
 
+import com.solvitaire.app.Card;
+import com.solvitaire.app.SolverContext;
+import com.solvitaire.app.CardStack;
 import java.util.Arrays;
 
 /*
@@ -35,7 +38,7 @@ final class CardRun {
             SolverContext context = this.stack.context;
             context.invalidInput(string, false);
         }
-        this.cards[0].dictCardValue(n2);
+        this.cards[0].a(n2);
     }
 
     static boolean a(Card nT2, Card nT3) {
@@ -73,6 +76,13 @@ final class CardRun {
             n2 += 20;
         }
         return n2;
+    }
+
+    final CardRun b(int n2) {
+        CardRun ok_02 = new CardRun();
+        ok_02.a(this, n2);
+        this.cardCount -= n2;
+        return ok_02;
     }
 
     public final String toString() {

@@ -2,9 +2,10 @@ package com.solvitaire.app;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 
 public final class DealExtractMain {
+   private DealExtractMain() {
+   }
 
    public static void main(String[] args) throws IOException {
       if (args.length == 0) {
@@ -34,7 +35,7 @@ public final class DealExtractMain {
       DealVariant variant = DealVariant.fromSlug(args[1]);
       int parameter = Integer.parseInt(args[2]);
       long seed = Long.parseLong(args[3]);
-      Path outputRoot = Paths.get(args[4]).toAbsolutePath();
+      Path outputRoot = Path.of(args[4]).toAbsolutePath();
 
       Path savedPath = DealFileIO.writeGameStyleDeal(outputRoot, variant, parameter, seed);
       System.out.println("Saved " + variant.slug() + " seed " + seed + " to " + savedPath);
@@ -45,7 +46,7 @@ public final class DealExtractMain {
          throw new IllegalArgumentException("Usage: inspect <cards-file>");
       }
 
-      SavedDeal deal = DealFileIO.read(Paths.get(args[1]).toAbsolutePath());
+      SavedDeal deal = DealFileIO.read(Path.of(args[1]).toAbsolutePath());
       System.out.println("file=" + deal.sourcePath());
       System.out.println("variant=" + deal.variant().slug());
       if (deal.parameter() > 0) {

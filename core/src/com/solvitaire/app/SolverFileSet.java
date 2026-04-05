@@ -17,6 +17,8 @@ public final class SolverFileSet {
    int m = 0;
    int n = 0;
    boolean a = true;
+   boolean q = false;
+   boolean r = false;
    String outputDirectory;
    String variantSlug = "freecell";
    private final String inputFileName;
@@ -39,8 +41,18 @@ public final class SolverFileSet {
       return 0;
    }
 
+   void setCurrentFileIndex(int value, boolean ignored) {
+   }
+
+   void setEndFileIndex(int value) {
+   }
+
    int getEndFileIndex() {
       return 0;
+   }
+
+   boolean c() {
+      return false;
    }
 
    String getInputFileName() {
@@ -53,6 +65,22 @@ public final class SolverFileSet {
 
    String getPlaybackFileName() {
       return this.getSolutionFileName();
+   }
+
+   int g() {
+      return 0;
+   }
+
+   int h() {
+      return 0;
+   }
+
+   boolean i() {
+      return false;
+   }
+
+   String getActiveInputFileName() {
+      return this.inputFileName;
    }
 }
 

@@ -6,13 +6,20 @@ abstract class SolverBridge {
    long lastBridgeUpdateTimeMs = 0L;
    int specialSourceGroupIndex = -1;
    int specialDestinationGroupIndex = -1;
-
+   BridgeSlotState[] bridgeSlots = new BridgeSlotState[20];
+   int activeBridgeSlotIndex = 0;
    protected final BaseSolver solver;
    protected final SolverContext context;
 
    SolverBridge(BaseSolver solver) {
       this.solver = solver;
-      this.context = solver.solverContext;
+      this.context = solver.d;
+      for(int slotIndex = 0; slotIndex < this.bridgeSlots.length; ++slotIndex) {
+         this.bridgeSlots[slotIndex] = new BridgeSlotState();
+      }
+   }
+
+   void d() {
    }
 
    boolean loadInitialState() {
@@ -29,6 +36,15 @@ abstract class SolverBridge {
 
    int a(int[] moves) {
       return moves == null ? 0 : moves.length;
+   }
+
+   void c(CardStack stack) {
+   }
+
+   void a(CardStack stack, int value) {
+   }
+
+   void g() {
    }
 
    String a(int move, int flags) {

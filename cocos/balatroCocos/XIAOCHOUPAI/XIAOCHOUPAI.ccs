@@ -1,0 +1,35 @@
+<Solution>
+  <PropertyGroup Name="XIAOCHOUPAI" Version="3.10.0.0" Type="CocosStudio" />
+  <SolutionFolder>
+    <Group ctype="ResourceGroup">
+      <RootFolder Name=".">
+        <Folder Name="std">
+          <Image Name="Snipaste_2026-01-11_12-01-49.jpg" />
+          <Image Name="Snipaste_2026-01-11_12-47-51.jpg" />
+          <Image Name="Snipaste_2026-01-11_13-56-44.jpg" />
+          <Image Name="Snipaste_2026-01-11_13-56-50.jpg" />
+        </Folder>
+        <Folder Name="ui">
+          <Image Name="balatro.png" />
+          <Image Name="balatro_alt.png" />
+          <Image Name="button_common.png" />
+          <Image Name="cheng.png" />
+          <Image Name="chips0.png" />
+          <Image Name="gamepad_ui0.png" />
+          <Image Name="gamepad_ui1.png" />
+          <Image Name="gamepad_ui2.png" />
+          <Image Name="gamepad_ui3.png" />
+          <Image Name="icons0.png" />
+          <Image Name="icons1.png" />
+          <Image Name="icons2.png" />
+          <Image Name="icons3.png" />
+          <Image Name="icons4.png" />
+          <Image Name="selectBg.png" />
+          <Image Name="white.png" />
+        </Folder>
+        <Project Name="GameScene.csd" Type="Scene" />
+        <Project Name="MainScene.csd" Type="Scene" />
+      </RootFolder>
+    </Group>
+  </SolutionFolder>
+</Solution>

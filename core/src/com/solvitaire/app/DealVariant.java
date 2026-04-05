@@ -2,13 +2,7 @@ package com.solvitaire.app;
 
 import java.util.Locale;
 
-/**
- * 类型
- */
 public enum DealVariant {
-   /**
-    * 类型
-    */
    KLONDIKE("klondike", 52) {
       @Override
       public void validateParameter(int parameter) {
@@ -50,10 +44,6 @@ public enum DealVariant {
       }
    },
    SPIDER("spider", 104) {
-      /**
-       * 校验花色  spider支持1 2 4
-       * @param parameter
-       */
       @Override
       public void validateParameter(int parameter) {
          if (parameter != 1 && parameter != 2 && parameter != 4) {
@@ -61,29 +51,20 @@ public enum DealVariant {
          }
       }
 
-      /**
-       * 两副牌 52 + 52 = 104
-       * @param parameter
-       * @param seed
-       * @return
-       */
       @Override
       public String generate(int parameter, long seed) {
          validateParameter(parameter);
-         // 这部分没有啥特殊的 ， 就是生成和随机
          int[] cards = DealShuffler.shuffleSpiderDeck(seed, parameter);
          int index = 0;
          StringBuilder builder = new StringBuilder();
          builder.append(slug()).append('\n');
-         //发牌5x10      5x10 + 4 = 54  发出去54张
+         //发牌5x10
          for (int row = 0; row < 5; ++row) {
             index = appendCommaSeparated(builder, cards, index, 10);
             builder.append('\n');
          }
-         //4 发4
          index = appendCommaSeparated(builder, cards, index, 4);
          builder.append('\n');
-         // 50
          appendCommaSeparated(builder, cards, index, 50);
          return builder.toString();
       }

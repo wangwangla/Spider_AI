@@ -1,0 +1,17 @@
+apply plugin: "java"
+
+
+
+sourceCompatibility = 1.8
+sourceSets.main.java.srcDirs = [
+        "src/"
+]
+
+dependencies {
+    implementation project(":libGdxJnigenLoader")
+}
+
+// 指定编码
+tasks.withType(JavaCompile) {
+    options.encoding = "UTF-8"
+}

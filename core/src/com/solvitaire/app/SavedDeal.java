@@ -47,5 +47,9 @@ public final class SavedDeal {
    public boolean hasExpectedCardCount() {
       return this.cardCount() == this.variant.expectedCardCount();
    }
+
+   public String normalizedText() {
+      return String.join("\n", this.normalizedLines);
+   }
 }
 

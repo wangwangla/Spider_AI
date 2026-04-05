@@ -1,18 +1,33 @@
-//使用 Java 8 语法编译
-sourceCompatibility = 1.8
-//源代码目录
 sourceSets.main.java.srcDirs = [ "src/" ]
-//资源目录
-sourceSets.main.resources.srcDirs = [ "../assets" ]
-
-project.ext.mainClassName = "com.tony.spider.desktop.DesktopLauncher"
+sourceSets.main.resources.srcDirs = ["../assets"]
+sourceCompatibility = 1.8
+project.ext.mainClassName = "kw.test.file.DesktopLauncher"
 project.ext.assetsDir = new File("../assets");
 
-//运行任务
-task run(dependsOn: classes, type: JavaExec) {
-    main = project.mainClassName
-    classpath = sourceSets.main.runtimeClasspath
-    standardInput = System.in
-    workingDir = project.assetsDir
-    ignoreExitValue = true
+dependencies {
+    implementation files('libs/gdx-backend-lwjgl.jar')
+    implementation files('libs/gdx-backend-lwjgl-natives.jar')
+    implementation files("libs/lwjgl-2.9.3.jar")
+    implementation files("libs/jorbis-0.0.17.jar")
+
+//    implementation group: 'com.badlogicgames.gdx', name: 'gdx-platform', version: '1.13.1', ext: 'pom'
+// https://mvnrepository.com/artifact/com.badlogicgames.gdx/gdx-backend-lwjgl
+//    implementation group: 'com.badlogicgames.gdx', name: 'gdx-backend-lwjgl', version: '1.13.1'
+    //自己的工具包
+    implementation project(":libGdxLib")
+    implementation project(":libGdx")
+    implementation project(":libGdxJnigenLoader")
+    implementation project(":core")
+}
+
+task dist(type: Jar) {
+    duplicatesStrategy(DuplicatesStrategy.EXCLUDE)
+    manifest {
+        attributes 'Main-Class': project.mainClassName
+    }
+    dependsOn configurations.runtimeClasspath
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+    with jar
 }

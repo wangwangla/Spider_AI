@@ -1,5 +1,11 @@
-buildscript {
+ buildscript {
     repositories {
+        mavenLocal()
+        maven { url 'https://jitpack.io' }
+        mavenCentral()
+        maven {
+            url "https://mvnrepository.com/artifact/com.google.ads.mediation/fyber"
+        }
         maven {
             url 'https://maven.aliyun.com/repository/central'
             name 'central'
@@ -8,63 +14,55 @@ buildscript {
             url 'https://maven.aliyun.com/repository/jcenter'
             name 'jcenter'
         }
-        maven {
-            url 'https://maven.aliyun.com/repository/google'
-            name 'Google'
-        }
-        maven {
-            url 'https://github.com/steffenschaefer/gwt-gradle-plugin/raw/maven-repo/'
-        }
-        mavenCentral()
+//        maven {
+//            url 'https://maven.aliyun.com/repository/google'
+//            name 'Google'
+//        }
+
+        gradlePluginPortal()
         maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
-		jcenter()
+        google()
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:1.2.3'
+
     }
 }
 
 allprojects {
     apply plugin: "idea"
+
+    version = '1.0'
     ext {
-        gdxVersion = '1.9.1'
+        appName = "dominoes"
+        gdxVersion = '1.9.8'
     }
+
     repositories {
-        maven {
-            url 'https://maven.aliyun.com/repository/central'
-            name 'central'
-        }
-        maven {
-            url 'https://maven.aliyun.com/repository/jcenter'
-            name 'jcenter'
-        }
-        maven {
-            url 'https://maven.aliyun.com/repository/google'
-            name 'Google'
-        }
-        maven {
-            url 'https://github.com/steffenschaefer/gwt-gradle-plugin/raw/maven-repo/'
-        }
         mavenLocal()
         mavenCentral()
-        maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
-        maven { url "https://oss.sonatype.org/content/repositories/releases/" }
+        maven { url 'https://jitpack.io' }
+//        maven { url "http://192.168.1.108:8081/repository/maven-public/"
+//            allowInsecureProtocol = true} //for doodleads
+        maven { url 'https://maven.aliyun.com/repository/central' }
+        maven { url 'https://maven.aliyun.com/repository/jcenter' }
+        //maven { url 'https://maven.aliyun.com/repository/google' }
+        maven { url 'https://maven.aliyun.com/repository/public' }
+        maven {
+            url "https://mvnrepository.com/artifact/com.google.ads.mediation/fyber"
+        }
+        jcenter()
+        google()
+        flatDir {
+            dirs 'libs'
+        }
     }
 }
 
 project(":desktop") {
     apply plugin: "java"
-    dependencies {
-        compile project(":core")
-        compile "com.badlogicgames.gdx:gdx-backend-lwjgl:$gdxVersion"
-        compile "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop"
-    }
 }
 
 project(":core") {
     apply plugin: "java"
-    dependencies {
-        compile "com.badlogicgames.gdx:gdx:$gdxVersion"
-    }
 }

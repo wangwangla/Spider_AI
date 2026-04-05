@@ -5,6 +5,9 @@ public final class DealShuffler {
    private static final long INCREMENT = 2531011L;
    private static final long MASK = Integer.MAX_VALUE;
 
+   private DealShuffler() {
+   }
+
    public static int[] shuffleSingleDeck(long seed) {
       int[] ordered = new int[52];
       for (int index = 0; index < ordered.length; ++index) {
@@ -19,9 +22,7 @@ public final class DealShuffler {
       if (suitMode != 1 && suitMode != 2 && suitMode != 4) {
          throw new IllegalArgumentException("Spider suit mode must be 1, 2 or 4");
       }
-      /**
-       * spider 104 张
-       */
+
       int[] ordered = new int[104];
       for (int index = 0; index < ordered.length; ++index) {
          int rank = index / 8 + 1;
@@ -38,12 +39,6 @@ public final class DealShuffler {
       return shuffle(seed, ordered);
    }
 
-   /**
-    * 打乱
-    * @param seed
-    * @param ordered
-    * @return
-    */
    private static int[] shuffle(long seed, int[] ordered) {
       int[] shuffled = new int[ordered.length];
       int remaining = ordered.length;

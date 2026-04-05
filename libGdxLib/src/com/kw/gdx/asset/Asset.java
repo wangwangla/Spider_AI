@@ -1,0 +1,525 @@
+package com.kw.gdx.asset;
+
+import com.badlogic.gdx.Graphics;
+import com.badlogic.gdx.assets.loaders.resolvers.LocalFileHandleResolver;
+import com.badlogic.gdx.graphics.Pixmap;
+import com.badlogic.gdx.graphics.glutils.FrameBuffer;
+import com.badlogic.gdx.scenes.scene2d.Group;
+import com.badlogic.gdx.scenes.scene2d.ui.Image;
+import com.badlogic.gdx.scenes.scene2d.ui.Label;
+import com.badlogic.gdx.utils.Align;
+import com.badlogic.gdx.utils.Array;
+import com.badlogic.gdx.utils.I18NBundle;
+import com.esotericsoftware.spine.SkeletonRenderer;
+import com.kw.gdx.constant.Constant;
+import com.kw.gdx.loader.CsvLoader;
+import com.kw.gdx.loader.bean.ArrayResult;
+import com.kw.gdx.loader.bean.CsvBean;
+import com.kw.gdx.loader.bean.CsvBeanParamter;
+import com.kw.gdx.particle.ParticleEffect;
+import com.kw.gdx.particle.ParticleEffectLoader;
+import com.kw.gdx.resource.annotation.AssetResource;
+import com.kw.gdx.resource.annotation.FtResource;
+import com.kw.gdx.resource.annotation.I18BundleAnnotation;
+import com.kw.gdx.resource.annotation.SpineResource;
+import com.kw.gdx.resource.annotation.TextureReginAnnotation;
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.assets.AssetManager;
+import com.badlogic.gdx.assets.loaders.BitmapFontLoader;
+import com.badlogic.gdx.assets.loaders.TextureLoader;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
+
+import com.badlogic.gdx.graphics.g2d.Sprite;
+import com.badlogic.gdx.graphics.g2d.TextureAtlas;
+import com.badlogic.gdx.maps.tiled.TiledMap;
+import com.badlogic.gdx.maps.tiled.TmxMapLoader;
+import com.esotericsoftware.spine.SkeletonData;
+import com.kw.gdx.constant.Configuration;
+import com.esotericsoftware.spine.loader.SkeletonDataLoader;
+import com.kw.gdx.mini.MiniTextureAtlasLoader;
+import com.kw.gdx.mini.MiniTextureLoader;
+import com.kw.gdx.utils.log.NLog;
+import com.kw.gdx.view.dialog.base.BaseDialog;
+import com.ui.ManagerUIEditor;
+import com.ui.loader.ManagerUILoader;
+import com.ui.plist.MiniPlistAtlasLoader;
+import com.ui.plist.PlistAtlas;
+import com.ui.plist.PlistAtlasLoader;
+
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Field;
+
+public class Asset {
+    private static Asset asset;
+    private static AssetManager assetManager;
+    private static AssetManager localAssetManager;
+    private int i=0;
+    private SkeletonRenderer renderer;
+    private FrameBuffer frameBuffer;
+    public void loadAsset(Object ob){
+        loadAsset(ob,Asset.assetManager);
+    }
+
+    public void loadAsset(Object ob,AssetManager assetManager) {
+        Field[] declaredFields = ob.getClass().getDeclaredFields();
+        for (Field declaredField : declaredFields) {
+            Annotation[] annotations = declaredField.getAnnotations();
+            if (annotations.length>0) {
+                Annotation annotation = annotations[0];
+                if (annotation instanceof SpineResource){
+                    SpineResource annotation1 = (SpineResource) annotation;
+                    if (annotation1.isSpine()) {
+                        try {
+                            String s = (String) declaredField.get(ob);
+                            if (assetManager.isLoaded(s)){
+                                continue;
+                            }
+                            assetManager.load(s, SkeletonData.class);
+                        } catch (IllegalAccessException e) {
+                            e.printStackTrace();
+                        }
+                    }else {
+                        try {
+                            String s = (String) declaredField.get(ob);
+                            if (assetManager.isLoaded(s)){
+                                continue;
+                            }
+                            assetManager.load((String)declaredField.get(ob), ParticleEffect.class);
+                        } catch (IllegalAccessException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }else if(annotation instanceof FtResource){
+                    FtResource annotation1 = (FtResource) annotation;
+                    try {
+                        BitmapFontLoader.BitmapFontParameter parameter = null;
+                        parameter = new BitmapFontLoader.BitmapFontParameter();
+                        parameter.genMipMaps = true;
+                        parameter.minFilter = Texture.TextureFilter.MipMapLinearLinear;
+                        parameter.magFilter = Texture.TextureFilter.Linear;
+                        String value = annotation1.value();
+                        if (assetManager.isLoaded(value)){
+                            continue;
+                        }
+                        assetManager.load(value, BitmapFont.class,parameter);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }else if (annotation instanceof TextureReginAnnotation){
+                    TextureReginAnnotation textureReginAnnotation = (TextureReginAnnotation)annotation;
+                    String value = textureReginAnnotation.value();
+                    if (assetManager.isLoaded(value)){
+                        continue;
+                    }
+                    assetManager.load(value, TextureAtlas.class);
+                }else if (annotation instanceof I18BundleAnnotation){
+                    I18BundleAnnotation i18BundleAnnotation = (I18BundleAnnotation) annotation;
+                    String value = i18BundleAnnotation.value();
+                    if (assetManager.isLoaded(value)){
+                        continue;
+                    }
+                    assetManager.load(i18BundleAnnotation.value(), I18NBundle.class);
+                }else if (annotation instanceof AssetResource){
+
+                }
+            }
+        }
+    }
+
+    public void getResource(Object ob){
+        getResource(ob,Asset.assetManager);
+    }
+
+    public void getResource(Object ob,AssetManager assetManager){
+        Field[] declaredFields = ob.getClass().getDeclaredFields();
+        for (Field declaredField : declaredFields) {
+            Annotation[] annotations = declaredField.getAnnotations();
+            if (annotations.length>0) {
+                Annotation annotation = annotations[0];
+                if(annotation instanceof FtResource){
+                    FtResource ftResource = ((FtResource)annotation);
+                    try {
+                        declaredField.set(ob,assetManager.get(ftResource.value(), BitmapFont.class));
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }else if (annotation instanceof TextureReginAnnotation){
+                    TextureReginAnnotation reginAnnotation = (TextureReginAnnotation) annotation;
+                    try {
+                        declaredField.set(ob,assetManager.get(reginAnnotation.value(), TextureAtlas.class));
+                    } catch (IllegalAccessException e) {
+                        e.printStackTrace();
+                    }
+                }else if (annotation instanceof I18BundleAnnotation){
+                    I18BundleAnnotation i18BundleAnnotation = (I18BundleAnnotation) annotation;
+                    try {
+                        declaredField.set(ob,assetManager.get(i18BundleAnnotation.value(), I18NBundle.class));
+                    } catch (IllegalAccessException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
+    }
+
+    public PlistAtlas getPlist(String path){
+        return getPlist(path,Asset.assetManager);
+    }
+
+    public PlistAtlas getPlist(String path,AssetManager assetManager){
+        if (!assetManager.isLoaded(path)) {
+            assetManager.load(path, PlistAtlas.class);
+            assetManager.finishLoading();
+        }
+        return assetManager.get(path,PlistAtlas.class);
+    }
+
+    public void loadPlist(String path){
+        loadPlist(path,Asset.assetManager);
+    }
+
+    public void loadPlist(String path,AssetManager assetManager){
+        if (!assetManager.isLoaded(path)) {
+            assetManager.load(path, PlistAtlas.class);
+        }
+    }
+
+    public TextureAtlas getAtlas(String path){
+        return getAtlas(path,Asset.assetManager);
+    }
+
+    public TextureAtlas getAtlas(String path,AssetManager assetManager){
+        if (!assetManager.isLoaded(path)) {
+            assetManager.load(path, TextureAtlas.class);
+            assetManager.finishLoading();
+        }
+        TextureAtlas atlas = assetManager.get(path, TextureAtlas.class);
+        for (Texture texture : atlas.getTextures()) {
+            texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+        }
+        return atlas;
+    }
+//Gdx.files.local("levelpre/level" + levlNum+"/pre.png")
+
+    public Texture getTexture(String path) {
+        return getTexture(path,Asset.assetManager);
+    }
+
+    public Texture getTexture(String path,AssetManager assetManager){
+        if (!Gdx.files.internal(path).exists()){
+            NLog.e("%s resouce not exist",path);
+            System.out.println(path);
+            return null;
+        }
+        if (!assetManager.isLoaded(path)) {
+            TextureLoader.TextureParameter parameter = new TextureLoader.TextureParameter();
+            parameter.magFilter = Texture.TextureFilter.Linear;
+            parameter.minFilter = Texture.TextureFilter.Linear;
+            assetManager.load(path, Texture.class,parameter);
+            assetManager.finishLoading();
+        }
+        Texture texture = assetManager.get(path, Texture.class);
+        texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+        return assetManager.get(path,Texture.class);
+    }
+
+    public Sprite getSprite(String path){
+        return getSprite(path,Asset.assetManager);
+    }
+
+    public Sprite getSprite(String path,AssetManager assetManager){
+        Texture texture = getTexture(path,assetManager);
+        texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+        Sprite sprite = new Sprite(texture);
+        return sprite;
+    }
+
+    public void disposeTexture(String path){
+        disposeTexture(path,Asset.assetManager);
+    }
+
+    public void disposeTexture(String path,AssetManager assetManager){
+        if (assetManager.isLoaded(path)) {
+            NLog.i("%s dispose ",path);
+            assetManager.unload(path);
+        }
+    }
+
+    private Asset(int type){
+        i++;
+        if (i>=2){
+            throw new RuntimeException("gun");
+        }
+        if (type == 0 || type == 2) {
+            assetManager = getAssetManager();
+        }
+        if (type == 1|| type == 2) {
+            localAssetManager = getLocalAssetManager();
+        }
+    }
+
+    public AssetManager getAssetManager(){
+        if (assetManager == null){
+            assetManager = new AssetManager();
+            assetManager.setLoader(ManagerUIEditor.class,new ManagerUILoader(assetManager.getFileHandleResolver()));
+            assetManager.setLoader(PlistAtlas.class, new PlistAtlasLoader(assetManager.getFileHandleResolver()));
+            assetManager.setLoader(SkeletonData.class,new SkeletonDataLoader(assetManager.getFileHandleResolver()));
+            assetManager.setLoader(com.kw.gdx.particle.ParticleEffect.class,new ParticleEffectLoader(assetManager.getFileHandleResolver()));
+            assetManager.setLoader(ArrayResult.class,new CsvLoader(assetManager.getFileHandleResolver()));
+            if (Configuration.device_state == Configuration.DeviceState.poor) {
+                assetManager.setLoader(TextureAtlas.class, new MiniTextureAtlasLoader(assetManager.getFileHandleResolver(), Configuration.scale));
+                assetManager.setLoader(Texture.class, new MiniTextureLoader(assetManager.getFileHandleResolver(), Configuration.scale));
+                assetManager.setLoader(PlistAtlas.class, new MiniPlistAtlasLoader(assetManager.getFileHandleResolver(), Configuration.scale));
+            }
+            ManagerUILoader.textureParameter.genMipMaps = false;
+            ManagerUILoader.textureParameter.minFilter = Texture.TextureFilter.Linear;
+            ManagerUILoader.textureParameter.magFilter = Texture.TextureFilter.Linear;
+
+            ManagerUILoader.plistAtlasParameter.genMipMaps = false;
+            ManagerUILoader.plistAtlasParameter.minFilter = Texture.TextureFilter.Linear;
+            ManagerUILoader.plistAtlasParameter.magFilter = Texture.TextureFilter.Linear;
+
+            ManagerUILoader.bitmapFontParameter.genMipMaps = false;
+            ManagerUILoader.bitmapFontParameter.minFilter = Texture.TextureFilter.Linear;
+            ManagerUILoader.bitmapFontParameter.magFilter = Texture.TextureFilter.Linear;
+        }
+        return assetManager;
+    }
+
+    public AssetManager getLocalAssetManager(){
+        if (localAssetManager == null){
+            localAssetManager = new AssetManager(new LocalFileHandleResolver());
+            localAssetManager.setLoader(TiledMap.class,new TmxMapLoader());
+            localAssetManager.setLoader(ManagerUIEditor.class,new ManagerUILoader(localAssetManager.getFileHandleResolver()));
+            localAssetManager.setLoader(PlistAtlas.class, new PlistAtlasLoader(localAssetManager.getFileHandleResolver()));
+            localAssetManager.setLoader(SkeletonData.class,new SkeletonDataLoader(localAssetManager.getFileHandleResolver()));
+            assetManager.setLoader(ArrayResult.class,new CsvLoader(assetManager.getFileHandleResolver()));
+            if (Configuration.device_state == Configuration.DeviceState.poor) {
+                localAssetManager.setLoader(TextureAtlas.class, new MiniTextureAtlasLoader(localAssetManager.getFileHandleResolver(), Configuration.scale));
+                localAssetManager.setLoader(Texture.class, new MiniTextureLoader(localAssetManager.getFileHandleResolver(), Configuration.scale));
+                localAssetManager.setLoader(PlistAtlas.class, new MiniPlistAtlasLoader(localAssetManager.getFileHandleResolver(), Configuration.scale));
+            }
+            ManagerUILoader.textureParameter.genMipMaps = false;
+            ManagerUILoader.textureParameter.minFilter = Texture.TextureFilter.Linear;
+            ManagerUILoader.textureParameter.magFilter = Texture.TextureFilter.Linear;
+
+            ManagerUILoader.plistAtlasParameter.genMipMaps = false;
+            ManagerUILoader.plistAtlasParameter.minFilter = Texture.TextureFilter.Linear;
+            ManagerUILoader.plistAtlasParameter.magFilter = Texture.TextureFilter.Linear;
+
+            ManagerUILoader.bitmapFontParameter.genMipMaps = false;
+            ManagerUILoader.bitmapFontParameter.minFilter = Texture.TextureFilter.Linear;
+            ManagerUILoader.bitmapFontParameter.magFilter = Texture.TextureFilter.Linear;
+        }
+        return localAssetManager;
+    }
+
+    public static Asset getAsset() {
+        if (asset==null){
+            asset = new Asset(Constant.ASSETMANAGERTYPE);
+        }
+        return asset;
+    }
+
+
+    public SkeletonRenderer getRenderer() {
+        if (renderer == null){
+            renderer = new SkeletonRenderer();
+        }
+        return renderer;
+    }
+
+    public BitmapFont loadBitFont(String path){
+        return loadBitFont(path,Asset.assetManager);
+    }
+
+    public BitmapFont loadBitFont(String path,String atlas){
+        return loadBitFont(path,atlas,Asset.assetManager);
+    }
+
+    public BitmapFont loadBitFont(String path,String atlas,AssetManager assetManager){
+        if (!assetManager.isLoaded(path)) {
+            if (atlas!=null){
+                BitmapFontLoader.BitmapFontParameter mipMapParameter = new BitmapFontLoader.BitmapFontParameter();
+                mipMapParameter.genMipMaps = true;
+                mipMapParameter.minFilter = Texture.TextureFilter.MipMapLinearLinear;
+                mipMapParameter.magFilter = Texture.TextureFilter.Linear;
+                mipMapParameter.atlasName = atlas;
+                assetManager.load(path, BitmapFont.class,mipMapParameter);
+            }else {
+                assetManager.load(path, BitmapFont.class);
+            }
+            assetManager.finishLoading();
+        }
+        BitmapFont bitmapFont = assetManager.get(path);
+        bitmapFont.getRegion().getTexture().setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+//        if(path.equals("font/Manrope-ExtraBold_96_1.fnt")){
+//            resetExtraBold_96(bitmapFont);
+//        }
+        return assetManager.get(path);
+    }
+//
+//    private void resetExtraBold_96(BitmapFont bitmapFont){
+//        BitmapFont.Glyph[][] data = bitmapFont.data.glyphs;
+//
+////        for(int i = 0;i< data.length;i++){
+////            if(data[i] != null) {
+////                for (int j = 0; j < data[i].length; j++) {
+////                if(data[i][j]!= null && data[i][j].id == 49){
+////                    data[i][j].xoffset = -5;
+////                    data[i][j].xadvance = 38;
+////                    break;
+////                }
+////                }
+////            }
+////        }
+//    }
+
+    public BitmapFont loadBitFont(String path,AssetManager assetManager) {
+        return loadBitFont(path,null,assetManager);
+    }
+
+    public float getProcess(AssetManager assetManager){
+        return assetManager.getProgress();
+    }
+
+    public float getProcess(){
+        return getProcess(Asset.assetManager);
+    }
+
+    public boolean update(AssetManager assetManager){
+        return assetManager.update();
+    }
+
+    public boolean update(){
+        return update(Asset.assetManager);
+    }
+
+
+    public FrameBuffer buffer(){
+        if (frameBuffer == null) {
+//            Graphics.BufferFormat bufferFormat = Gdx.graphics.getBufferFormat();
+//            Alpha, Intensity, LuminanceAlpha, RGB565, RGBA4444, RGB888, RGBA8888;
+            Graphics.BufferFormat format = Gdx.graphics.getBufferFormat();
+            if(format.r < 8){
+                frameBuffer = new FrameBuffer(
+                        Pixmap.Format.RGB565,
+                        (int) Constant.GAMEWIDTH,
+                        (int) Constant.GAMEHIGHT,
+                        false);
+            }else{
+                try {
+                    frameBuffer = new FrameBuffer(
+                            Pixmap.Format.RGB888,
+                            (int) Constant.GAMEWIDTH,
+                            (int) Constant.GAMEHIGHT,
+                            false);
+                }catch (Exception e){
+                    frameBuffer = new FrameBuffer(
+                            Pixmap.Format.RGB565,
+                            (int) Constant.GAMEWIDTH,
+                            (int) Constant.GAMEHIGHT,
+                            false);
+                }
+            }
+        }
+        return frameBuffer;
+    }
+
+    public void unloadResource(String path) {
+        unloadResource(path,Asset.assetManager);
+    }
+
+    public void unloadResource(String path,AssetManager assetManager) {
+        if (assetManager.isLoaded(path)){
+            assetManager.unload(path);
+        }
+    }
+
+    public Image createImg(String texture){
+        return new Image(Asset.getAsset().getTexture(texture));
+    }
+
+    public Image createNineImg(String texture,int left,int right,int top,int bottom){
+        return createNineImg(texture,left,right,top,bottom);
+    }
+
+
+    public static void disposeNull() {
+        //clear方法没有必要执行
+        if (assetManager!=null) {
+            assetManager.dispose();
+        }
+        if (localAssetManager!=null){
+            localAssetManager.dispose();
+        }
+        assetManager = null;
+        localAssetManager = null;
+        asset = null;
+    }
+
+    public Label createLabel1(Group group,String fontPath) {
+        Label label = new Label("",new Label.LabelStyle(){{
+            font = Asset.getAsset().loadBitFont(fontPath);
+        }});
+        label.setAlignment(Align.center);
+        group.addActor(label);
+        label.setPosition(group.getWidth()/2f,group.getHeight()/2f, Align.center);
+        return label;
+    }
+
+    public Label createLabel(Group group,String fontPath) {
+        Label label = new Label("",new Label.LabelStyle(){{
+            font = Asset.getAsset().loadBitFont(fontPath);
+        }});
+        label.setAlignment(Align.center);
+        group.addActor(label);
+        label.setPosition(group.getWidth()/2f,group.getHeight()/2f, Align.center);
+        return label;
+    }
+
+    public Label createLabel(String fontPath) {
+        Label label = new Label("",new Label.LabelStyle(){{
+            font = Asset.getAsset().loadBitFont(fontPath);
+        }});
+        label.setAlignment(Align.center);
+        return label;
+    }
+
+    public <T> Array<T> getCsv(String s, Class<T> clazz) {
+        if (!assetManager.isLoaded(s)){
+            assetManager.load(s,clazz);
+            assetManager.finishLoading();
+        }
+        ArrayResult result = assetManager.get(s, ArrayResult.class);
+        Array<Object> array = result.array;
+        // 创建一个目标类型的数组
+        Array<T> targetArray = new Array<>();
+
+        // 遍历原始数组，将元素转换为目标类型并添加到新数组中
+        for (int i = 0; i < array.size; i++) {
+            T item = clazz.cast(array.get(i));  // 强制转换为目标类型
+            targetArray.add(item);
+        }
+        return targetArray;
+    }
+
+    public void loadCsv(String name, Class poepleNumClass){
+        if (assetManager!=null) {
+            CsvBeanParamter csvBeanParamter = new CsvBeanParamter();
+            csvBeanParamter.csvBean = poepleNumClass;
+            assetManager.load(name, ArrayResult.class,csvBeanParamter);
+        }
+    }
+
+    public void loadCocos(String resourcePath) {
+        ManagerUILoader.ManagerUIParameter managerUIParameter1 =
+                new ManagerUILoader.ManagerUIParameter("cocos/", Asset.getAsset().getAssetManager());
+        Asset.getAsset().getAssetManager().load(resourcePath, ManagerUIEditor.class, managerUIParameter1);
+    }
+
+    public void loadTexture(String tPath) {
+        assetManager.load(tPath,Texture.class);
+    }
+}

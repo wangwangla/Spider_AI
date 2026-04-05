@@ -3,6 +3,9 @@
  */
 package com.solvitaire.app;
 
+import com.solvitaire.app.CardRun;
+import com.solvitaire.app.SolverContext;
+import com.solvitaire.app.CardStack;
 import java.awt.geom.Point2D;
 
 /*
@@ -29,10 +32,10 @@ public final class StackGroup {
         this.stackCount = stackCount;
         this.flags = flags;
         this.stacks = new CardStack[stackCount];
-        int stackIndex = 0;
-        while (stackIndex < stackCount) {
-            this.stacks[stackIndex] = new CardStack(this.context, this, stackIndex, (this.flags & 8) != 0);
-            ++stackIndex;
+        int n6 = 0;
+        while (n6 < stackCount) {
+            this.stacks[n6] = new CardStack(this.context, this, n6, (this.flags & 8) != 0);
+            ++n6;
         }
         this.emptyStackCount = stackCount;
         this.offsets = new double[6];
@@ -44,22 +47,27 @@ public final class StackGroup {
         this.height = sourceGroup.height;
         this.offsets = sourceGroup.offsets;
         this.emptyStackCount = sourceGroup.emptyStackCount;
-        int stackIndex = 0;
-        while (stackIndex < sourceGroup.stacks.length) {
-            this.stacks[stackIndex] = new CardStack(this, sourceGroup.stacks[stackIndex]);
-            this.stacks[stackIndex].workingCopy = workingCopy;
-            ++stackIndex;
+        int n2 = 0;
+        while (n2 < sourceGroup.stacks.length) {
+            this.stacks[n2] = new CardStack(this, sourceGroup.stacks[n2]);
+            this.stacks[n2].workingCopy = workingCopy;
+            ++n2;
         }
     }
 
+    final void setOrigin(double x, double y) {
+        this.origin = new Point2D.Double(x, y);
+        this.stacks[0].xPosition = this.origin.x;
+    }
+
     final int countCards() {
-        int cardCount = 0;
-        int stackIndex = 0;
-        while (stackIndex < this.stackCount) {
-            cardCount += this.stacks[stackIndex].getCardCount();
-            ++stackIndex;
+        int n2 = 0;
+        int n3 = 0;
+        while (n3 < this.stackCount) {
+            n2 += this.stacks[n3].getCardCount();
+            ++n3;
         }
-        return cardCount;
+        return n2;
     }
 
     final int addCompletedSuitRun(CardRun completedSuitRun) {
@@ -69,33 +77,45 @@ public final class StackGroup {
         if (completedSuitRun.cardCount != 13) {
             this.context.fail("Trying to remove suit run that is not a full suit");
         }
-        int stackIndex = 0;
-        while (stackIndex < this.stacks.length) {
-            if (this.stacks[stackIndex].topRun == null) break;
-            ++stackIndex;
+        int n2 = 0;
+        while (n2 < this.stacks.length) {
+            if (this.stacks[n2].topRun == null) break;
+            ++n2;
         }
-        if (stackIndex == 8) {
+        if (n2 == 8) {
             this.context.fail("Add of suit stack when no available slots");
         }
-        this.stacks[stackIndex].appendRun(completedSuitRun);
-        return stackIndex;
+        this.stacks[n2].appendRun(completedSuitRun);
+        return n2;
     }
 
-    CardRun removeCompletedSuitRun() {
+    final CardRun removeCompletedSuitRun() {
         if ((this.flags & 0x40) == 0) {
             this.context.fail("Cannot remove a run from a stackset that is not SpiderSuits");
         }
-        int stackIndex = -1;
-        int stackIndexTemp = 0;
-        while (stackIndexTemp < this.stacks.length) {
-            if (this.stacks[stackIndexTemp].topRun == null) break;
-            stackIndex = stackIndexTemp++;
+        int n2 = -1;
+        int n3 = 0;
+        while (n3 < this.stacks.length) {
+            if (this.stacks[n3].topRun == null) break;
+            n2 = n3++;
         }
-        if (stackIndex < 0) {
+        if (n2 < 0) {
             this.context.fail("Remove of suit stack when none available");
         }
-        CardRun completedSuitRun = this.stacks[stackIndex].popTopRun();
+        CardRun completedSuitRun = this.stacks[n2].popTopRun();
         return completedSuitRun;
+    }
+
+    final int a() {
+        return this.countCards();
+    }
+
+    final int a(CardRun completedSuitRun) {
+        return this.addCompletedSuitRun(completedSuitRun);
+    }
+
+    final CardRun b() {
+        return this.removeCompletedSuitRun();
     }
 }
 

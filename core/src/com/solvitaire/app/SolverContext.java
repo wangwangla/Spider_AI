@@ -1,45 +1,53 @@
 package com.solvitaire.app;
 
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class SolverContext {
+   static final String LINE_SEPARATOR = System.lineSeparator();
    static final String[] INPUT_SOURCE_MODE_NAMES = new String[]{"", "PLAY", "MSFT", "FILE", "PLAYBACK", "CAPTURE", "ALL_CARDS"};
    static final String[] SOLVER_MODE_NAMES = new String[]{"NORMAL", "ALL_CARDS", "FROM_FILE", "CAPTURE", "PLAYBACK", "UNUSED", "UNUSED2"};
    static final String[] VARIANT_NAMES = new String[]{"", "Klondike", "Spider", "FreeCell", "Pyramid", "TriPeaks"};
 
-   int logLevel = 0;
+   int logLevel = 9;
    int variantId = 3;
    int solverMode = 3;
    int inputSourceMode = 0;
+   int bg = 0;
+   int bf = 0;
    int bk = 0;
    int searchCredit = 0;
    int complexity = 0;
    int playbackMoveIndex = 0;
    int V = 0;
    int U = 0;
+   int X = 0;
    long searchStepCount = 0L;
    boolean abortAllReads = false;
    boolean foundCompleteSolution = false;
    boolean t = true;
    boolean ad = false;
    boolean aN = false;
+   boolean ae = false;
+   boolean e = false;
+   boolean af = false;
    boolean ag = false;
    boolean ah = false;
    boolean ai = false;
    boolean Y = false;
    boolean aX = false;
+   boolean aL = false;
+   boolean aI = false;
    boolean aG = false;
    boolean az = false;
    boolean x = false;
    boolean S = false;
    String workspaceRoot = "";
    long aF = 0L;
+   int aO = 0;
 
    BaseSolver solver;
    SolverBridge bridge;
@@ -48,17 +56,14 @@ public class SolverContext {
    GameState bestSolutionState = new GameState();
    GameState playbackState = new GameState();
    SolverFileSet files;
-
+   UiStub ui = new UiStub();
+   StatsStub stats = new StatsStub();
+   BoardStub board = new BoardStub();
    BpStub fontStats = new BpStub();
    TableStub table = new TableStub();
 
    void log(String message) {
       System.out.println(message);
-      try (PrintWriter out = new PrintWriter(new FileWriter("log.txt", true))) {
-         out.println(message);
-      } catch (IOException e) {
-         e.printStackTrace();
-      }
    }
 
    void fail(String message) {
@@ -67,6 +72,10 @@ public class SolverContext {
 
    void invalidInput(String message, boolean ignored) {
       throw new IllegalArgumentException(message);
+   }
+
+   void sleepBriefly(long millis) {
+      this.sleepBriefly(millis, "");
    }
 
    void sleepBriefly(long millis, String reason) {
@@ -79,6 +88,36 @@ public class SolverContext {
       } catch (InterruptedException interruptedException) {
          Thread.currentThread().interrupt();
       }
+   }
+
+   void a(int code, boolean enabled) {
+   }
+
+   void b(int code) {
+   }
+
+   void b(int code, int delay) {
+   }
+
+   void b(String reason, boolean force) {
+   }
+
+   void b(boolean enabled) {
+   }
+
+   void h() {
+   }
+
+   void updateStatus(String status) {
+   }
+
+   void k() {
+   }
+
+   void n() {
+   }
+
+   void a() {
    }
 
    void writeTextFile(String path, String contents, boolean append) {
@@ -201,10 +240,35 @@ public class SolverContext {
       return throwable.toString();
    }
 
+    static String describe(Object object) {
+      return String.valueOf(object);
+   }
+
+   static final class BoardStub {
+      final RepaintStub repaintStub = new RepaintStub();
+
+      void repaintBoard() {
+      }
+
+      void clickBackground() {
+      }
+   }
+
+   static final class RepaintStub {
+      void repaint() {
+      }
+
+      void repaint(int x, int y, int width, int height) {
+      }
+   }
+
    static final class BpStub {
       final FontStub font = new FontStub();
       int e = 0;
       int f = 0;
+
+      void reset() {
+      }
    }
 
    static final class FontStub {
@@ -212,7 +276,29 @@ public class SolverContext {
    }
 
    static final class TableStub {
+      final RectStub screenOrigin = new RectStub();
+      int cardWidth = Card.CARD_WIDTH;
+      int cardHeight = Card.CARD_HEIGHT;
       int drawCount = 1;
+
+      void p() {
+      }
+
+      void a(boolean skipDialogs, boolean showAds) {
+      }
+
+      void a(StringBuffer stringBuffer, StackGroup ot_02) {
+      }
+   }
+
+   static final class RectStub {
+      double a() {
+         return 0.0;
+      }
+
+      double b() {
+         return 0.0;
+      }
    }
 }
 

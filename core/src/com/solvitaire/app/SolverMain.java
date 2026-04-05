@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -21,7 +20,7 @@ public final class SolverMain {
          System.exit(1);
       }
 
-      Path inputFile = Paths.get(args[0]).toAbsolutePath();
+      Path inputFile = Path.of(args[0]).toAbsolutePath();
       SanitizedInput sanitizedInput = sanitizeInput(inputFile);
       Path actualInputFile = sanitizedInput.inputFile;
       Path originalSolutionFile = solutionFileFor(inputFile);
@@ -258,56 +257,6 @@ public final class SolverMain {
          return values;
       } catch (IOException iOException) {
          throw new IllegalStateException("Failed to read solution file " + solutionFile, iOException);
-      }
-   }
-
-   /**
-    * Programmatic entry：直接用牌局文本（含首行 spider 头）求解，返回编码后的移动序列。
-    */
-   public static int[] solveDealText(String dealText) {
-      SanitizedInput sanitizedInput = null;
-      Path tempDir = null;
-      Path actualSolutionFile = null;
-      try {
-         tempDir = Files.createTempDirectory("solvitaire-solver-");
-         Path tempInputFile = tempDir.resolve("cards.txt");
-         Files.writeString(tempInputFile, dealText, StandardCharsets.UTF_8);
-
-         sanitizedInput = sanitizeInput(tempInputFile);
-         Path actualInputFile = sanitizedInput.inputFile;
-         actualSolutionFile = solutionFileFor(actualInputFile);
-         deleteIfExists(actualSolutionFile);
-
-         SolverContext context = new SolverContext();
-         context.logLevel = 100;
-         context.variantId = sanitizedInput.variant;
-         context.files = new SolverFileSet(actualInputFile);
-         context.files.b = 1;
-         context.files.variantSlug = variantSlug(sanitizedInput.variant);
-         context.initialState = allocateState(context, sanitizedInput.variant);
-         context.bestSolutionState = new GameState();
-         context.playbackState = new GameState();
-
-         BaseSolver solver = createSolver(context, sanitizedInput.variant);
-         solver.C = false;
-         context.bridge = new SolverBridge(solver) {
-         };
-         configureReader(context.bridge, sanitizedInput.variant);
-
-         solver.solve();
-         return readMoves(actualSolutionFile);
-      } catch (Exception e) {
-         return new int[0];
-      } finally {
-         if (sanitizedInput != null && actualSolutionFile != null) {
-            cleanupTemporaryFiles(sanitizedInput, actualSolutionFile);
-         }
-         if (tempDir != null) {
-            try {
-               Files.deleteIfExists(tempDir);
-            } catch (Exception ignored) {
-            }
-         }
       }
    }
 

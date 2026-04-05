@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
@@ -26,25 +25,19 @@ public final class SolvableDealBatchMain {
 
    public void run() throws IOException {
       this.config.validate();
-      // 输出目录
+
       Path outputRoot = this.config.outputRoot.toAbsolutePath();
-      //_work目录
       Path workRoot = outputRoot.resolve("_work");
-      // 解决目录
       Path solvedRoot = outputRoot.resolve("solved");
-      // spider1 or other
       Path solvedVariantDir = solvedRoot.resolve(this.config.variant.directoryName(this.config.parameter));
-      // 创建
+
       Files.createDirectories(workRoot);
-      // 创建解决目录
       Files.createDirectories(solvedVariantDir);
-      //已经处理的 or 已经解决的
+
       List<ValidatedDeal> acceptedDeals = new ArrayList<>();
-      // 开始随机数， 然后进行累加
       long seed = this.config.firstSeed;
-      //最大尝试次数， 如果写一样，可能达不到目标个数
       int attempts = 0;
-      // 循环遍历  处理的个数是否达到  最大尝试次数
+
       while (acceptedDeals.size() < this.config.desiredSolvedDeals && attempts < this.config.maxAttempts) {
          attempts++;
          ValidationResult result = this.generateAndValidate(seed, workRoot, solvedVariantDir);
@@ -64,60 +57,44 @@ public final class SolvableDealBatchMain {
    private ValidationResult generateAndValidate(long seed, Path workRoot, Path solvedVariantDir) {
       Path candidateCardsFile = null;
       Path candidateSolutionFile = null;
-      Path candidateReadableSolutionFile = null;
       try {
-         // 关卡文件的路径
          candidateCardsFile = DealFileIO.writeGameStyleDeal(workRoot, this.config.variant, this.config.parameter, seed);
          SolveOutcome outcome = this.solve(candidateCardsFile);
          candidateSolutionFile = outcome.solutionFile;
-         candidateReadableSolutionFile = outcome.readableSolutionFile;
 
          if (!outcome.solved) {
             this.deleteIfExists(candidateSolutionFile);
-            this.deleteIfExists(candidateReadableSolutionFile);
             this.deleteIfExists(candidateCardsFile);
             return ValidationResult.rejected("solver found no solution");
          }
 
          Path finalCardsFile = solvedVariantDir.resolve(candidateCardsFile.getFileName().toString());
          Path finalSolutionFile = solvedVariantDir.resolve(candidateSolutionFile.getFileName().toString());
-         Path finalReadableSolutionFile = solvedVariantDir.resolve(candidateReadableSolutionFile.getFileName().toString());
          Files.copy(candidateCardsFile, finalCardsFile, StandardCopyOption.REPLACE_EXISTING);
          Files.copy(candidateSolutionFile, finalSolutionFile, StandardCopyOption.REPLACE_EXISTING);
-         Files.copy(candidateReadableSolutionFile, finalReadableSolutionFile, StandardCopyOption.REPLACE_EXISTING);
          Files.writeString(solvedVariantDir.resolve("chkpt.txt"), Long.toString(seed), StandardCharsets.US_ASCII);
 
          this.deleteIfExists(candidateSolutionFile);
-         this.deleteIfExists(candidateReadableSolutionFile);
          this.deleteIfExists(candidateCardsFile);
-         return ValidationResult.accepted(new ValidatedDeal(seed, outcome.moveCount, finalCardsFile, finalSolutionFile, finalReadableSolutionFile));
+         return ValidationResult.accepted(new ValidatedDeal(seed, outcome.moveCount, finalCardsFile, finalSolutionFile));
       } catch (Throwable throwable) {
          this.deleteIfExists(candidateSolutionFile);
-         this.deleteIfExists(candidateReadableSolutionFile);
          this.deleteIfExists(candidateCardsFile);
          return ValidationResult.rejected(SolverContext.describeThrowable(throwable));
       }
    }
 
-   /**
-    * 开始处理文件
-    * @param cardsFile
-    * @return
-    * @throws IOException
-    */
    private SolveOutcome solve(Path cardsFile) throws IOException {
       SolverContext context = new SolverContext();
-      context.logLevel = 0;
-      // 纸牌类型  spider
+      context.logLevel = 99;
       context.variantId = variantId(this.config.variant);
-      // 要解决题的路径
       context.files = new SolverFileSet(cardsFile);
       context.files.b = 1;
-      context.files.variantSlug = this.config.variant.slug(); //siper
+      context.files.variantSlug = this.config.variant.slug();
       context.initialState = allocateState(context, this.config.variant);
-      context.bestSolutionState = new GameState();  //最佳的状态
-      context.playbackState = new GameState(); //玩的状态
-      // 创建解析器
+      context.bestSolutionState = new GameState();
+      context.playbackState = new GameState();
+
       BaseSolver solver = createSolver(context, this.config.variant);
       solver.C = false;
       context.bridge = new SolverBridge(solver) {
@@ -125,17 +102,12 @@ public final class SolvableDealBatchMain {
       configureReader(context.bridge, this.config.variant);
 
       Path solutionFile = cardsFile.resolveSibling("solution_" + cardsFile.getFileName());
-      Path readableSolutionFile = readableSolutionFileFor(solutionFile);
       Files.deleteIfExists(solutionFile);
-      Files.deleteIfExists(readableSolutionFile);
-      //解题
+
       solver.solve();
-      // 读取步謯文件
+
       int[] moves = readMoves(solutionFile);
-      if (moves.length > 0) {
-         writeReadableSolution(context, moves, readableSolutionFile);
-      }
-      return new SolveOutcome(moves.length > 0, moves.length, solutionFile, readableSolutionFile);
+      return new SolveOutcome(moves.length > 0, moves.length, solutionFile);
    }
 
    private static int variantId(DealVariant variant) {
@@ -245,37 +217,6 @@ public final class SolvableDealBatchMain {
       return values;
    }
 
-   private static Path readableSolutionFileFor(Path solutionFile) {
-      String fileName = solutionFile.getFileName().toString();
-      int dotIndex = fileName.lastIndexOf('.');
-      String readableName = dotIndex >= 0
-              ? fileName.substring(0, dotIndex) + "_readable" + fileName.substring(dotIndex)
-              : fileName + "_readable.txt";
-      return solutionFile.resolveSibling(readableName);
-   }
-
-   private static void writeReadableSolution(SolverContext context, int[] moves, Path readableSolutionFile) throws IOException {
-      String[] lines = Move.a(context.bridge, moves, 0, moves.length, false);
-      StringBuilder builder = new StringBuilder();
-      builder.append("variant=").append(context.files.variantSlug).append(System.lineSeparator());
-      builder.append("moves=").append(moves.length).append(System.lineSeparator());
-      builder.append(System.lineSeparator());
-      for (String line : lines) {
-         if (line != null && !line.isEmpty()) {
-            builder.append(stripRawMoveCode(line)).append(System.lineSeparator());
-         }
-      }
-      Files.writeString(readableSolutionFile, builder.toString(), StandardCharsets.UTF_8);
-   }
-
-   private static String stripRawMoveCode(String line) {
-      int marker = line.lastIndexOf(" [");
-      if (marker < 0 || !line.endsWith("]")) {
-         return line;
-      }
-      return line.substring(0, marker);
-   }
-
    private void writeSummary(Path solvedVariantDir, List<ValidatedDeal> acceptedDeals, int attempts) throws IOException {
       StringBuilder builder = new StringBuilder();
       builder.append("variant=").append(this.config.variant.slug()).append(System.lineSeparator());
@@ -288,11 +229,10 @@ public final class SolvableDealBatchMain {
 
       for (ValidatedDeal deal : acceptedDeals) {
          builder.append("seed=").append(deal.seed)
-                 .append(",moves=").append(deal.moveCount)
-                 .append(",cards=").append(deal.cardsFile.getFileName())
-                 .append(",solution=").append(deal.solutionFile.getFileName())
-                 .append(",readableSolution=").append(deal.readableSolutionFile.getFileName())
-                 .append(System.lineSeparator());
+            .append(",moves=").append(deal.moveCount)
+            .append(",cards=").append(deal.cardsFile.getFileName())
+            .append(",solution=").append(deal.solutionFile.getFileName())
+            .append(System.lineSeparator());
       }
 
       Files.writeString(solvedVariantDir.resolve("summary.txt"), builder.toString(), StandardCharsets.UTF_8);
@@ -316,18 +256,9 @@ public final class SolvableDealBatchMain {
       final int maxAttempts;
       final Path outputRoot;
 
-      /**
-       *
-       * @param variant 游戏类型
-       * @param numberOfColors 花色
-       * @param firstSeed 第一个的种子
-       * @param desiredSolvedDeals 期望解决的个数
-       * @param maxAttempts 尝试的次数
-       * @param outputRoot 输出目录
-       */
-      BatchConfig(DealVariant variant, int numberOfColors, long firstSeed, int desiredSolvedDeals, int maxAttempts, Path outputRoot) {
+      BatchConfig(DealVariant variant, int parameter, long firstSeed, int desiredSolvedDeals, int maxAttempts, Path outputRoot) {
          this.variant = variant;
-         this.parameter = numberOfColors;
+         this.parameter = parameter;
          this.firstSeed = firstSeed;
          this.desiredSolvedDeals = desiredSolvedDeals;
          this.maxAttempts = maxAttempts;
@@ -343,9 +274,9 @@ public final class SolvableDealBatchMain {
             DealVariant.SPIDER,
             1,  //huas
             1L,
-            1,
-            1,
-            Paths.get("batch_output")
+            20,
+            20,
+            Path.of("batch_output")
          );
       }
 
@@ -367,13 +298,11 @@ public final class SolvableDealBatchMain {
       final boolean solved;
       final int moveCount;
       final Path solutionFile;
-      final Path readableSolutionFile;
 
-      SolveOutcome(boolean solved, int moveCount, Path solutionFile, Path readableSolutionFile) {
+      SolveOutcome(boolean solved, int moveCount, Path solutionFile) {
          this.solved = solved;
          this.moveCount = moveCount;
          this.solutionFile = solutionFile;
-         this.readableSolutionFile = readableSolutionFile;
       }
    }
 
@@ -382,14 +311,12 @@ public final class SolvableDealBatchMain {
       final int moveCount;
       final Path cardsFile;
       final Path solutionFile;
-      final Path readableSolutionFile;
 
-      ValidatedDeal(long seed, int moveCount, Path cardsFile, Path solutionFile, Path readableSolutionFile) {
+      ValidatedDeal(long seed, int moveCount, Path cardsFile, Path solutionFile) {
          this.seed = seed;
          this.moveCount = moveCount;
          this.cardsFile = cardsFile;
          this.solutionFile = solutionFile;
-         this.readableSolutionFile = readableSolutionFile;
       }
    }
 

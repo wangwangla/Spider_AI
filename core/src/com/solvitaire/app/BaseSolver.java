@@ -3,7 +3,17 @@
  */
 package com.solvitaire.app;
 
+import com.solvitaire.app.SolverBridge;
+import com.solvitaire.app.Move;
+import com.solvitaire.app.Card;
+import com.solvitaire.app.GameState;
+import com.solvitaire.app.CardRun;
+import com.solvitaire.app.SolverContext;
+import com.solvitaire.app.CardStack;
+import com.solvitaire.app.StackGroup;
+import com.solvitaire.app.UiStub;
 import java.io.File;
+import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryUsage;
 import java.util.Arrays;
@@ -16,10 +26,10 @@ import java.util.stream.LongStream;
  * Renamed from com.solvitaire.app.op
  */
 public abstract class BaseSolver {
-    SolverContext solverContext;
-    private int bucket = 0x100000;
+    SolverContext d;
+    private int a = 0x100000;
     String e;
-    int stackSize;
+    int f;
     int[][] g;
     int[] h;
     int[] i;
@@ -27,14 +37,14 @@ public abstract class BaseSolver {
     double[] k;
     int l;
     int m;
-    int decksOfCards;
+    int n;
     int o;
     int suitCount;
     private long b;
     private long c;
     private int H;
     private String I;
-    transient private boolean state;
+    transient private boolean J;
     private int[] K = null;
     boolean q = false;
     private int[] L = new int[414];
@@ -51,8 +61,8 @@ public abstract class BaseSolver {
     private int statusUpdateCounter = 0;
     int searchCreditLimit;
     int[][] y;
-    Card[] cardArray;
-    int cardIndex;
+    Card[] z;
+    int A;
     private HashMap[] R = new HashMap[10];
     private HashMap[] S = new HashMap[10];
     boolean B = false;
@@ -90,13 +100,15 @@ public abstract class BaseSolver {
 
     abstract int a(CardStack var1);
 
+    abstract int[] d();
+
     abstract boolean a(GameState var1, int var2);
 
-    BaseSolver(SolverContext solverContext, int searchCreditLimit) {
+    BaseSolver(SolverContext om_02, int n2) {
         super();
-        this.solverContext = solverContext;
-        this.solverContext.solver = this;
-        this.searchCreditLimit = searchCreditLimit;
+        this.d = om_02;
+        this.d.solver = this;
+        this.searchCreditLimit = n2;
         Random random = new Random(314159265358979323L);
         LongStream longStream = random.longs(150L, 1L, 1000000000000L);
         this.V = longStream.toArray();
@@ -130,273 +142,320 @@ public abstract class BaseSolver {
         this.P = n3;
     }
 
-    private int getBucket(int n2) {
+    private int l(int n2) {
         if (n2 > 2) {
-            return this.bucket;
+            return this.a;
         }
         if (n2 == 2) {
-            return this.bucket / 2;
+            return this.a / 2;
         }
         if (n2 == 1) {
-            return this.bucket / 8;
+            return this.a / 8;
         }
-        return this.bucket / 64;
+        return this.a / 64;
     }
 
     final void initializeBaseState() {
         this.B = false;
-        this.solverContext.abortAllReads = false;
-        this.solverContext.searchStepCount = 0L;
-        if (this.solverContext.solverMode != 3) {
-            this.solverContext.files.maxMoves = 999;
+        this.d.abortAllReads = false;
+        this.d.searchStepCount = 0L;
+        if (this.d.solverMode != 3) {
+            this.d.files.maxMoves = 999;
         }
-        this.cardArray = new Card[this.o];
+        this.z = new Card[this.o];
         int n2 = 0;
         while (n2 < this.o) {
-            this.cardArray[n2] = new Card(this.solverContext);
+            this.z[n2] = new Card(this.d);
             ++n2;
         }
-        this.cardIndex = 0;
+        this.A = 0;
         this.u = true;
-        this.solverContext.searchCredit = 0;
-        this.solverContext.playbackMoveIndex = 0;
-        if (this.solverContext.logLevel <= 5) {
-            this.solverContext.log("In baseinit, set recursiondepth and playlocation to 0");
+        this.d.searchCredit = 0;
+        this.d.playbackMoveIndex = 0;
+        if (this.d.logLevel <= 5) {
+            this.d.log("In baseinit, set recursiondepth and playlocation to 0");
         }
-        if (this.solverContext.initialState != null) {
-            this.solverContext.initialState.reset();
+        if (this.d.initialState != null) {
+            this.d.initialState.reset();
         }
-        this.solverContext.searchState = null;
+        this.d.searchState = null;
         this.suitCount = 4;
         this.F = 0;
         this.G = 0;
-        this.solverContext.foundCompleteSolution = false;
+        this.d.foundCompleteSolution = false;
         this.E = false;
         this.H = 200;
-        if (this.solverContext.files.maxMoves < 200) {
-            this.H = this.solverContext.files.maxMoves + 2;
+        if (this.d.files.maxMoves < 200) {
+            this.H = this.d.files.maxMoves + 2;
         }
-        switch (this.solverContext.files.b) {
+        switch (this.d.files.b) {
             case 2: {
-                if (this.solverContext.files.e <= 1 || this.f()) break;
-                this.solverContext.fail("Multiple board challenges are not supported<br>for " + this.getSolverName());
+                if (this.d.files.e <= 1 || this.f()) break;
+                this.d.fail("Multiple board challenges are not supported<br>for " + this.getSolverName());
                 return;
             }
             case 3: {
                 BaseSolver op_02 = this;
-                if (op_02.a(op_02.solverContext.initialState, true, 0, 0) >= 0) break;
-                this.solverContext.fail("Clearing a specific number of cards<br> is not supported for " + this.getSolverName());
+                if (op_02.a(op_02.d.initialState, true, 0, 0) >= 0) break;
+                this.d.fail("Clearing a specific number of cards<br> is not supported for " + this.getSolverName());
                 return;
             }
             case 4: {
                 BaseSolver op_03 = this;
-                if (op_03.a(op_03.solverContext.initialState, true, 0, 0) >= 0) break;
-                this.solverContext.fail("Clearing a specific card<br>is not supported for " + this.getSolverName());
+                if (op_03.a(op_03.d.initialState, true, 0, 0) >= 0) break;
+                this.d.fail("Clearing a specific card<br>is not supported for " + this.getSolverName());
                 return;
             }
             case 5: {
                 BaseSolver op_04 = this;
-                if (op_04.equealData(op_04.solverContext.initialState, true) >= 0) break;
-                this.solverContext.fail("Clearing a specific number of stacks<br>is not supported for " + this.getSolverName());
+                if (op_04.b(op_04.d.initialState, true) >= 0) break;
+                this.d.fail("Clearing a specific number of stacks<br>is not supported for " + this.getSolverName());
                 return;
             }
             case 6: {
                 BaseSolver op_05 = this;
-                if (op_05.a(op_05.solverContext.initialState, true) >= 0) break;
-                this.solverContext.fail("Scoring challenges are not supported for " + this.getSolverName());
+                if (op_05.a(op_05.d.initialState, true) >= 0) break;
+                this.d.fail("Scoring challenges are not supported for " + this.getSolverName());
             }
         }
     }
 
     final void solve() {
-
+        Object object;
         block60: {
             this.b = System.currentTimeMillis();
-            if (this.solverContext.solverMode != 4) {
-                BaseSolver baseSolver = this;
-                //堆内存使用情况
+            if (this.d.solverMode != 4) {
+                int n2 = 0;
+                n2 = 5;
+                object = this;
                 MemoryUsage memoryUsage = ManagementFactory.getMemoryMXBean().getHeapMemoryUsage();
-                //最大值 
-                long heapMax = memoryUsage.getMax();
-                //使用值
-                long heapUse = memoryUsage.getUsed();
-                // 最大值 > 8x
-                if (heapMax > 8000000000L) {
-                    baseSolver.bucket = 0x200000;
-                    if (baseSolver.solverContext.logLevel <= 5) {
-                        baseSolver.solverContext.log("Max heap memory: " + heapMax + " used: " + heapUse + " bucket size: " + baseSolver.bucket);
+                long l2 = memoryUsage.getMax();
+                long l3 = memoryUsage.getUsed();
+                if (l2 > 8000000000L) {
+                    ((BaseSolver)object).a = 0x200000;
+                    if (((BaseSolver)object).d.logLevel <= 5) {
+                        ((BaseSolver)object).d.log("Max heap memory: " + l2 + " used: " + l3 + " bucket size: " + ((BaseSolver)object).a);
                     }
-                } else if (heapMax > 4000000000L) {
-                    baseSolver.bucket = 0x180000;
-                    if (baseSolver.solverContext.logLevel <= 5) {
-                        baseSolver.solverContext.log("Max heap memory: " + heapMax + " used: " + heapUse + " bucket size: " + baseSolver.bucket);
+                } else if (l2 > 4000000000L) {
+                    ((BaseSolver)object).a = 0x180000;
+                    if (((BaseSolver)object).d.logLevel <= 5) {
+                        ((BaseSolver)object).d.log("Max heap memory: " + l2 + " used: " + l3 + " bucket size: " + ((BaseSolver)object).a);
                     }
-                } else if (heapMax > 2000000000L) {
-                    baseSolver.bucket = 786432;
-                    if (baseSolver.solverContext.logLevel <= 5) {
-                        baseSolver.solverContext.log("Max heap memory: " + heapMax + " used: " + heapUse + " bucket size: " + baseSolver.bucket);
+                } else if (l2 > 2000000000L) {
+                    ((BaseSolver)object).a = 786432;
+                    if (((BaseSolver)object).d.logLevel <= 5) {
+                        ((BaseSolver)object).d.log("Max heap memory: " + l2 + " used: " + l3 + " bucket size: " + ((BaseSolver)object).a);
                     }
-                } else if (heapMax > 1000000000L) {
-                    baseSolver.bucket = 393216;
-                    if (baseSolver.solverContext.logLevel <= 5) {
-                        baseSolver.solverContext.log("Max heap memory: " + heapMax + " used: " + heapUse + " bucket size: " + baseSolver.bucket);
+                } else if (l2 > 1000000000L) {
+                    ((BaseSolver)object).a = 393216;
+                    if (((BaseSolver)object).d.logLevel <= 5) {
+                        ((BaseSolver)object).d.log("Max heap memory: " + l2 + " used: " + l3 + " bucket size: " + ((BaseSolver)object).a);
                     }
-                } else if (heapMax > 500000000L) {
-                    baseSolver.bucket = 196608;
-                    if (baseSolver.solverContext.logLevel <= 5) {
-                        baseSolver.solverContext.log("Max heap memory: " + heapMax + " used: " + heapUse + " bucket size: " + baseSolver.bucket);
+                } else if (l2 > 500000000L) {
+                    ((BaseSolver)object).a = 196608;
+                    if (((BaseSolver)object).d.logLevel <= 5) {
+                        ((BaseSolver)object).d.log("Max heap memory: " + l2 + " used: " + l3 + " bucket size: " + ((BaseSolver)object).a);
                     }
-                } else if (heapMax > 250000000L) {
-                    baseSolver.bucket = 98304;
-                    if (baseSolver.solverContext.logLevel <= 5) {
-                        baseSolver.solverContext.log("Max heap memory: " + heapMax + " used: " + heapUse + " bucket size: " + baseSolver.bucket);
+                } else if (l2 > 250000000L) {
+                    ((BaseSolver)object).a = 98304;
+                    if (((BaseSolver)object).d.logLevel <= 5) {
+                        ((BaseSolver)object).d.log("Max heap memory: " + l2 + " used: " + l3 + " bucket size: " + ((BaseSolver)object).a);
                     }
                 } else {
-                    baseSolver.solverContext.fail("ERROR<br>System has insufficient available RAM (" + heapMax / 1024000L + " megabytes)<br>Solitaire Solver would run too slowly");
+                    ((BaseSolver)object).d.fail("ERROR<br>System has insufficient available RAM (" + l2 / 1024000L + " megabytes)<br>Solitaire Solver would run too slowly");
                 }
             }
             boolean bl = false;
             if (this.initializeSolver()) {
                 String string = "n/a";
-                if (this.solverContext.fontStats != null && this.solverContext.fontStats.font != null) {
-                    string = this.solverContext.fontStats.font.name;
+                if (this.d.fontStats != null && this.d.fontStats.font != null) {
+                    string = this.d.fontStats.font.name;
                 }
-                if (this.solverContext.logLevel <= 9) {
-                    this.solverContext.log("*** " + this.getSolverName() + " initialisation complete, font " + string +
-                            ", mode " + SolverContext.INPUT_SOURCE_MODE_NAMES[this.solverContext.inputSourceMode] + "," +
-                            SolverContext.SOLVER_MODE_NAMES[this.solverContext.solverMode] + " (Solvitaire version " + "5.1.2" + " on " + new Date() + ")");
+                if (this.d.logLevel <= 9) {
+                    object = this.d;
+                    object = this.d;
+                    this.d.log("*** " + this.getSolverName() + " initialisation complete, font " + string + ", mode " + SolverContext.INPUT_SOURCE_MODE_NAMES[((SolverContext)object).inputSourceMode] + "," + SolverContext.SOLVER_MODE_NAMES[((SolverContext)object).solverMode] + " (Solvitaire version " + "5.1.2" + " on " + new Date() + ")");
                 }
                 this.C = false;
             } else {
-                this.solverContext.log("*** " + this.getSolverName() + " initialisation failed for game mode " + this.solverContext.solverMode);
+                this.d.log("*** " + this.getSolverName() + " initialisation failed for game mode " + this.d.solverMode);
                 this.C = false;
-                if (this.solverContext.aN) {
+                if (this.d.aN) {
                     bl = true;
+                    this.d.a(17, true);
+                    this.d.b(90, 300);
+                    this.d.a(17, false);
                 } else {
                     return;
                 }
             }
             if (bl) break block60;
-            int countIndex = 5;
-            this.solverContext.sleepBriefly(100L, "Prevent tight loop");
-
+            int n3 = 5;
+            UiStub oz_02 = this.d.ui;
+            oz_02.showStatus(n3, null);
+            this.d.sleepBriefly(100L, "Prevent tight loop");
+            this.d.k();
             this.maxSearchDepth = 298;
-            while (this.solverContext.searchCredit > -this.searchCreditLimit) {
+            if (this.d.t && this.d.solverMode != 1 && this.d.solverMode != 4) {
+                this.d.ui.showScreen(3);
+                if (this.d.inputSourceMode == 2) {
+                    this.d.stats.a(SolverContext.VARIANT_NAMES[this.d.variantId], this.d.bg, this.d.bf);
+                    this.d.stats.b();
+                }
+            }
+            while (this.d.searchCredit > -this.searchCreditLimit) {
                 block63: {
                     block62: {
-                        if (this.solverContext.solverMode == 4) {
+                        this.d.h();
+                        this.d.b("processPause", true);
+                        if (this.d.solverMode == 4) {
                             this.B = true;
                             break block62;
                         }
-                        if (this.solverContext.logLevel <= 4) {
-                            this.solverContext.log("In process, entering solve loop");
+                        if (this.d.logLevel <= 4) {
+                            this.d.log("In process, entering solve loop");
                         }
-                        this.solverContext.ai = true;
-                        while (this.solverContext.searchCredit > -this.searchCreditLimit) {
-                            countIndex = 0;
-                            while (countIndex < 10) {
-                                this.R[countIndex] = new HashMap(this.getBucket(countIndex));
-                                this.S[countIndex] = new HashMap(this.getBucket(countIndex));
-                                ++countIndex;
+                        this.d.ai = true;
+                        while (this.d.searchCredit > -this.searchCreditLimit) {
+                            n3 = 0;
+                            while (n3 < 10) {
+                                this.R[n3] = new HashMap(this.l(n3));
+                                this.S[n3] = new HashMap(this.l(n3));
+                                ++n3;
                             }
-                            this.solverContext.complexity = this.solverContext.searchCredit;
+                            this.d.complexity = this.d.searchCredit;
                             this.D = -1;
                             this.deepestRecursionDepth = 0;
                             this.deepestRecursionComplexity = 0;
                             if (this.K != null && this.K[0] > 0) {
                                 this.K[0] = 0;
                             }
-                            this.solverContext.ah = true;
+                            this.d.ah = true;
                             this.search(-1, 0);
-                            this.solverContext.ah = false;
+                            this.d.ah = false;
                             if (this.B || this.D > 0) break;
-                            if (this.solverContext.logLevel <= 4) {
-                                this.solverContext.log("*** Deepest recursion for credit " + this.solverContext.searchCredit + " was " + this.deepestRecursionDepth + " with complexity " + this.deepestRecursionComplexity);
+                            if (this.d.logLevel <= 4) {
+                                this.d.log("*** Deepest recursion for credit " + this.d.searchCredit + " was " + this.deepestRecursionDepth + " with complexity " + this.deepestRecursionComplexity);
                             }
-                            this.solverContext.searchCredit -= 30;
+                            this.d.searchCredit -= 30;
                         }
                         if (this.B || this.D > 0) break block63;
-                        if (this.solverContext.logLevel <= 5) {
-                            this.solverContext.log("Credit expired and solve not flagged, do final check");
+                        if (this.d.logLevel <= 5) {
+                            this.d.log("Credit expired and solve not flagged, do final check");
                         }
-                        this.B = this.a(this.solverContext.searchState, 0, true) == 2;
+                        this.B = this.a(this.d.searchState, 0, true) == 2;
                     }
                 }
-                countIndex = 0;
-                while (countIndex < 10) {
-                    this.R[countIndex] = null;
-                    this.S[countIndex] = null;
-                    ++countIndex;
+                n3 = 0;
+                while (n3 < 10) {
+                    this.R[n3] = null;
+                    this.S[n3] = null;
+                    ++n3;
                 }
                 System.gc();
                 if (this.B) {
-                    countIndex = 1;
-                    if (countIndex == 0) {
-
-                        this.solverContext.searchCredit = 0;
+                    n3 = 1;
+                    if (this.d.t && !this.d.stats.keepCurrentStats && this.d.inputSourceMode == 2 && !this.d.ad) {
+                        n3 = this.d.ui.confirm("Statistics", "<html>I have found a solution.  Do you want to see it?<br>The statistics for this game will be discarded if you do.<br>OK?</html>") ? 1 : 0;
+                    }
+                    if (n3 == 0) {
+                        this.d.ui.showScreen(15);
+                        this.d.b(8);
+                        this.d.searchCredit = 0;
                         this.B = false;
                         continue;
                     }
-                    if (this.solverContext.logLevel <= 5) {
-                        this.solverContext.log("Play solution");
+                    this.d.stats.keepCurrentStats = true;
+                    if (this.d.logLevel <= 5) {
+                        this.d.log("Play solution");
                     }
-                    this.solverContext.initialState.moveAnnotations = Arrays.copyOf(this.solverContext.bestSolutionState.moveAnnotations, this.solverContext.bestSolutionState.moveAnnotations.length);
-                    this.solverContext.bridge.a(this.solverContext.bestSolutionState, null, true, true, false);
-                    if (!this.solverContext.Y) {
-                        if (this.solverContext.logLevel > 5) break;
-                        this.solverContext.log("Solved so exit process loop");
+                    this.d.initialState.moveAnnotations = Arrays.copyOf(this.d.bestSolutionState.moveAnnotations, this.d.bestSolutionState.moveAnnotations.length);
+                    this.d.bridge.a(this.d.bestSolutionState, null, true, true, false);
+                    if (!this.d.Y) {
+                        if (this.d.logLevel > 5) break;
+                        this.d.log("Solved so exit process loop");
                         break;
                     }
-                    if (this.solverContext.logLevel <= 5) {
-                        this.solverContext.log("Playback aborted, stay in play loop");
+                    if (this.d.logLevel <= 5) {
+                        this.d.log("Playback aborted, stay in play loop");
                     }
-                    this.solverContext.Y = false;
-                    this.solverContext.searchCredit = 0;
+                    this.d.Y = false;
+                    this.d.ui.showScreen(15);
+                    this.d.b(8);
+                    this.d.searchCredit = 0;
                     continue;
                 }
-                if (!this.solverContext.t) continue;
-                if (this.solverContext.logLevel <= 5) {
-                    this.solverContext.log("Exited solve loop without solution");
+                if (!this.d.t) continue;
+                if (this.d.logLevel <= 5) {
+                    this.d.log("Exited solve loop without solution");
                 }
                 if (this.D > 0) {
-                    this.solverContext.log("The user aborted the solve so go back to user moves");
+                    this.d.log("The user aborted the solve so go back to user moves");
                     this.D = -1;
-                    this.solverContext.searchCredit = 0;
+                    this.d.ui.showScreen(15);
+                    this.d.b(8);
+                    this.d.searchCredit = 0;
                     continue;
                 }
-                if (this.solverContext.searchState.depth > 0) {
-                    this.solverContext.searchCredit = 0;
+                if (this.d.searchState.depth > 0) {
+                    this.d.ui.showScreen(16);
+                    this.d.searchCredit = 0;
                     continue;
                 }
+                this.d.ui.showScreen(17);
+                this.d.updateStatus("failedSolve");
             }
-            if (!this.solverContext.t) {
-                if (this.solverContext.solverMode == 0 || this.solverContext.ad && (this.solverContext.solverMode == 4 || this.solverContext.solverMode == 3)) {
-                    if (!this.B && this.solverContext.solverMode == 0) {
-                        this.equealData(true);
-                        if (!this.solverContext.az) {
-                            this.solverContext.fail("Insoluble game. (See option to skip)");
+            if (!this.d.t) {
+                if (this.d.solverMode == 0 || this.d.ad && (this.d.solverMode == 4 || this.d.solverMode == 3)) {
+                    if (!this.B && this.d.solverMode == 0) {
+                        this.b(true);
+                        if (!this.d.az) {
+                            this.d.fail("Insoluble game. (See option to skip)");
+                        } else {
+                            this.d.table.p();
                         }
                     }
-                    if (this.solverContext.logLevel <= 5) {
-                        this.solverContext.log("***About to skip dialogs (and ads:" + (this.solverContext.solverMode == 0) + ")");
+                    if (this.d.logLevel <= 5) {
+                        this.d.log("***About to skip dialogs (and ads:" + (this.d.solverMode == 0) + ")");
                     }
-                    if (this.solverContext.logLevel <= 5) {
-                        this.solverContext.log("***Skipped dialogs, and ads");
+                    this.d.table.a(this.d.solverMode == 0, false);
+                    this.d.ui.dialog.reset();
+                    if (this.d.logLevel <= 5) {
+                        this.d.log("***Skipped dialogs, and ads");
                     }
                 }
+            } else if (this.B) {
+                this.d.n();
             }
         }
-        this.solverContext.bestSolutionState.reset();
-        if (this.solverContext.logLevel <= 6) {
-            this.solverContext.log("*** Exit from process ***");
+        if (this.d.aN && !this.d.t) {
+            this.d.b(118, 500);
+            this.d.a(16, true);
+            this.d.b(9, 300);
+            this.d.b(9, 300);
+            int n4 = 0;
+            while (n4 < this.d.aO % 15) {
+                int n5 = 39;
+                object = this.d;
+                ((SolverContext)object).b(39, 120);
+                ++n4;
+            }
+            ++this.d.aO;
+            this.d.b(32, 400);
+            this.d.b(8, 700);
+            this.d.a(16, false);
+        }
+        this.d.bestSolutionState.reset();
+        if (this.d.logLevel <= 6) {
+            this.d.log("*** Exit from process ***");
         }
     }
 
     private boolean n() {
-        if (this.solverContext.searchState.depth > 3 && this.solverContext.searchState.depth == this.K[0] + 1) {
-            int n2 = this.solverContext.searchState.depth - 4;
-            while (n2 < this.solverContext.searchState.depth && n2 < this.K.length - 1) {
-                if (!Move.a(Move.b(this.K[n2 + 1]), this.solverContext.searchState.moves[n2])) {
+        if (this.d.searchState.depth > 3 && this.d.searchState.depth == this.K[0] + 1) {
+            int n2 = this.d.searchState.depth - 4;
+            while (n2 < this.d.searchState.depth && n2 < this.K.length - 1) {
+                if (!Move.a(Move.b(this.K[n2 + 1]), this.d.searchState.moves[n2])) {
                     return false;
                 }
                 ++n2;
@@ -408,53 +467,53 @@ public abstract class BaseSolver {
 
     private boolean o() {
         if (this.K[0] == -2) {
-            if (this.solverContext.searchState.depth <= this.K[1]) {
+            if (this.d.searchState.depth <= this.K[1]) {
                 return false;
             }
-            this.K[1] = this.solverContext.searchState.depth;
-            this.solverContext.log("Found longer solution");
-            this.equealData(9);
+            this.K[1] = this.d.searchState.depth;
+            this.d.log("Found longer solution");
+            this.b(9);
             this.dumpState(9, false);
-            if (this.solverContext.t) {
-                this.solverContext.bridge.a(this.solverContext.searchState, null, false, false, false);
+            if (this.d.t) {
+                this.d.bridge.a(this.d.searchState, null, false, false, false);
             }
         } else if (this.K[0] == -1) {
-            if (this.solverContext.searchState.depth < this.K.length - 1) {
+            if (this.d.searchState.depth < this.K.length - 1) {
                 return false;
             }
             int n2 = 1;
             while (n2 < this.K.length) {
-                if (!Move.a(Move.b(this.K[n2]), this.solverContext.searchState.moves[this.solverContext.searchState.depth - this.K.length + n2])) break;
+                if (!Move.a(Move.b(this.K[n2]), this.d.searchState.moves[this.d.searchState.depth - this.K.length + n2])) break;
                 ++n2;
             }
             if (n2 == this.K.length) {
-                this.equealData(9);
-                this.solverContext.log("Found segment");
+                this.b(9);
+                this.d.log("Found segment");
             }
         } else {
             int n3 = 0;
-            while (n3 < this.solverContext.searchState.depth && n3 < this.K.length - 1) {
-                if (!Move.a(Move.b(this.K[n3 + 1]), this.solverContext.searchState.moves[n3])) break;
+            while (n3 < this.d.searchState.depth && n3 < this.K.length - 1) {
+                if (!Move.a(Move.b(this.K[n3 + 1]), this.d.searchState.moves[n3])) break;
                 ++n3;
             }
             if (n3 >= this.K[0]) {
                 if (n3 > this.K[0]) {
                     BaseSolver op_02 = this;
-                    this.solverContext.log("Approaching solution to " + n3 + " of " + (this.K.length - 1) + " dealindex " + this.solverContext.searchState.dealIndex + " score " + op_02.a(op_02.solverContext.searchState, false));
+                    this.d.log("Approaching solution to " + n3 + " of " + (this.K.length - 1) + " dealindex " + this.d.searchState.dealIndex + " score " + op_02.a(op_02.d.searchState, false));
                     this.dumpState(5, false);
-                    if (this.solverContext.logLevel <= 5) {
-                        this.solverContext.log("State hash " + this.computeStateHash());
+                    if (this.d.logLevel <= 5) {
+                        this.d.log("State hash " + this.computeStateHash());
                     }
-                    this.equealData(9);
+                    this.b(9);
                     this.K[0] = n3;
                 }
-                if (n3 == this.K.length - 1 && n3 == this.solverContext.searchState.depth) {
-                    this.solverContext.log("Hit end of known solution");
+                if (n3 == this.K.length - 1 && n3 == this.d.searchState.depth) {
+                    this.d.log("Hit end of known solution");
                     return true;
                 }
             } else if (n3 < this.K[0] && this.K[0] < 1000) {
-                this.equealData(9);
-                this.solverContext.log("@@@ Backing out of solution");
+                this.b(9);
+                this.d.log("@@@ Backing out of solution");
                 this.K[0] = this.K[0] + 1000;
             }
         }
@@ -494,7 +553,7 @@ public abstract class BaseSolver {
 
     final long a(int n2, int n3, long l2, boolean bl) {
         if (n2 <= 0) {
-            this.solverContext.fail("Logic error: trying to hash invalid card");
+            this.d.fail("Logic error: trying to hash invalid card");
         }
         l2 = (long)this.L[n2] * (this.V[this.m] + (l2 & Integer.MAX_VALUE)) * (long)(n3 + 1);
         if (bl) {
@@ -506,7 +565,7 @@ public abstract class BaseSolver {
 
     private long a(int n2, long l2, boolean bl) {
         if (n2 <= 0) {
-            this.solverContext.fail("Logic error: trying to hash invalid card");
+            this.d.fail("Logic error: trying to hash invalid card");
         }
         l2 = (long)this.L[n2] * (this.W[this.m] + (l2 & Integer.MAX_VALUE));
         if (bl) {
@@ -516,12 +575,12 @@ public abstract class BaseSolver {
         return l2;
     }
 
-    final void equealData(int n2) {
-        this.a(n2, this.solverContext.searchState, "Work moves");
+    final void b(int n2) {
+        this.a(n2, this.d.searchState, "Work moves");
     }
 
     final void a(int n2, GameState nY2, String string) {
-        if (n2 >= this.solverContext.logLevel) {
+        if (n2 >= this.d.logLevel) {
             StringBuffer stringBuffer = this.createStateHeader(string, nY2.depth);
             int n3 = 0;
             while (n3 < nY2.depth) {
@@ -529,12 +588,12 @@ public abstract class BaseSolver {
                 stringBuffer.append(",");
                 ++n3;
             }
-            this.solverContext.log(stringBuffer.toString());
+            this.d.log(stringBuffer.toString());
         }
     }
 
     final void a(int n2, StackGroup ot_02) {
-        if (n2 < this.solverContext.logLevel) {
+        if (n2 < this.d.logLevel) {
             return;
         }
         n2 = 0;
@@ -553,7 +612,7 @@ public abstract class BaseSolver {
                 }
                 stringBuffer.append(" ");
             }
-            this.solverContext.log(stringBuffer.toString());
+            this.d.log(stringBuffer.toString());
             ++n2;
         }
     }
@@ -562,67 +621,79 @@ public abstract class BaseSolver {
         Object object;
         int n2;
         boolean bl = true;
-        if (this.solverContext.logLevel <= 5) {
-            this.solverContext.log("Into loadCheckpoint for game mode " + this.solverContext.solverMode);
+        if (this.d.logLevel <= 5) {
+            this.d.log("Into loadCheckpoint for game mode " + this.d.solverMode);
         }
-        if (this.solverContext.solverMode == 0 || this.solverContext.solverMode == 1 || this.solverContext.solverMode == 6) {
-            if (this.solverContext.solverMode == 0) {
-                this.solverContext.files.setOutputDirectory(this.e, false);
+        if (this.d.solverMode == 0 || this.d.solverMode == 1 || this.d.solverMode == 6) {
+            if (this.d.solverMode == 0) {
+                this.d.files.setOutputDirectory(this.e, false);
             }
-            n2 = this.solverContext.files.getEndFileIndex();
-            if (this.solverContext.solverMode == 1) {
-                int n3 = this.solverContext.files.getCurrentFileIndex(false);
-                if (this.solverContext.logLevel <= 4) {
-                    this.solverContext.log("All cards request, next checkpoint " + n3 + " endFile " + n2);
+            n2 = this.d.files.getEndFileIndex();
+            if (this.d.solverMode == 1) {
+                int n3 = this.d.files.getCurrentFileIndex(false);
+                if (this.d.logLevel <= 4) {
+                    this.d.log("All cards request, next checkpoint " + n3 + " endFile " + n2);
                 }
                 if (n3 >= n2) {
-                    if (this.solverContext.bk > 0) {
-                        this.solverContext.writeTextFile(String.valueOf(this.solverContext.files.outputDirectory) + "difflog.txt", this.I, true);
+                    this.d.ui.showScreen(18);
+                    if (this.d.bk > 0) {
+                        this.d.writeTextFile(String.valueOf(this.d.files.outputDirectory) + "difflog.txt", this.I, true);
                     }
+                    this.d.b(14);
+                    this.d.updateStatus("Run complete");
                 } else {
                     if (n3 == 0) {
                         this.I = "";
                     }
                     String string = null;
-                    while (this.solverContext.files.getCurrentFileIndex(false) <= n2) {
-                        string = this.solverContext.files.getInputFileName();
-                        if (this.solverContext.logLevel <= 4) {
-                            this.solverContext.log("Testing for card file " + string);
+                    while (this.d.files.getCurrentFileIndex(false) <= n2) {
+                        string = this.d.files.getInputFileName();
+                        if (this.d.logLevel <= 4) {
+                            this.d.log("Testing for card file " + string);
                         }
-                        object = new File(String.valueOf(this.solverContext.files.outputDirectory) + string);
-                        if (this.solverContext.solverMode != 1 || ((File)object).exists()) break;
-
+                        object = new File(String.valueOf(this.d.files.outputDirectory) + string);
+                        if (this.d.solverMode != 1 || ((File)object).exists()) break;
+                        this.d.files.setCurrentFileIndex(this.d.files.getCurrentFileIndex(false) + 1, true);
                     }
-                    if (this.solverContext.logLevel <= 9) {
-                        this.solverContext.log("***Loading history file " + string);
+                    if (this.d.files.getCurrentFileIndex(false) > n2) {
+                        this.d.ui.showScreen(18);
+                        this.d.b(14);
+                        this.d.updateStatus("Run complete");
+                    }
+                    this.d.ui.statusLabel.setText("File: " + string);
+                    this.d.board.repaintBoard();
+                    this.d.ui.repaintSurface.repaint();
+                    if (this.d.logLevel <= 9) {
+                        this.d.log("***Loading history file " + string);
                     }
                 }
             } else {
+                this.d.files.setEndFileIndex(n2 + 1);
                 bl = false;
             }
-        } else if (this.solverContext.solverMode == 3) {
-            if (this.solverContext.t) {
+        } else if (this.d.solverMode == 3) {
+            if (this.d.t) {
                 bl = true;
-                if (this.solverContext.logLevel <= 5) {
-                    this.solverContext.log("Capture request in standalone mode so set readcards to true");
+                if (this.d.logLevel <= 5) {
+                    this.d.log("Capture request in standalone mode so set readcards to true");
                 }
             } else {
-                if (this.solverContext.logLevel <= 5) {
-                    this.solverContext.log("Regular capture so cards come from the screen, readCards=false");
+                if (this.d.logLevel <= 5) {
+                    this.d.log("Regular capture so cards come from the screen, readCards=false");
                 }
                 bl = false;
             }
-        } else if (this.solverContext.solverMode == 4) {
-            String string = this.solverContext.files.getPlaybackFileName();
+        } else if (this.d.solverMode == 4) {
+            String string = this.d.files.getPlaybackFileName();
             if (string == null) {
-                this.solverContext.fail("No solution exists for " + this.solverContext.files.getInputFileName());
+                this.d.fail("No solution exists for " + this.d.files.getInputFileName());
             }
-            String string2 = this.solverContext.readTextFile(String.valueOf(this.solverContext.files.outputDirectory) + string);
-            if (this.solverContext.logLevel <= 5) {
-                this.solverContext.log("Playback mode so reading file " + string + " gave solution:" + string2);
+            String string2 = this.d.readTextFile(String.valueOf(this.d.files.outputDirectory) + string);
+            if (this.d.logLevel <= 5) {
+                this.d.log("Playback mode so reading file " + string + " gave solution:" + string2);
             }
             String[] stringArray3 = string2.split(",");
-            this.solverContext.bestSolutionState.reset();
+            this.d.bestSolutionState.reset();
             n2 = 0;
             while (n2 < stringArray3.length) {
                 int n4;
@@ -631,41 +702,41 @@ public abstract class BaseSolver {
                 if (stringArray3[n2].contains(":")) {
                     String[] stringArray = stringArray3[n2].split(":");
                     stringArray3[n2] = stringArray[0];
-                    this.solverContext.bestSolutionState.moveAnnotations[n2] = Integer.parseInt(stringArray[1].trim()) * 10000;
+                    this.d.bestSolutionState.moveAnnotations[n2] = Integer.parseInt(stringArray[1].trim()) * 10000;
                     boolean bl2 = false;
-                    if (this.solverContext.bestSolutionState.moveAnnotations[n2] < 0) {
+                    if (this.d.bestSolutionState.moveAnnotations[n2] < 0) {
                         bl2 = true;
-                        this.solverContext.bestSolutionState.moveAnnotations[n2] = -this.solverContext.bestSolutionState.moveAnnotations[n2];
+                        this.d.bestSolutionState.moveAnnotations[n2] = -this.d.bestSolutionState.moveAnnotations[n2];
                     }
                     if (stringArray.length > 2) {
                         int n5 = n2;
-                        this.solverContext.bestSolutionState.moveAnnotations[n5] = this.solverContext.bestSolutionState.moveAnnotations[n5] + Integer.parseInt(stringArray[2].trim()) * 100;
+                        this.d.bestSolutionState.moveAnnotations[n5] = this.d.bestSolutionState.moveAnnotations[n5] + Integer.parseInt(stringArray[2].trim()) * 100;
                         if (stringArray.length > 3) {
                             int n6 = n2;
-                            this.solverContext.bestSolutionState.moveAnnotations[n6] = this.solverContext.bestSolutionState.moveAnnotations[n6] + Integer.parseInt(stringArray[3].trim());
+                            this.d.bestSolutionState.moveAnnotations[n6] = this.d.bestSolutionState.moveAnnotations[n6] + Integer.parseInt(stringArray[3].trim());
                         } else {
                             int n7 = n2;
-                            this.solverContext.bestSolutionState.moveAnnotations[n7] = this.solverContext.bestSolutionState.moveAnnotations[n7] + 99;
+                            this.d.bestSolutionState.moveAnnotations[n7] = this.d.bestSolutionState.moveAnnotations[n7] + 99;
                         }
                     } else {
                         int n8 = n2;
-                        this.solverContext.bestSolutionState.moveAnnotations[n8] = this.solverContext.bestSolutionState.moveAnnotations[n8] + 9999;
+                        this.d.bestSolutionState.moveAnnotations[n8] = this.d.bestSolutionState.moveAnnotations[n8] + 9999;
                     }
                     if (bl2) {
-                        this.solverContext.bestSolutionState.moveAnnotations[n2] = -this.solverContext.bestSolutionState.moveAnnotations[n2];
+                        this.d.bestSolutionState.moveAnnotations[n2] = -this.d.bestSolutionState.moveAnnotations[n2];
                     }
                 } else {
-                    this.solverContext.bestSolutionState.moveAnnotations[n2] = 0;
+                    this.d.bestSolutionState.moveAnnotations[n2] = 0;
                 }
                 int n9 = Integer.parseInt(stringArray3[n2]);
-                this.solverContext.bestSolutionState.moves[n2] = n4 = Move.b(n9);
-                this.solverContext.bestSolutionState.depth = n2 + 1;
+                this.d.bestSolutionState.moves[n2] = n4 = Move.b(n9);
+                this.d.bestSolutionState.depth = n2 + 1;
                 ++n2;
             }
             this.B = true;
         }
         if (bl) {
-            String[] stringArray = this.solverContext.readAllLines(String.valueOf(this.solverContext.files.outputDirectory) + this.solverContext.files.getInputFileName());
+            String[] stringArray = this.d.readAllLines(String.valueOf(this.d.files.outputDirectory) + this.d.files.getInputFileName());
             if (stringArray == null) {
                 return false;
             }
@@ -677,15 +748,18 @@ public abstract class BaseSolver {
                 ++n2;
             }
             if (n2 < 6) {
-                this.solverContext.fail("Input file has too few lines");
+                this.d.fail("Input file has too few lines");
             } else if (!this.loadStateFromLines((String)object, stringArray, n2)) {
                 return false;
+            }
+            if (this.d.t && this.d.board != null && this.d.board.repaintStub != null) {
+                this.d.board.repaintStub.repaint();
             }
         }
         return true;
     }
 
-    private void equealData(GameState nY2) {
+    private void b(GameState nY2) {
         StringBuffer stringBuffer = new StringBuffer();
         int n2 = 0;
         while (n2 < nY2.depth) {
@@ -693,8 +767,8 @@ public abstract class BaseSolver {
             stringBuffer.append(",");
             ++n2;
         }
-        if (this.solverContext.files != null) {
-            this.solverContext.writeTextFile(String.valueOf(this.solverContext.files.outputDirectory) + this.solverContext.files.getSolutionFileName(), stringBuffer.toString(), true);
+        if (this.d.files != null) {
+            this.d.writeTextFile(String.valueOf(this.d.files.outputDirectory) + this.d.files.getSolutionFileName(), stringBuffer.toString(), true);
         }
     }
 
@@ -702,27 +776,27 @@ public abstract class BaseSolver {
         StringBuffer stringBuffer = new StringBuffer();
         this.appendBoardState(stringBuffer);
         SolverContext.ensureDirectory(string);
-        this.solverContext.writeTextFile(String.valueOf(string) + this.solverContext.files.getInputFileName(), stringBuffer.toString(), true);
+        this.d.writeTextFile(String.valueOf(string) + this.d.files.getInputFileName(), stringBuffer.toString(), true);
     }
 
-    final String equealData(boolean bl) {
+    final String b(boolean bl) {
         String string;
         if (bl) {
-            string = String.valueOf(this.solverContext.files.outputDirectory) + "debug" + File.separator;
+            string = String.valueOf(this.d.files.outputDirectory) + "debug" + File.separator;
             this.a(string);
         } else {
-            if (this.solverContext.bestSolutionState.depth == 0) {
-                this.solverContext.log("No best moves available so just writing current working moves");
+            if (this.d.bestSolutionState.depth == 0) {
+                this.d.log("No best moves available so just writing current working moves");
                 BaseSolver op_02 = this;
-                op_02.equealData(op_02.solverContext.searchState);
+                op_02.b(op_02.d.searchState);
             } else {
                 BaseSolver op_03 = this;
-                op_03.equealData(op_03.solverContext.bestSolutionState);
+                op_03.b(op_03.d.bestSolutionState);
             }
-            string = this.solverContext.files.outputDirectory;
-            if (!this.solverContext.t && this.solverContext.solverMode != 4) {
+            string = this.d.files.outputDirectory;
+            if (!this.d.t && this.d.solverMode != 4) {
                 BaseSolver op_04 = this;
-                op_04.a(op_04.solverContext.files.outputDirectory);
+                op_04.a(op_04.d.files.outputDirectory);
             }
         }
         return string;
@@ -863,7 +937,7 @@ public abstract class BaseSolver {
         return String.valueOf(BaseSolver.g(n2 % 100)) + BaseSolver.m(n2 / 100);
     }
 
-    static String equealData(Card nT2) {
+    static String b(Card nT2) {
         return String.valueOf(BaseSolver.g(nT2.rank)) + BaseSolver.m(nT2.suit);
     }
 
@@ -872,7 +946,7 @@ public abstract class BaseSolver {
         Integer n4;
         Integer n5 = n2;
         if (n2 == -1) {
-            this.solverContext.fail("ERROR - Card could not be identified");
+            this.d.fail("ERROR - Card could not be identified");
         }
         if ((n4 = (Integer)hashMap.get(n5)) == null) {
             n3 = 1;
@@ -899,16 +973,17 @@ public abstract class BaseSolver {
                 int n9 = 0;
                 while (n9 < ok_02.cardCount) {
                     if (ok_02.cards[n9].cardId != 0) {
-                        if (this.solverContext.logLevel <= 0) {
-                            this.solverContext.log("Testing stack " + os_02.stackIndex + " run " + n7 + " entry " + n9 + " card " + ok_02.cards[n9]);
+                        if (this.d.logLevel <= 0) {
+                            this.d.log("Testing stack " + os_02.stackIndex + " run " + n7 + " entry " + n9 + " card " + ok_02.cards[n9]);
                         }
                         ++n7;
                         int n10 = this.a(hashMap, ok_02.cards[n9].cardId);
                         if (n10 > n6) {
+                            this.d.fontStats.reset();
                             Card nT2 = ok_02.cards[n9];
                             Card nT3 = nT2;
                             nT3 = ok_02.cards[n9];
-                            this.solverContext.fail("ERROR - Too many " + BaseSolver.f(nT2.cardId) + " of " + BaseSolver.d(nT3.cardId) + "s in the deck");
+                            this.d.fail("ERROR - Too many " + BaseSolver.f(nT2.cardId) + " of " + BaseSolver.d(nT3.cardId) + "s in the deck");
                         }
                         ++n8;
                     }
@@ -918,8 +993,8 @@ public abstract class BaseSolver {
             n3 += n8;
             ++n5;
         }
-        if (this.solverContext.logLevel <= 3) {
-            this.solverContext.log("Numcards after stack " + ot_02.name + " is " + n3);
+        if (this.d.logLevel <= 3) {
+            this.d.log("Numcards after stack " + ot_02.name + " is " + n3);
         }
         return n3;
     }
@@ -928,82 +1003,91 @@ public abstract class BaseSolver {
         if (os_02.topRun != null && os_02.topRun.cardCount == 1 && os_02.topRun.cards[0].cardId == 0) {
             BaseSolver op_02 = this;
             int n3 = n2;
-            GameState nY2 = op_02.solverContext.searchState;
+            GameState nY2 = op_02.d.searchState;
             BaseSolver op_03 = op_02;
             if (op_02.a(nY2, n3, false) != 0) {
-                if (this.solverContext.logLevel <= 4) {
-                    this.solverContext.log("Exposing a card would give a solution, so do not read");
+                if (this.d.logLevel <= 4) {
+                    this.d.log("Exposing a card would give a solution, so do not read");
                 }
                 return true;
             }
-            if (this.solverContext.abortAllReads) {
-                if (this.solverContext.logLevel <= 5) {
-                    this.solverContext.log("Abort all reads so returning");
+            if (this.d.abortAllReads) {
+                if (this.d.logLevel <= 5) {
+                    this.d.log("Abort all reads so returning");
                 }
                 return false;
             }
             int n4 = this.e(os_02);
-            if (this.solverContext.logLevel <= 5) {
-                this.solverContext.log("Read card on stack " + os_02.stackIndex + " value " + n4);
+            if (this.d.logLevel <= 5) {
+                this.d.log("Read card on stack " + os_02.stackIndex + " value " + n4);
             }
             if (!this.B) {
                 if (n4 <= 0) {
-                    if (this.solverContext.S) {
-                        this.solverContext.log("Card read failed due to nomore dialog or user abort, skip read");
-                        this.solverContext.S = false;
+                    if (this.d.S) {
+                        this.d.log("Card read failed due to nomore dialog or user abort, skip read");
+                        this.d.S = false;
                         return false;
                     }
-                    this.solverContext.fail("ERROR - failed to read unknown card on stack " + os_02.stackIndex);
+                    this.d.fail("ERROR - failed to read unknown card on stack " + os_02.stackIndex);
                 } else {
-                    if (this.solverContext.logLevel <= 4) {
-                        this.solverContext.log("Read unknown card " + n4);
+                    if (this.d.logLevel <= 4) {
+                        this.d.log("Read unknown card " + n4);
                     }
                     os_02.topRun.a(n4);
-
-                    this.solverContext.solver.a(os_02);
+                    if (!this.d.t) {
+                        this.d.bridge.a(os_02, this.d.V);
+                    }
+                    this.d.solver.a(os_02);
                 }
+                int n5 = 5;
+                UiStub oz_02 = this.d.ui;
+                oz_02.showStatus(n5, null);
             }
-            this.solverContext.S = false;
+            this.d.S = false;
         }
         return true;
     }
 
     final int e(CardStack os_02) {
-        this.solverContext.bridge.readHighlightColumnIndex = os_02.stackIndex % 10;
+        this.d.bridge.readHighlightColumnIndex = os_02.stackIndex % 10;
         if ((os_02.group.flags & 2) != 0) {
-            this.solverContext.bridge.readHighlightRowIndex = os_02.group.groupIndex;
-            if (this.solverContext.logLevel <= 4) {
-                this.solverContext.log("Horizontal stack " + os_02.stackIndex + " so playrow is " + this.solverContext.bridge.readHighlightRowIndex);
+            this.d.bridge.readHighlightRowIndex = os_02.group.groupIndex;
+            if (this.d.logLevel <= 4) {
+                this.d.log("Horizontal stack " + os_02.stackIndex + " so playrow is " + this.d.bridge.readHighlightRowIndex);
             }
         } else {
-            this.solverContext.bridge.readHighlightRowIndex = os_02.runs.size() - 1;
-            if (this.solverContext.logLevel <= 4) {
-                this.solverContext.log("Vertical stack " + os_02.stackIndex + " so playrow is " + this.solverContext.bridge.readHighlightRowIndex);
+            this.d.bridge.readHighlightRowIndex = os_02.runs.size() - 1;
+            if (this.d.logLevel <= 4) {
+                this.d.log("Vertical stack " + os_02.stackIndex + " so playrow is " + this.d.bridge.readHighlightRowIndex);
             }
         }
+        int n2 = 4;
+        Object object = this.d.ui;
+        ((UiStub)object).showStatus(n2, null);
         BaseSolver op_02 = this;
-        int n3 = this.solverContext.searchState.moves[this.solverContext.searchState.depth];
-        GameState nY2 = op_02.solverContext.searchState;
+        int n3 = this.d.searchState.moves[this.d.searchState.depth];
+        GameState nY2 = op_02.d.searchState;
+        object = op_02;
         if (op_02.a(nY2, n3, false) != 0) {
             return -1;
         }
-        this.state = true;
-        int n4 = this.solverContext.bridge.a(this.solverContext.searchState, os_02, false, true, false);
-        this.state = false;
+        this.J = true;
+        int n4 = this.d.bridge.a(this.d.searchState, os_02, false, true, false);
+        this.J = false;
         if (this.B) {
-            this.solverContext.log("Solved while reading a card, so return without the card");
+            this.d.log("Solved while reading a card, so return without the card");
             return -1;
         }
-        if (this.solverContext.logLevel <= 5) {
-            this.solverContext.log("***Completed read of unknown card " + n4 + " on row " + this.solverContext.bridge.readHighlightRowIndex + " stack " + os_02.stackIndex);
+        if (this.d.logLevel <= 5) {
+            this.d.log("***Completed read of unknown card " + n4 + " on row " + this.d.bridge.readHighlightRowIndex + " stack " + os_02.stackIndex);
         }
-        this.equealData(4);
-        if (this.solverContext.S) {
-            if (this.solverContext.logLevel <= 5) {
-                this.solverContext.log("Abort of read card is flagged");
+        this.b(4);
+        if (this.d.S) {
+            if (this.d.logLevel <= 5) {
+                this.d.log("Abort of read card is flagged");
             }
         } else if (n4 == -1) {
-            this.solverContext.fail("Unexpected failure to read a card<br>Did a dialog pop up?<br>Did you set the challenge objective right?");
+            this.d.fail("Unexpected failure to read a card<br>Did a dialog pop up?<br>Did you set the challenge objective right?");
         }
         return n4;
     }
@@ -1016,9 +1100,9 @@ public abstract class BaseSolver {
         int n4 = n3;
         BaseSolver op_02 = this;
         n4 = op_02.a(n4, 0, 0, 0.0);
-        if ((n4 = op_02.solverContext.complexity + n4) <= 0) {
-            int n5 = op_02.solverContext.complexity;
-            op_02.solverContext.complexity = n4;
+        if ((n4 = op_02.d.complexity + n4) <= 0) {
+            int n5 = op_02.d.complexity;
+            op_02.d.complexity = n4;
             return n5;
         }
         return 999999;
@@ -1028,14 +1112,14 @@ public abstract class BaseSolver {
         n4 = (int)((double)n2 + d2 * (double)n4);
         if (d2 > 0.0) {
             if (n2 > n3) {
-                this.solverContext.fail("Incrementing by " + d2 + " but complexity base " + n2 + " greater than cap " + n3);
+                this.d.fail("Incrementing by " + d2 + " but complexity base " + n2 + " greater than cap " + n3);
             }
             if (n4 > n3) {
                 n4 = n3;
             }
         } else if (d2 < 0.0) {
             if (n2 < n3) {
-                this.solverContext.fail("Decrementing by " + d2 + " but complexity base " + n2 + " less than cap " + n3);
+                this.d.fail("Decrementing by " + d2 + " but complexity base " + n2 + " less than cap " + n3);
             }
             if (n4 < n3) {
                 n4 = n3;
@@ -1044,37 +1128,37 @@ public abstract class BaseSolver {
         return n4;
     }
 
-    final boolean equealData(CardStack os_02, CardStack os_03) {
-        int n2 = this.solverContext.searchState.moves[this.solverContext.searchState.depth - 1];
+    final boolean b(CardStack os_02, CardStack os_03) {
+        int n2 = this.d.searchState.moves[this.d.searchState.depth - 1];
         int n3 = (n2 & 0xF0000) >> 16;
-        n2 = this.solverContext.searchState.moves[this.solverContext.searchState.depth - 1];
+        n2 = this.d.searchState.moves[this.d.searchState.depth - 1];
         int n4 = n2 >> 24 & 0xFFFFFFFE & 0xFFFFFFFD;
         int n5 = os_03.group.groupIndex * 10 + os_03.stackIndex;
         int n6 = os_02.group.groupIndex * 10 + os_02.stackIndex;
-        int n7 = this.solverContext.searchState.depth - 2;
+        int n7 = this.d.searchState.depth - 2;
         while (n7 >= 0) {
-            n2 = this.solverContext.searchState.moves[n7];
+            n2 = this.d.searchState.moves[n7];
             int n8 = n2 >> 24 & 0xFFFFFFFE & 0xFFFFFFFD;
             if ((n8 & 8) != 0) break;
             if ((n8 & 4) == 0) {
-                n2 = this.solverContext.searchState.moves[n7];
+                n2 = this.d.searchState.moves[n7];
                 int n9 = n2 >> 8 & 0xFF;
-                n2 = this.solverContext.searchState.moves[n7];
+                n2 = this.d.searchState.moves[n7];
                 int n10 = n2 & 0xFF;
-                if (n4 == n8 && ((n2 = this.solverContext.searchState.moves[n7]) & 0xF0000) >> 16 == n3 && n10 == n5) {
+                if (n4 == n8 && ((n2 = this.d.searchState.moves[n7]) & 0xF0000) >> 16 == n3 && n10 == n5) {
                     n8 = 1;
-                    int n11 = this.solverContext.searchState.depth - 2;
+                    int n11 = this.d.searchState.depth - 2;
                     while (n11 > n7) {
-                        n2 = this.solverContext.searchState.moves[n11];
-                        if ((n2 >> 24 & 4) == 0 && (((n2 = this.solverContext.searchState.moves[n11]) & 0xFF) == n5 || ((n2 = this.solverContext.searchState.moves[n11]) >> 8 & 0xFF) == n5)) {
+                        n2 = this.d.searchState.moves[n11];
+                        if ((n2 >> 24 & 4) == 0 && (((n2 = this.d.searchState.moves[n11]) & 0xFF) == n5 || ((n2 = this.d.searchState.moves[n11]) >> 8 & 0xFF) == n5)) {
                             n8 = 0;
                             break;
                         }
                         --n11;
                     }
                     if (n8 != 0) {
-                        if (this.solverContext.logLevel < 3) {
-                            this.solverContext.log("Move " + Move.a(this.solverContext.searchState.moves[this.solverContext.searchState.depth - 1]) + " is a reversal of " + Move.a(this.solverContext.searchState.moves[n7]));
+                        if (this.d.logLevel < 3) {
+                            this.d.log("Move " + Move.a(this.d.searchState.moves[this.d.searchState.depth - 1]) + " is a reversal of " + Move.a(this.d.searchState.moves[n7]));
                         }
                         return true;
                     }
@@ -1087,35 +1171,35 @@ public abstract class BaseSolver {
     }
 
     final void a(long l2) {
-        int n2 = this.solverContext.searchState.depth * 10 / this.H;
+        int n2 = this.d.searchState.depth * 10 / this.H;
         if (n2 >= 10) {
             n2 = 9;
         }
         Long l3 = l2;
-        if (this.R[n2].size() > this.bucket) {
-            if (this.solverContext.logLevel <= 4) {
-                this.solverContext.log(String.format("Discarding %d  hashes in bucket %d, counts %d/%d, %d/%d, %d/%d, %d/%d, %d/%d, %d/%d, %d/%d, %d/%d, %d/%d, %d/%d", this.bucket, n2, this.R[0].size(), this.S[0].size(), this.R[1].size(), this.S[1].size(), this.R[2].size(), this.S[2].size(), this.R[3].size(), this.S[3].size(), this.R[4].size(), this.S[4].size(), this.R[5].size(), this.S[5].size(), this.R[6].size(), this.S[6].size(), this.R[7].size(), this.S[7].size(), this.R[8].size(), this.S[8].size(), this.R[9].size(), this.S[9].size()));
+        if (this.R[n2].size() > this.a) {
+            if (this.d.logLevel <= 4) {
+                this.d.log(String.format("Discarding %d  hashes in bucket %d, counts %d/%d, %d/%d, %d/%d, %d/%d, %d/%d, %d/%d, %d/%d, %d/%d, %d/%d, %d/%d", this.a, n2, this.R[0].size(), this.S[0].size(), this.R[1].size(), this.S[1].size(), this.R[2].size(), this.S[2].size(), this.R[3].size(), this.S[3].size(), this.R[4].size(), this.S[4].size(), this.R[5].size(), this.S[5].size(), this.R[6].size(), this.S[6].size(), this.R[7].size(), this.S[7].size(), this.R[8].size(), this.S[8].size(), this.R[9].size(), this.S[9].size()));
             }
             this.S[n2] = this.R[n2];
-            this.R[n2] = new HashMap(this.getBucket(n2));
+            this.R[n2] = new HashMap(this.l(n2));
         }
-        this.R[n2].put(l3, this.solverContext.complexity << 16 | this.solverContext.searchState.depth);
+        this.R[n2].put(l3, this.d.complexity << 16 | this.d.searchState.depth);
     }
 
-    final int equealData(long l2) {
+    final int b(long l2) {
         Long l3;
         Integer n2;
-        int n3 = this.solverContext.searchState.depth * 10 / this.H;
+        int n3 = this.d.searchState.depth * 10 / this.H;
         if (n3 >= 10) {
             n3 = 9;
         }
         if ((n2 = (Integer)this.R[n3].get(l3 = Long.valueOf(l2))) != null) {
             n3 = n2;
             int n4 = n3 & 0xFFFF;
-            if (this.solverContext.complexity >= (n3 >>= 16) - 50 && (this.solverContext.files.maxMoves == 999 || this.solverContext.searchState.depth >= n4)) {
+            if (this.d.complexity >= (n3 >>= 16) - 50 && (this.d.files.maxMoves == 999 || this.d.searchState.depth >= n4)) {
                 if (this.K != null && this.n()) {
-                    this.equealData(9);
-                    this.solverContext.log("About to reject trial solution as a duplicate, hash = " + l2 + " overriding");
+                    this.b(9);
+                    this.d.log("About to reject trial solution as a duplicate, hash = " + l2 + " overriding");
                     return -1;
                 }
                 return 0;
@@ -1126,10 +1210,10 @@ public abstract class BaseSolver {
         if (n2 != null) {
             n3 = n2;
             int n5 = n3 & 0xFFFF;
-            if (this.solverContext.complexity >= (n3 >>= 16) - 50 && (this.solverContext.files.maxMoves == 999 || this.solverContext.searchState.depth >= n5)) {
+            if (this.d.complexity >= (n3 >>= 16) - 50 && (this.d.files.maxMoves == 999 || this.d.searchState.depth >= n5)) {
                 if (this.K != null && this.n()) {
-                    this.equealData(9);
-                    this.solverContext.log("About to reject trial solution as a duplicate, hash = " + l2 + " overriding");
+                    this.b(9);
+                    this.d.log("About to reject trial solution as a duplicate, hash = " + l2 + " overriding");
                     return -1;
                 }
                 return 0;
@@ -1139,14 +1223,14 @@ public abstract class BaseSolver {
         return -1;
     }
 
-    final boolean equealData(int n2, boolean bl) {
+    final boolean b(int n2, boolean bl) {
         return this.a(1, bl, 0);
     }
 
     final boolean a(int n2, boolean bl, int n3) {
         HashMap hashMap = new HashMap(104);
         int n4 = this.a(hashMap);
-        this.decksOfCards = n2;
+        this.n = n2;
         n2 = 0;
         int n5 = 0;
         int n6 = 0;
@@ -1161,13 +1245,14 @@ public abstract class BaseSolver {
                     n10 = n11;
                 }
                 n7 += n10;
-                if (n10 > (this.decksOfCards << 2) / this.suitCount) {
+                if (n10 > (this.n << 2) / this.suitCount) {
                     n5 = n8 * 100 + n9;
                     n6 = n10;
-                    if (this.solverContext.solverMode != 1) {
-                        this.solverContext.fail("Incorrect count of " + n6 + " for the " + BaseSolver.h(n5));
+                    if (this.d.solverMode != 1) {
+                        this.d.fontStats.reset();
+                        this.d.fail("Incorrect count of " + n6 + " for the " + BaseSolver.h(n5));
                     } else {
-                        this.solverContext.log("Incorrect count of " + n6 + " for the " + BaseSolver.h(n5));
+                        this.d.log("Incorrect count of " + n6 + " for the " + BaseSolver.h(n5));
                     }
                     n2 = 1;
                 }
@@ -1176,19 +1261,19 @@ public abstract class BaseSolver {
             ++n8;
         }
         if (n2 != 0) {
-            this.solverContext.log("Suit point calculation: max club = " + this.solverContext.fontStats.e + " min spade = " + this.solverContext.fontStats.f);
-            if (this.solverContext.solverMode == 1) {
-                this.solverContext.log("*** ERROR, counted " + n4 + " cards, bad card " + n5 + " count of " + n6);
+            this.d.log("Suit point calculation: max club = " + this.d.fontStats.e + " min spade = " + this.d.fontStats.f);
+            if (this.d.solverMode == 1) {
+                this.d.log("*** ERROR, counted " + n4 + " cards, bad card " + n5 + " count of " + n6);
             } else {
-                this.solverContext.fail("*** ERROR - counted " + n4 + " cards, bad card " + n5 + " count of " + n6);
+                this.d.fail("*** ERROR - counted " + n4 + " cards, bad card " + n5 + " count of " + n6);
             }
         }
-        if (bl && n3 == 0 && n7 != this.decksOfCards * 52) {
+        if (bl && n3 == 0 && n7 != this.n * 52) {
             n2 = 1;
-            if (this.solverContext.solverMode == 1) {
-                this.solverContext.log("Needed " + this.decksOfCards * 52 + " cards but only read " + n7);
+            if (this.d.solverMode == 1) {
+                this.d.log("Needed " + this.n * 52 + " cards but only read " + n7);
             } else {
-                this.solverContext.fail("Needed " + this.decksOfCards * 52 + " cards but only read " + n7);
+                this.d.fail("Needed " + this.n * 52 + " cards but only read " + n7);
             }
         }
         return n2 == 0;
@@ -1204,29 +1289,33 @@ public abstract class BaseSolver {
             n3 = n5;
             ++n3;
         }
-        if (this.solverContext.logLevel <= 2) {
-            this.solverContext.log("Adding " + string + " card " + n2 + " giving " + n3);
+        if (this.d.logLevel <= 2) {
+            this.d.log("Adding " + string + " card " + n2 + " giving " + n3);
         }
         hashMap.put(n4, n3);
     }
 
-    final void getBucket() {
-        if (this.solverContext.logLevel <= 3) {
-            this.equealData(3);
+    final void l() {
+        if (this.d.logLevel <= 3) {
+            this.b(3);
             this.dumpState(3, false);
         }
         if (this.statusUpdateCounter++ > 10000) {
+            if (this.d.aI && this.d.t) {
+                this.d.b(8);
+            }
+            this.d.updateStatus("Solving");
             this.statusUpdateCounter = 0;
         }
         if (this.K != null) {
             this.o();
         }
-        if (this.solverContext.searchState.depth < this.solverContext.U) {
-            this.solverContext.U = this.solverContext.searchState.depth;
+        if (this.d.searchState.depth < this.d.U) {
+            this.d.U = this.d.searchState.depth;
         }
-        if (this.solverContext.searchState.depth > this.deepestRecursionDepth) {
-            this.deepestRecursionDepth = this.solverContext.searchState.depth;
-            this.deepestRecursionComplexity = this.solverContext.complexity;
+        if (this.d.searchState.depth > this.deepestRecursionDepth) {
+            this.deepestRecursionDepth = this.d.searchState.depth;
+            this.deepestRecursionComplexity = this.d.complexity;
         }
     }
 
@@ -1269,17 +1358,17 @@ public abstract class BaseSolver {
     }
 
     final int a(GameState nY2, int n2, boolean bl) {
-        if (this.solverContext.files.b == 0) {
-            this.solverContext.fail("Need to have gameChallenge set");
+        if (this.d.files.b == 0) {
+            this.d.fail("Need to have gameChallenge set");
         }
-        if (this.solverContext.bk > 0 && System.currentTimeMillis() - this.b > 30000L) {
+        if (this.d.bk > 0 && System.currentTimeMillis() - this.b > 30000L) {
             return 1;
         }
         if (this.B) {
             return 2;
         }
         nY2.solutionLength = nY2.depth;
-        if (this.solverContext.foundCompleteSolution && this.solverContext.bestSolutionState.solutionLength < nY2.solutionLength) {
+        if (this.d.foundCompleteSolution && this.d.bestSolutionState.solutionLength < nY2.solutionLength) {
             return 1;
         }
         n2 = 0;
@@ -1288,30 +1377,30 @@ public abstract class BaseSolver {
         if (bl2) {
             n2 = 1;
         }
-        if (this.solverContext.files.maxMoves < 999 && n3 > this.solverContext.files.maxMoves) {
+        if (this.d.files.maxMoves < 999 && n3 > this.d.files.maxMoves) {
             return 1;
         }
-        if (this.solverContext.files.b == 6) {
+        if (this.d.files.b == 6) {
             nY2.scoreByDepth[nY2.depth] = n3 = this.a(nY2, false);
-            if (this.solverContext.logLevel <= 3) {
-                this.solverContext.log("Current score is " + n3);
+            if (this.d.logLevel <= 3) {
+                this.d.log("Current score is " + n3);
             }
-            if (n3 >= this.solverContext.files.g) {
+            if (n3 >= this.d.files.g) {
                 n2 = 1;
-                if (nY2.solutionLength < this.solverContext.files.maxMoves && (this.F < this.solverContext.files.g || this.solverContext.bestSolutionState.solutionLength > nY2.solutionLength)) {
+                if (nY2.solutionLength < this.d.files.maxMoves && (this.F < this.d.files.g || this.d.bestSolutionState.solutionLength > nY2.solutionLength)) {
                     this.F = n3;
                     this.a(nY2, "Can make target with " + this.F + " in " + nY2.solutionLength + " moves", true, true);
                 }
             } else {
                 boolean bl3;
-                boolean bl4 = bl3 = n3 > 0 && (n3 > this.F || this.solverContext.bestSolutionState != null && n3 == this.F && this.solverContext.bestSolutionState.solutionLength > nY2.solutionLength);
+                boolean bl4 = bl3 = n3 > 0 && (n3 > this.F || this.d.bestSolutionState != null && n3 == this.F && this.d.bestSolutionState.solutionLength > nY2.solutionLength);
                 if (this.E) {
                     if (bl2 & bl3) {
                         this.F = n3;
                         this.a(nY2, "Can clear board with " + this.F + " in " + nY2.solutionLength + " moves", true, false);
                     }
                 } else {
-                    if (this.solverContext.variantId != 4 && this.solverContext.variantId != 5) {
+                    if (this.d.variantId != 4 && this.d.variantId != 5) {
                         bl2 = false;
                     }
                     if (bl3 || bl2) {
@@ -1321,45 +1410,46 @@ public abstract class BaseSolver {
                 }
             }
             if (this.a(bl)) {
-                this.solverContext.files.l = this.F;
+                this.d.files.l = this.F;
                 n2 = 2;
-                if (this.solverContext.logLevel <= 5) {
-                    this.solverContext.log("Board cleared with score standing at " + this.solverContext.files.l + " vs target of " + this.solverContext.files.g);
+                if (this.d.logLevel <= 5) {
+                    this.d.log("Board cleared with score standing at " + this.d.files.l + " vs target of " + this.d.files.g);
                 }
-                if (this.solverContext.files.g - this.solverContext.files.l <= 0) {
-                    this.solverContext.files.a = true;
+                this.d.ui.showStatus(5, "Best score is now " + this.d.files.l + " of " + this.d.files.g + " in " + this.d.bestSolutionState.solutionLength + " moves");
+                if (this.d.files.g - this.d.files.l <= 0) {
+                    this.d.files.a = true;
                 }
             }
-        } else if (this.solverContext.files.b == 3 || this.solverContext.files.b == 5 || this.solverContext.files.b == 4) {
+        } else if (this.d.files.b == 3 || this.d.files.b == 5 || this.d.files.b == 4) {
             String string;
             int n4;
             int n5;
-            if (this.solverContext.files.b == 5) {
-                n3 = this.equealData(nY2, false);
-                n5 = this.solverContext.files.n;
-                n4 = this.solverContext.files.i - n5;
+            if (this.d.files.b == 5) {
+                n3 = this.b(nY2, false);
+                n5 = this.d.files.n;
+                n4 = this.d.files.i - n5;
                 string = "Best solution currently %d stacks in %d moves";
             } else {
-                n3 = this.a(nY2, false, this.solverContext.files.d, this.solverContext.files.c);
-                if (this.solverContext.files.b == 4) {
+                n3 = this.a(nY2, false, this.d.files.d, this.d.files.c);
+                if (this.d.files.b == 4) {
                     n5 = 0;
                     n4 = 1;
                     string = "Best solution currently %d card in %d moves";
                 } else {
-                    n5 = this.solverContext.files.m;
-                    n4 = this.solverContext.files.h - n5;
+                    n5 = this.d.files.m;
+                    n4 = this.d.files.h - n5;
                     string = "Best solution currently %d cards in %d moves";
                 }
             }
             if (n3 >= n4) {
                 n2 = 1;
-                if (nY2.solutionLength < this.solverContext.files.maxMoves && (this.G < n4 || this.solverContext.bestSolutionState.solutionLength > nY2.solutionLength)) {
+                if (nY2.solutionLength < this.d.files.maxMoves && (this.G < n4 || this.d.bestSolutionState.solutionLength > nY2.solutionLength)) {
                     this.G = n3;
                     this.a(nY2, String.format(string, n5 + this.G, nY2.solutionLength), false, true);
                 }
             } else {
                 boolean bl5;
-                boolean bl6 = bl5 = n3 > 0 && (n3 > this.G || n3 == this.G && this.solverContext.bestSolutionState.solutionLength > nY2.solutionLength);
+                boolean bl6 = bl5 = n3 > 0 && (n3 > this.G || n3 == this.G && this.d.bestSolutionState.solutionLength > nY2.solutionLength);
                 if (this.E) {
                     if (bl2 & bl5) {
                         this.G = n3;
@@ -1367,7 +1457,7 @@ public abstract class BaseSolver {
                         n2 = 1;
                     }
                 } else {
-                    if (this.solverContext.variantId != 4 && this.solverContext.variantId != 5) {
+                    if (this.d.variantId != 4 && this.d.variantId != 5) {
                         bl2 = false;
                     }
                     if (bl5 || bl2) {
@@ -1381,87 +1471,96 @@ public abstract class BaseSolver {
             }
             if (this.a(bl)) {
                 n2 = 2;
-                if (this.solverContext.files.b == 3) {
-                    this.solverContext.files.m += this.G;
-                    if (this.solverContext.files.m >= this.solverContext.files.h) {
-                        this.solverContext.files.a = true;
+                if (this.d.files.b == 3) {
+                    this.d.files.m += this.G;
+                    this.d.ui.showStatus(5, "Best solution clears " + this.d.files.m + " of " + this.d.files.h + " cards in " + this.d.bestSolutionState.solutionLength + " moves");
+                    if (this.d.files.m >= this.d.files.h) {
+                        this.d.files.a = true;
                     }
-                } else if (this.solverContext.files.b == 4) {
-                    this.solverContext.files.a = true;
+                } else if (this.d.files.b == 4) {
+                    this.d.ui.showStatus(5, "Best solution clears the card in " + this.d.bestSolutionState.solutionLength + " moves");
+                    this.d.files.a = true;
                 } else {
-                    this.solverContext.files.n += this.G;
-                    if (this.solverContext.files.n >= this.solverContext.files.i) {
-                        this.solverContext.files.a = true;
+                    this.d.files.n += this.G;
+                    this.d.ui.showStatus(5, "Best solution clears " + this.d.files.n + " of " + this.d.files.i + " stacks in " + this.d.bestSolutionState.solutionLength + " moves");
+                    if (this.d.files.n >= this.d.files.i) {
+                        this.d.files.a = true;
                     }
                 }
                 this.G = 0;
-                if (this.solverContext.logLevel <= 5) {
-                    this.solverContext.log("Target card/stack count now " + n4);
+                if (this.d.logLevel <= 5) {
+                    this.d.log("Target card/stack count now " + n4);
                 }
             }
-        } else if (this.solverContext.files.b == 1 || this.solverContext.files.b == 2) {
+        } else if (this.d.files.b == 1 || this.d.files.b == 2) {
             if (bl2) {
                 n2 = 1;
-                if (nY2.solutionLength < this.solverContext.files.maxMoves && (this.solverContext.bestSolutionState.solutionLength == 0 || nY2.solutionLength < this.solverContext.bestSolutionState.solutionLength)) {
+                if (nY2.solutionLength < this.d.files.maxMoves && (this.d.bestSolutionState.solutionLength == 0 || nY2.solutionLength < this.d.bestSolutionState.solutionLength)) {
                     this.a(nY2, "Best solution currently " + nY2.solutionLength + " moves", true, true);
                 }
             }
             if (this.a(bl)) {
                 n2 = 2;
-                this.solverContext.files.k = this.solverContext.solverMode == 3 ? ++this.solverContext.files.k : 1;
-                if (this.solverContext.logLevel <= 5) {
-                    this.solverContext.log("Board cleared, accum now " + this.solverContext.files.k);
+                this.d.files.k = this.d.solverMode == 3 ? ++this.d.files.k : 1;
+                if (this.d.logLevel <= 5) {
+                    this.d.log("Board cleared, accum now " + this.d.files.k);
                 }
-                if (this.solverContext.files.k >= this.solverContext.files.e) {
-                    this.solverContext.files.a = true;
+                if (this.d.files.e == 1) {
+                    this.d.ui.showStatus(5, "Best solution takes " + this.d.bestSolutionState.solutionLength + " moves");
+                } else {
+                    this.d.ui.showStatus(5, "Best solution gives " + this.d.files.k + " of " + this.d.files.e + " boards in " + this.d.bestSolutionState.solutionLength + " moves");
                 }
-            } else if (!(!bl || this.solverContext.solverMode != 3 && this.solverContext.solverMode != 1 || this.solverContext.variantId != 4 && this.solverContext.variantId != 5)) {
+                if (this.d.files.k >= this.d.files.e) {
+                    this.d.files.a = true;
+                }
+            } else if (!(!bl || this.d.solverMode != 3 && this.d.solverMode != 1 || this.d.variantId != 4 && this.d.variantId != 5)) {
                 n2 = 2;
-                this.solverContext.bestSolutionState.reset();
+                this.d.bestSolutionState.reset();
             }
         }
         if (n2 == 2) {
             this.B = true;
-            if (this.solverContext.logLevel <= 9) {
-                this.solverContext.log("Mode " + this.solverContext.solverMode + " (challenge " + this.solverContext.files.b + ") found a solution length " + this.solverContext.bestSolutionState.solutionLength + " in " + (System.currentTimeMillis() - this.b) / 1000L);
+            if (this.d.logLevel <= 9) {
+                this.d.log("Mode " + this.d.solverMode + " (challenge " + this.d.files.b + ") found a solution length " + this.d.bestSolutionState.solutionLength + " in " + (System.currentTimeMillis() - this.b) / 1000L);
             }
-            this.a(9, this.solverContext.bestSolutionState, "Solved best moves");
-            this.equealData(false);
+            this.a(9, this.d.bestSolutionState, "Solved best moves");
+            this.b(false);
         }
         return n2;
     }
 
     private void a(GameState nY2, String string, boolean bl, boolean bl2) {
-        if (this.solverContext.logLevel <= 5) {
-            this.solverContext.log(string);
+        if (this.d.logLevel <= 5) {
+            this.d.log(string);
             this.dumpState(5, false);
         }
-        this.solverContext.bestSolutionState = new GameState(nY2, true);
+        this.d.bestSolutionState = new GameState(nY2, true);
         if (bl) {
             this.E = true;
         }
         this.c = System.currentTimeMillis();
+        this.d.ui.showStatus(5, string);
         if (bl2) {
-            this.solverContext.foundCompleteSolution = true;
+            this.d.foundCompleteSolution = true;
         }
     }
 
     private boolean a(boolean bl) {
-        if (this.solverContext.bestSolutionState.solutionLength == 0) {
+        if (this.d.bestSolutionState.solutionLength == 0) {
             return false;
         }
-        if (bl || this.solverContext.searchStepCount % 1000L == 0L) {
+        if (bl || this.d.searchStepCount % 1000L == 0L) {
             long l2 = System.currentTimeMillis();
-            if (this.solverContext.bridge.lastBridgeUpdateTimeMs > this.c) {
-                this.c = this.solverContext.bridge.lastBridgeUpdateTimeMs;
+            if (this.d.bridge.lastBridgeUpdateTimeMs > this.c) {
+                this.c = this.d.bridge.lastBridgeUpdateTimeMs;
             }
-            if (bl || this.solverContext.aG || this.solverContext.aF == 0 || l2 - this.c > (long)this.solverContext.aF) {
-                this.solverContext.aG = false;
-                if (this.solverContext.foundCompleteSolution || this.E) {
-                    if (this.solverContext.logLevel <= 5) {
+            if (bl || this.d.aG || this.d.aF == 0 || l2 - this.c > (long)this.d.aF) {
+                this.d.aG = false;
+                if (this.d.foundCompleteSolution || this.E) {
+                    if (this.d.logLevel <= 5) {
                         String string = "Test final (forced " + bl + ") best moves";
-                        this.solverContext.log("Best solution length " + this.solverContext.bestSolutionState.solutionLength);
-                        this.a(5, this.solverContext.bestSolutionState, string);
+                        this.d.log("Best solution length " + this.d.bestSolutionState.solutionLength);
+                        this.a(5, this.d.bestSolutionState, string);
                     }
                     return true;
                 }
@@ -1474,7 +1573,7 @@ public abstract class BaseSolver {
         return false;
     }
 
-    int equealData(GameState nY2, boolean bl) {
+    int b(GameState nY2, boolean bl) {
         return -1;
     }
 
@@ -1491,23 +1590,23 @@ public abstract class BaseSolver {
     }
 
     void g() {
-        if (this.solverContext.initialState.stackGroups == null) {
+        if (this.d.initialState.stackGroups == null) {
             return;
         }
-        if (this.solverContext.initialState.stackGroups[0] == null) {
+        if (this.d.initialState.stackGroups[0] == null) {
             return;
         }
         int n2 = this.r[0].length;
         int n3 = 0;
-        while (n3 < this.stackSize) {
-            if (n3 >= this.solverContext.initialState.stackGroups[0].stacks.length) break;
-            CardStack os_02 = this.solverContext.initialState.stackGroups[0].stacks[n3];
+        while (n3 < this.f) {
+            if (n3 >= this.d.initialState.stackGroups[0].stacks.length) break;
+            CardStack os_02 = this.d.initialState.stackGroups[0].stacks[n3];
             int n4 = 0;
             for (Object object : os_02.runs) {
                 CardRun ok_02 = (CardRun)object;
                 int n5 = 0;
                 while (n5 < ok_02.cardCount) {
-                    this.r[n3][n4] = ok_02.cards[n5].cardId == 0 ? (!this.B && n3 == this.solverContext.bridge.readHighlightColumnIndex && n4 == this.solverContext.bridge.readHighlightRowIndex ? 3 : 2) : 4;
+                    this.r[n3][n4] = ok_02.cards[n5].cardId == 0 ? (!this.B && n3 == this.d.bridge.readHighlightColumnIndex && n4 == this.d.bridge.readHighlightRowIndex ? 3 : 2) : 4;
                     if (++n4 > n2 - 1) break;
                     ++n5;
                 }
@@ -1521,7 +1620,7 @@ public abstract class BaseSolver {
         }
     }
 
-    final int[] equealData(HashMap hashMap, int n2) {
+    final int[] b(HashMap hashMap, int n2) {
         int[] nArray = new int[52];
         int n3 = 1;
         while (n3 < this.suitCount + 1) {
@@ -1541,19 +1640,20 @@ public abstract class BaseSolver {
         return nArray;
     }
 
-    final void printLog(int n2) {
-        if (n2 >= this.solverContext.logLevel && this.solverContext.searchState.depth > 0) {
-            StringBuffer stringBuffer = new StringBuffer(String.format("Lvl %3d move %8s", this.solverContext.searchState.depth - 1, Move.a(this.solverContext.searchState.moves[this.solverContext.searchState.depth - 1])));
-            this.solverContext.log(stringBuffer.toString());
+    final void b(int n2, StackGroup ot_02) {
+        if (n2 >= this.d.logLevel && this.d.searchState.depth > 0) {
+            StringBuffer stringBuffer = new StringBuffer(String.format("Lvl %3d move %8s", this.d.searchState.depth - 1, Move.a(this.d.searchState.moves[this.d.searchState.depth - 1])));
+            this.d.table.a(stringBuffer, ot_02);
+            this.d.log(stringBuffer.toString());
         }
     }
 
-    static int a(StackGroup stackGroup, int n2) {
-        if (stackGroup == null) {
+    static int a(StackGroup ot_02, int n2) {
+        if (ot_02 == null) {
             return 0;
         }
-        CardStack[] os_0Array = stackGroup.stacks;
-        int n3 = stackGroup.stacks.length;
+        CardStack[] os_0Array = ot_02.stacks;
+        int n3 = ot_02.stacks.length;
         int n4 = 0;
         while (n4 < n3) {
             CardStack os_02 = os_0Array[n4];
@@ -1565,15 +1665,15 @@ public abstract class BaseSolver {
         return 0;
     }
 
-    static int equealData(StackGroup stackGroup, int n2) {
-        if (stackGroup == null) {
+    static int b(StackGroup ot_02, int n2) {
+        if (ot_02 == null) {
             return 0;
         }
         int[] nArray = new int[4];
         int n3 = 0;
         int n4 = 0;
-        CardStack[] os_0Array = stackGroup.stacks;
-        int n5 = stackGroup.stacks.length;
+        CardStack[] os_0Array = ot_02.stacks;
+        int n5 = ot_02.stacks.length;
         int n6 = 0;
         while (n6 < n5) {
             CardStack os_02 = os_0Array[n6];
@@ -1592,53 +1692,103 @@ public abstract class BaseSolver {
         return n4;
     }
 
+    int b(CardStack os_02) {
+        return -1;
+    }
+
+    int a(CardStack os_02, CardStack os_03, int n2) {
+        return -1;
+    }
+
+    int a(Card nT2) {
+        return -1;
+    }
+
+    int h() {
+        if (this.d.logLevel <= 5) {
+            this.d.log("Default click on space, drop selected");
+        }
+        if (this.d.board != null) {
+            this.d.board.clickBackground();
+        }
+        return -1;
+    }
+
+    int e() {
+        return -1;
+    }
+
+    final int m() {
+        int n2 = -1;
+        this.d.playbackState.depth = SolverBridge.a(this.d.initialState.moves, this.d.playbackState.moves, this.d.playbackMoveIndex);
+        if (this.d.playbackState.depth > 0) {
+            --this.d.playbackState.depth;
+            n2 = this.d.playbackState.moves[this.d.playbackState.depth];
+        }
+        if (this.d.ag) {
+            if (this.d.logLevel <= 5) {
+                this.d.log("Undo in playback always matches solution so use single step");
+            }
+            this.d.aX = true;
+        } else {
+            if (this.d.logLevel <= 5) {
+                this.d.log("Undo not in playback does not match any solution so not single step");
+            }
+            this.d.aX = false;
+        }
+        return n2;
+    }
+
     final void k(int n2) {
-        if (this.solverContext.ag) {
-            GameState nY2 = this.state ? this.solverContext.searchState : this.solverContext.bestSolutionState;
-            if (this.solverContext.ag && nY2.moves != null && this.equealData(n2, nY2.moves[this.solverContext.playbackMoveIndex])) {
-                if (this.solverContext.logLevel <= 5) {
-                    this.solverContext.log("This is a matching move so do single step");
+        if (this.d.ag) {
+            GameState nY2;
+            GameState nY3 = nY2 = this.J ? this.d.searchState : this.d.bestSolutionState;
+            if (this.d.ag && nY2.moves != null && this.b(n2, nY2.moves[this.d.playbackMoveIndex])) {
+                if (this.d.logLevel <= 5) {
+                    this.d.log("This is a matching move so do single step");
                 }
-                this.solverContext.aX = true;
-                this.solverContext.playbackState.depth = SolverBridge.a(nY2.moves, this.solverContext.playbackState.moves, nY2.depth);
+                this.d.aX = true;
+                this.d.playbackState.depth = SolverBridge.a(nY2.moves, this.d.playbackState.moves, nY2.depth);
                 return;
             }
-            if (this.solverContext.logLevel <= 5) {
-                this.solverContext.log("Non-matching move so discard previous solution");
+            if (this.d.logLevel <= 5) {
+                this.d.log("Non-matching move so discard previous solution");
             }
-            this.solverContext.aX = false;
-            this.solverContext.playbackState.depth = SolverBridge.a(nY2.moves, this.solverContext.playbackState.moves, this.solverContext.playbackMoveIndex);
-            this.solverContext.playbackState.moves[this.solverContext.playbackState.depth] = n2;
-            ++this.solverContext.playbackState.depth;
-            this.solverContext.bestSolutionState.moves = null;
-            this.solverContext.bestSolutionState.reset();
+            this.d.aX = false;
+            this.d.playbackState.depth = SolverBridge.a(nY2.moves, this.d.playbackState.moves, this.d.playbackMoveIndex);
+            this.d.playbackState.moves[this.d.playbackState.depth] = n2;
+            ++this.d.playbackState.depth;
+            this.d.bestSolutionState.moves = null;
+            this.d.bestSolutionState.reset();
             this.B = false;
-            this.solverContext.foundCompleteSolution = false;
+            this.d.foundCompleteSolution = false;
             return;
         }
-        if (this.solverContext.playbackState.depth < 350) {
-            this.solverContext.playbackState.moves[this.solverContext.playbackState.depth] = n2;
-            ++this.solverContext.playbackState.depth;
+        if (this.d.playbackState.depth < 350) {
+            this.d.playbackState.moves[this.d.playbackState.depth] = n2;
+            ++this.d.playbackState.depth;
             return;
         }
+        this.d.ui.showError("Too many moves", "You must solve the problem in under 350 moves");
     }
 
-    final Card equealData(CardStack cardStack, int cardData) {
-        if (this.cardIndex == this.o) {
-            this.solverContext.fail("Trying to allocate more than " + this.o + " cards");
+    final Card b(CardStack os_02, int n2) {
+        if (this.A == this.o) {
+            this.d.fontStats.reset();
+            this.d.fail("Trying to allocate more than " + this.o + " cards");
         }
-        if (this.solverContext.logLevel <= 5) {
-            this.solverContext.log("@@@ Allocating card #" + this.cardIndex + " value " + cardData);
+        if (this.d.logLevel <= 5) {
+            this.d.log("@@@ Allocating card #" + this.A + " value " + n2);
         }
-        Card card = this.cardArray[this.cardIndex++];
-        card.dictCardValue(cardData);
-        card.stack = cardStack;
-        card.primaryUiHandle = null;
-        card.secondaryUiHandle = null;
-        return card;
+        Card nT2 = this.z[this.A++];
+        nT2.a(n2);
+        nT2.stack = os_02;
+        nT2.primaryUiHandle = null;
+        nT2.secondaryUiHandle = null;
+        return nT2;
     }
 
-    boolean equealData(int n2, int n3) {
+    boolean b(int n2, int n3) {
         return n2 == n3;
     }
 }

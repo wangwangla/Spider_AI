@@ -11,6 +11,9 @@ import java.util.Locale;
 import java.util.Map;
 
 public final class DealFileIO {
+   private DealFileIO() {
+   }
+
    public static SavedDeal read(Path path) throws IOException {
       String content = Files.readString(path, StandardCharsets.US_ASCII).toLowerCase(Locale.ROOT);
       String[] rawLines = content.split("\n");
@@ -38,12 +41,10 @@ public final class DealFileIO {
    }
 
    public static Path writeGameStyleDeal(Path outputRoot, DealVariant variant, int parameter, long seed) throws IOException {
-      // 生成关
       String content = variant.generate(parameter, seed);
-      // 创建文件
       Path variantDirectory = outputRoot.resolve(variant.directoryName(parameter));
       Files.createDirectories(variantDirectory);
-      // 写入关的数据
+
       Path cardsFile = variantDirectory.resolve("cards" + seed + ".txt");
       Files.writeString(cardsFile, content, StandardCharsets.US_ASCII);
       Files.writeString(variantDirectory.resolve("chkpt.txt"), Long.toString(seed), StandardCharsets.US_ASCII);
@@ -86,6 +87,8 @@ public final class DealFileIO {
                break;
             }
          }
+      }
+      if (oneSuit) {
          return 1;
       }
 
@@ -97,6 +100,8 @@ public final class DealFileIO {
                break;
             }
          }
+      }
+      if (twoSuit) {
          return 2;
       }
 
@@ -113,8 +118,11 @@ public final class DealFileIO {
                break;
             }
          }
+      }
+      if (fourSuit) {
          return 4;
       }
+
       return 0;
    }
 }

@@ -1,5 +1,6 @@
 package com.solvitaire.app;
 
+import java.awt.Rectangle;
 import java.awt.geom.Rectangle2D;
 import java.util.LinkedList;
 
@@ -20,6 +21,7 @@ final class CardStack {
     double xPosition;
     boolean reservedFlag1;
     boolean reservedFlag2;
+    StackSnapshot stackSnapshot;
 
     CardStack(SolverContext context, StackGroup group, int stackIndex, boolean alternatingColors) {
         this.context = context;
@@ -52,6 +54,7 @@ final class CardStack {
         this.reservedFlag3 = sourceStack.reservedFlag3;
         this.reservedLong1 = sourceStack.reservedLong1;
         this.reservedLong2 = sourceStack.reservedLong2;
+        this.stackSnapshot = sourceStack.stackSnapshot;
     }
 
     final Card getTopCard() {
@@ -149,8 +152,23 @@ final class CardStack {
         this.reservedFlag2 = false;
     }
 
+    final void lockKnownState() {
+        this.knownStateLocked = true;
+        this.cardsKnown = false;
+    }
+
     final boolean hasKnownCards() {
         return this.cardsKnown;
+    }
+
+    final void markCardsKnown() {
+        if (!this.knownStateLocked) {
+            this.cardsKnown = true;
+        }
+    }
+
+    final void markCardsUnknown() {
+        this.cardsKnown = false;
     }
 
     final int evaluateJoinFrom(CardStack sourceStack, int moveMode, boolean exactMatchOnly) {
@@ -333,6 +351,59 @@ final class CardStack {
         return runCount < 2 ? null : this.runs.get(runCount - 2);
     }
 
+    final Rectangle2D.Double getScreenBounds() {
+        Rectangle2D.Double screenBounds = this.getLocalBounds();
+        screenBounds.x += this.context.table.screenOrigin.a();
+        screenBounds.y += this.context.table.screenOrigin.b();
+        return screenBounds;
+    }
+
+    final Rectangle getScreenRectangle() {
+        Rectangle2D.Double screenBounds = this.getScreenBounds();
+        return new Rectangle((int)screenBounds.x, (int)screenBounds.y, (int)screenBounds.width, (int)screenBounds.height);
+    }
+
+    final Rectangle getLocalRectangle() {
+        Rectangle2D.Double localBounds = this.getLocalBounds();
+        return new Rectangle((int)localBounds.x, (int)localBounds.y, (int)localBounds.width, (int)localBounds.height);
+    }
+
+    final Rectangle2D.Double getLocalBounds() {
+        if (this.group.height < (double)(this.context.table.cardHeight / 2)) {
+            this.context.fail("Error, stack " + this.group.name + " height is less than half the card Height");
+        }
+        if (this.group.origin == null) {
+            this.context.fail("StackSet " + this.group.name + " origin has not been set yet");
+        }
+        Rectangle2D.Double localBounds = new Rectangle2D.Double();
+        localBounds.x = this.xPosition;
+        localBounds.y = this.group.origin.y;
+        if ((this.group.flags & 16) != 0) {
+            localBounds.width = this.context.table.cardWidth * 1.45;
+            localBounds.height = this.group.height;
+            if (this.context.logLevel <= 3) {
+                this.context.log("Triplet stack " + this + " bounds " + SolverContext.describe(localBounds));
+            }
+        } else if ((this.group.flags & 64) != 0) {
+            localBounds.width = this.context.table.cardWidth;
+            localBounds.height = this.group.height;
+            if (this.context.logLevel <= 3) {
+                this.context.log("Spider suits stack " + this + " bounds " + SolverContext.describe(localBounds));
+            }
+        } else {
+            localBounds.width = this.context.table.cardWidth;
+            localBounds.height = (double)((int)this.group.height);
+            if ((this.group.flags & 2) != 0) {
+                if (this.context.logLevel <= 3) {
+                    this.context.log("Horizontal stack " + this + " bounds " + SolverContext.describe(localBounds));
+                }
+            } else if (this.context.logLevel <= 3) {
+                this.context.log("Standard stack " + this + " bounds " + SolverContext.describe(localBounds) + " cards: " + this.stackSnapshot);
+            }
+        }
+        return localBounds;
+    }
+
     static void swapRuns(CardStack firstStack, CardStack secondStack) {
         LinkedList<CardRun> swappedRuns = firstStack.runs;
         firstStack.runs = secondStack.runs;
@@ -341,8 +412,17 @@ final class CardStack {
         secondStack.topRun = secondStack.runs.isEmpty() ? null : secondStack.runs.getLast();
     }
 
+    // Legacy wrappers keep the rest of the solver compiling while call sites are renamed.
+    final Card a() {
+        return this.getTopCard();
+    }
+
     final int b() {
         return this.getTopCardValue();
+    }
+
+    final int c() {
+        return this.getTopRank();
     }
 
     final CardRun a(CardRun run) {
@@ -353,8 +433,36 @@ final class CardStack {
         this.removeRun(run);
     }
 
+    final CardRun d() {
+        return this.popFirstRun();
+    }
+
+    final CardRun e() {
+        return this.popTopRun();
+    }
+
     final void c(CardRun run) {
         this.prependRun(run);
+    }
+
+    final void f() {
+        this.clear();
+    }
+
+    final void g() {
+        this.lockKnownState();
+    }
+
+    final boolean h() {
+        return this.hasKnownCards();
+    }
+
+    final void i() {
+        this.markCardsKnown();
+    }
+
+    final void j() {
+        this.markCardsUnknown();
     }
 
     final int a(CardStack sourceStack, int moveMode, boolean exactMatchOnly) {
@@ -373,8 +481,67 @@ final class CardStack {
         this.undoMoveCardsFrom(sourceStack, cardCount, completedSuitGroup);
     }
 
+    final CardRun k() {
+        return this.getPreviousRun();
+    }
+
+    final Rectangle2D.Double l() {
+        return this.getScreenBounds();
+    }
+
+    final Rectangle m() {
+        return this.getScreenRectangle();
+    }
+
+    final Rectangle n() {
+        return this.getLocalRectangle();
+    }
+
+    final Rectangle2D.Double o() {
+        return this.getLocalBounds();
+    }
+
     static void a(CardStack firstStack, CardStack secondStack) {
         CardStack.swapRuns(firstStack, secondStack);
+    }
+
+    final int p() {
+        return this.getCheckedCardCount();
+    }
+
+    final int q() {
+        return this.getCardCount();
+    }
+
+    final Card a(int index) {
+        return this.getCardAt(index);
+    }
+
+    final boolean b(int cardValue) {
+        return this.containsCardValue(cardValue);
+    }
+
+    final void a(boolean flagged) {
+        this.setTopRunFlagged(flagged);
+    }
+
+    final int r() {
+        return this.countFlaggedRuns();
+    }
+
+    final int getCheckedCardCount() {
+        if (this.workingCopy) {
+            this.context.a();
+            this.context.fail("Cannot get the card count of a work stack");
+        }
+        if (!this.cardsKnown) {
+            return 0;
+        }
+        int cardCount = 0;
+        for (CardRun run : this.runs) {
+            cardCount += run.cardCount;
+        }
+        return cardCount;
     }
 
     final int getCardCount() {
@@ -388,10 +555,53 @@ final class CardStack {
         return cardCount;
     }
 
+    final Card getCardAt(int index) {
+        Card foundCard = null;
+        int remainingIndex = index;
+        for (CardRun run : this.runs) {
+            if (remainingIndex - run.cardCount < 0) {
+                if (remainingIndex < 0) {
+                    return null;
+                }
+                foundCard = run.cards[remainingIndex];
+                foundCard.parentRun = run;
+                foundCard.runIndex = remainingIndex;
+                run.cards[remainingIndex].faceDown = run.faceDown;
+                break;
+            }
+            remainingIndex -= run.cardCount;
+        }
+        return foundCard;
+    }
+
+    final boolean containsCardValue(int cardValue) {
+        for (CardRun run : this.runs) {
+            for (int cardIndex = 0; cardIndex < run.cardCount; ++cardIndex) {
+                if (run.cards[cardIndex].cardId == cardValue) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     final void setTopRunFlagged(boolean flagged) {
         if (this.topRun != null) {
             this.topRun.faceDown = flagged;
         }
+    }
+
+    final int countFlaggedRuns() {
+        if (this.workingCopy) {
+            this.context.fail("Cannot get the card count of a work stack");
+        }
+        int flaggedRunCount = 0;
+        for (CardRun run : this.runs) {
+            if (run.faceDown) {
+                ++flaggedRunCount;
+            }
+        }
+        return flaggedRunCount;
     }
 
     public final String toString() {

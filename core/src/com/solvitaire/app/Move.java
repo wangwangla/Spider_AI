@@ -26,6 +26,8 @@ public final class Move {
     boolean specialMove;
     boolean autoMove;
     boolean splitMove;
+    int reservedValue1;
+    int reservedValue2;
 
     Move(SolverContext context, int rawMove, int suppliedFlags) {
         this.suppliedFlags = suppliedFlags;
@@ -140,6 +142,17 @@ public final class Move {
         return n4 << 24 | n3 << 16 | n2 << 8 | n5;
     }
 
+    static int a(int n2, CardStack os_02, CardStack os_03) {
+        int n3 = os_02 == null ? 0 : os_02.group.groupIndex * 10 + os_02.stackIndex;
+        int n4 = os_03 == null ? 0 : os_03.group.groupIndex * 10 + os_03.stackIndex;
+        return n2 << 16 | n3 << 8 | n4;
+    }
+
+    static int a(CardStack os_02) {
+        int n2 = os_02.group.groupIndex * 10 + os_02.stackIndex;
+        return 0x16300 | n2;
+    }
+
     static int a(int n2, int n3, CardStack os_02, CardStack os_03) {
         if (n3 > 13) {
             n2 |= 1;
@@ -174,8 +187,9 @@ public final class Move {
         } else {
             n2 = 0;
             while (n2 < n3) {
-                int n6 = nArray[n2];
-                int n7 = n6 >> 24;
+                int n6;
+                int n7 = n6 = nArray[n2];
+                n7 = n6 >> 24;
                 if ((n7 & 4) == 0) {
                     vector.add(String.format(" %3d.\t %s", n2, e_02.a(n6, n7)));
                 }
@@ -183,6 +197,44 @@ public final class Move {
             }
         }
         return vector.toArray(new String[1]);
+    }
+
+    static int[] a(int[] nArray, int n2, int n3, boolean bl) {
+        int[] nArray2;
+        if (bl) {
+            int n4 = 0;
+            int n5 = 0;
+            nArray2 = new int[n2 - n3];
+            --n2;
+            while (n2 >= n3) {
+                int n6 = nArray[n2];
+                int n7 = n6;
+                n7 = n6;
+                n7 = n6 >> 24;
+                nArray2[n4++] = n5++;
+                if ((n7 & 4) == 0) {
+                    // empty if block
+                }
+                --n2;
+            }
+        } else {
+            int n8 = 0;
+            int n9 = 0;
+            nArray2 = new int[n3];
+            n2 = 0;
+            while (n2 < n3) {
+                int n10 = nArray[n2];
+                int n11 = n10;
+                n11 = n10;
+                n11 = n10 >> 24;
+                nArray2[n8++] = n9++;
+                if ((n11 & 4) == 0) {
+                    // empty if block
+                }
+                ++n2;
+            }
+        }
+        return nArray2;
     }
 }
 

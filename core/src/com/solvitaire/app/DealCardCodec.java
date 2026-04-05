@@ -3,8 +3,11 @@ package com.solvitaire.app;
 import java.util.Locale;
 
 public final class DealCardCodec {
+   private DealCardCodec() {
+   }
+
     /**
-     * 转换格式   数组中拿到的是100*花色 + 值
+     * 转换格式
      * @param cardId
      * @return
      */
@@ -12,7 +15,7 @@ public final class DealCardCodec {
       if (cardId <= 0) {
          return "??";
       }
-      // 取模  得到的是最后的一位值    花色值
+
       return rankText(cardId % 100) + suitText(cardId / 100);
    }
 
@@ -49,13 +52,13 @@ public final class DealCardCodec {
    private static String suitText(int suit) {
       switch (suit) {
          case 1:
-            return "s";   //黑
+            return "s";
          case 2:
-            return "h";  //红
+            return "h";
          case 3:
-            return "d";  // 方
+            return "d";
          case 4:
-            return "c"; //梅花
+            return "c";
          default:
             throw new IllegalArgumentException("Invalid suit id: " + suit);
       }
