@@ -55,8 +55,6 @@ import static com.constant.CardConstant.*;
  * - SOLVE runs the bundled solver and steps/auto-plays the moves.
  */
 public class SpiderScreen extends BaseScreen {
-    private BitmapFont font;
-    private Texture background;
     private List<SpiderStack> stacks;
     private Deque<CardModel> stockQueue;
     private List<List<CardModel>> completedSuits;
@@ -71,6 +69,8 @@ public class SpiderScreen extends BaseScreen {
     private ArrayList<Image> holderImgs = new ArrayList<>(4);
     private ArrayList<Image> deckImgs = new ArrayList<>(10);
     private HashMap<CardModel,CardActor> cardModelCardActorHashMap;
+    private Group gamePanel;
+    private Group solverPanel;
 
     public SpiderScreen(BaseBaseGame baseBaseGame) {
         super(baseBaseGame);
@@ -79,89 +79,111 @@ public class SpiderScreen extends BaseScreen {
     @Override
     public void initView() {
         super.initView();
-        this.cardModelCardActorHashMap = new HashMap<>(104);
+        initGameBg();
+        initPanel();
+
+        newGame();
+        printMove();
+    }
+
+    private void initPanel() {
+        this.gamePanel = new Group();
+        this.solverPanel = new Group();
+        //发牌
+        this.stockPlaceholder = new Group();
+        Table topBar = buildUi();
+
+        gamePanel.setSize(Constant.GAMEWIDTH - 600,Constant.GAMEHIGHT);
+        gamePanel.setDebug(true);
+        rootView.addActor(gamePanel);
+
+        solverPanel.setSize(600,Constant.GAMEHIGHT);
+        solverPanel.setDebug(true);
+        rootView.addActor(solverPanel);
+        solverPanel.setPosition(Constant.GAMEWIDTH,Constant.GAMEHIGHT/2f,Align.right);
+
+        rootView.addActor(topBar);
+        topBar.pack();
+        topBar.setPosition(1300,1080,Align.topLeft);
+
+        stockPlaceholder.setSize(CARD_W, CARD_H);
+        stockPlaceholder.setPosition(gamePanel.getWidth()-100, Constant.GAMEHIGHT-150,Align.bottomRight);
+        gamePanel.addActor(stockPlaceholder);
+
+        for (int i = 0; i < 4; i++) {
+            Image holdImg = new Image(Asset.getAsset().getTexture("cardback.png"));
+            stockPlaceholder.addActor(holdImg);
+            holdImg.setX(i * 10);
+            holderImgs.add(holdImg);
+            holdImg.setSize(CARD_W,CARD_H);
+        }
+
+        for (int i = 0; i < 8; i++) {
+            Image slot = new Image(Asset.getAsset().getTexture("white.png"));
+            slot.setSize(CARD_W, CARD_H);
+            slot.setPosition(40 + i * 20, 1080-150);
+            foundationSlots.add(slot);
+            gamePanel.addActor(slot);
+//            slot.setVisible(false);
+        }
+        TOP_Y = Constant.GAMEHIGHT-300;
+        float gap = (Constant.GAMEWIDTH - 700) / 10.f;
+        for (int col = 0; col < COLS; col++) {
+            float x = LEFT_X + col * gap + gap/2f;
+            Image deckCard = makeColorTexture(0x263238);
+            deckCard.setSize(CARD_W,CARD_H);
+            deckCard.setPosition(x, TOP_Y,Align.bottom);
+            gamePanel.addActor(deckCard);
+            deckImgs.add(deckCard);
+        }
+
+        statusLabel = new Label("Ready", new Label.LabelStyle(Asset.getAsset().loadBitFont("bitfont/ntcb_40.fnt"), Color.WHITE));
+        statusLabel.setAlignment(Align.left);
+        statusLabel.setPosition(LEFT_X, 10);
+        gamePanel.addActor(statusLabel);
+        gamePanel.addListener(cardInput);
+    }
+
+    @Override
+    protected void initData() {
         this.stacks = new ArrayList<>();
         this.stockQueue = new ArrayDeque<>();
         this.completedSuits = new ArrayList<>();
         this.solverService = new SpiderSolverService();
         this.solutionSteps = new ArrayList<>();
-        this.font = Asset.getAsset().loadBitFont("bitfont/ntcb_40.fnt");
-        this.background = new Texture(Gdx.files.internal("background.png"));
-        background.setWrap(Texture.TextureWrap.Repeat,Texture.TextureWrap.Repeat);
+        this.cardModelCardActorHashMap = new HashMap<>(104);
         //10 列
         for (int i = 0; i < CardConstant.COLS; i++) {
             stacks.add(new SpiderStack());
         }
-        Table topBar = buildUi();
-        topBar.pack();
-        topBar.setPosition(1300,1080,Align.topLeft);
+    }
+
+    private void initGameBg() {
+        Texture background = Asset.getAsset().getTexture("background.png");
+        background.setWrap(Texture.TextureWrap.Repeat,Texture.TextureWrap.Repeat);
         TextureRegion region = new TextureRegion(background);
         region.setRegionWidth((int) (Constant.GAMEWIDTH+0.5f));
         region.setRegionHeight((int) (Constant.GAMEHIGHT+0.5f));
         Image bg = new Image(region);
         bg.setPosition(960,540,Align.center);
         rootView.addActor(bg);
-
-        stockPlaceholder = new Group();
-        stockPlaceholder.setSize(CARD_W, CARD_H);
-        stockPlaceholder.setPosition(1920-730 + 50, 1080-150,Align.bottomRight);
-        rootView.addActor(stockPlaceholder);
-
-
-        for (int i = 0; i < 4; i++) {
-            Image holdImg = new Image(Asset.getAsset().getTexture("cardback.png"));
-            stockPlaceholder.addActor(holdImg);
-            holdImg.setX(i* 10);
-            holderImgs.add(holdImg);
-        }
-
-        for (int i = 0; i < 8; i++) {
-            Image slot = new Image(new TextureRegionDrawable(new TextureRegion(makeColorTexture(0x263238))));
-            slot.setSize(CARD_W, CARD_H);
-            slot.setPosition(40 + i * 20, 1080-150);
-            foundationSlots.add(slot);
-            rootView.addActor(slot);
-            slot.setVisible(false);
-        }
-
-        float gap = (Constant.GAMEWIDTH - 700) / 10.f;
-        float y = TOP_Y;
-        for (int col = 0; col < COLS; col++) {
-            float x = LEFT_X + col * gap + gap/2f;
-            Image deckCard = new Image(new TextureRegionDrawable(new TextureRegion(makeColorTexture(0x263238))));
-            deckCard.setSize(CARD_W,CARD_H);
-            deckCard.setPosition(x, y,Align.bottom);
-            rootView.addActor(deckCard);
-            deckImgs.add(deckCard);
-        }
-
-
-        rootView.addActor(topBar);
-
-        statusLabel = new Label("Ready", new Label.LabelStyle(font, Color.WHITE));
-        statusLabel.setAlignment(Align.left);
-        statusLabel.setPosition(LEFT_X, 860f);
-        rootView.addActor(statusLabel);
-        rootView.addListener(cardInput);
-        newGame();
-        printMove();
     }
 
     public void printMove(){
-        Image slot = new Image(new TextureRegionDrawable(new TextureRegion(makeColorTexture(0x263238))));
+        Image slot = makeColorTexture(0x263238);;
         rootView.addActor(slot);
         slot.setSize(500,900);
         slot.setPosition(1920-100,540,Align.right);
     }
 
     private Table buildUi() {
-        TextureRegionDrawable btnDrawable = new TextureRegionDrawable(new TextureRegion(makeColorTexture(0x2e7d32)));
-        TextureRegionDrawable btnDown = new TextureRegionDrawable(new TextureRegion(makeColorTexture(0x1b5e20)));
-        TextButton.TextButtonStyle style = new TextButton.TextButtonStyle(btnDrawable, btnDown, btnDrawable, font);
+        TextButton.TextButtonStyle style = new TextButton.TextButtonStyle(Asset.getAsset().loadBitFont("bitfont/ntcb_40.fnt"));
         style.fontColor = Color.WHITE;
 
         TextButton newBtn = new TextButton("NEW", style);
-        newBtn.addListener(simpleClick(() -> newGame()));
+        newBtn.addListener(simpleClick(() -> {
+            setScreen(SpiderScreen.class);
+        }));
 
         TextButton dealBtn = new TextButton("DEAL", style);
         dealBtn.addListener(simpleClick(this::dealNext));
@@ -188,13 +210,10 @@ public class SpiderScreen extends BaseScreen {
         return bar;
     }
 
-    private Texture makeColorTexture(int rgb) {
-        Pixmap pm = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
-        pm.setColor(new Color(((rgb >> 16) & 0xFF) / 255f, ((rgb >> 8) & 0xFF) / 255f, (rgb & 0xFF) / 255f, 1f));
-        pm.fill();
-        Texture t = new Texture(pm);
-        pm.dispose();
-        return t;
+    private Image makeColorTexture(int rgb) {
+        Image img = new Image(Asset.getAsset().getTexture("white.png"));
+        img.setColor(new Color(((rgb >> 16) & 0xFF) / 255f, ((rgb >> 8) & 0xFF) / 255f, (rgb & 0xFF) / 255f, 1f));
+        return img;
     }
 
     private InputListener simpleClick(Runnable action) {
@@ -235,7 +254,7 @@ public class SpiderScreen extends BaseScreen {
         while (idx < deck.length) {
             stockQueue.addLast(toModel(deck[idx++], false));
         }
-        refreshLayout(true);
+        refreshLayout(true,2);
         statusLabel.setText("New game - stock " + stockQueue.size());
     }
 
@@ -250,10 +269,10 @@ public class SpiderScreen extends BaseScreen {
     }
 
     private void refreshLayout() {
-        refreshLayout(false);
+        refreshLayout(false,0);
     }
 
-    private void refreshLayout(boolean create) {
+    private void refreshLayout(boolean create,int mode) {
         float gap = (Constant.GAMEWIDTH - 700) / 10.f;
         for (int col = 0; col < COLS; col++) {
             SpiderStack stack = stacks.get(col);
@@ -264,33 +283,105 @@ public class SpiderScreen extends BaseScreen {
                 CardActor cardActor;
                 if (create){
                     cardActor = new CardActor(card);
+
                     if (!cardModelCardActorHashMap.containsKey(card)) {
                         cardModelCardActorHashMap.put(card,cardActor);
-                        rootView.addActor(cardActor);
+                        gamePanel.addActor(cardActor);
+                        if (mode == 2){
+
+                        }
                     }
                 }else {
                     cardActor = cardModelCardActorHashMap.get(card);
                 }
                 cardActor.checkFaceUp();
-//                cardActor.setPosition(x, y - i * ROW_GAP,Align.bottom);
                 cardActor.clearActions();
-                cardActor.addAction(Actions.moveToAligned(x, y - i * ROW_GAP,Align.bottom,0.3f));
+                float v = y - i * ROW_GAP;
+                if (cardActor.getX() != x || cardActor.getY() != v) {
+                    cardActor.addAction(Actions.moveToAligned(x, v, Align.bottom, 0.3f));
+                }
             }
         }
+        autoSp();
 
-        // foundation display: show top card of each completed suit
-        for (int i = 0; i < completedSuits.size(); i++) {
-            List<CardModel> run = completedSuits.get(i);
-            if (run.isEmpty()) continue;
-            CardModel top = run.get(run.size() - 1);
-            CardActor cardActor;
-
-            cardActor = cardModelCardActorHashMap.get(top);
-
-            cardActor.setPosition(FOUNDATION_X + i * (CARD_W + FOUNDATION_GAP), FOUNDATION_Y);
-        }
+//        // foundation display: show top card of each completed suit
+//        for (int i = 0; i < completedSuits.size(); i++) {
+//            List<CardModel> run = completedSuits.get(i);
+//            if (run.isEmpty()) continue;
+//            CardModel top = run.get(run.size() - 1);
+//            CardActor cardActor;
+//            cardActor = cardModelCardActorHashMap.get(top);
+//            cardActor.setPosition(FOUNDATION_X + i * (CARD_W + FOUNDATION_GAP), FOUNDATION_Y);
+//        }
         // stock indicator
         stockPlaceholder.setVisible(!stockQueue.isEmpty());
+    }
+
+    private void autoSp() {
+        for (SpiderStack stack : stacks) {
+            List<CardModel> cards = stack.getCards();
+            if (cards.size()>=13){
+                CardModel cardModel = cards.get(cards.size() - 13);
+                if (!cardModel.isFaceUp()){
+                    break;
+                }
+                if (cardModel.getRank() != 13) {
+                    break;
+                }
+                boolean auto = true;
+                for (int i = cards.size()-13; i < cards.size() - 1; i++) {
+                    CardModel cardModel1 = cards.get(i);
+                    CardModel cardModel2 = cards.get(i+1);
+                    if (cardModel1.getSuit() !=cardModel2.getSuit()){
+                        auto = false;
+                        break;
+                    }
+                    if (cardModel1.getRank() - 1!=cardModel2.getRank()){
+                        auto = false;
+                        break;
+                    }
+                }
+                if (auto){
+                    Image image = foundationSlots.get(0);
+                    ArrayList<CardModel> cardModels =new ArrayList<>();
+                    completedSuits.add(cardModels);
+                    int i = cards.size() - 13;
+
+                    for (int i1 = i; i1 < cards.size(); i1++) {
+                        cardModels.add(cards.get(i1));
+                    }
+                    for (CardModel model : cardModels) {
+                        cards.remove(model);
+                    }
+                    if (cards.size()>0) {
+                        CardModel cardModel1 = cards.get(cards.size() - 1);
+                        cardModel1.setFaceUp(true);
+                    }
+                    for (CardModel model : cardModels) {
+                        CardActor cardActor = cardModelCardActorHashMap.get(model);
+                        cardActor.addAction(
+                            Actions.sequence(
+                                Actions.delay(0.3f),
+                                Actions.moveToAligned(
+                                        image.getX(Align.center),
+                                        image.getY(Align.center),
+                                        Align.center,
+                                        0.2f),
+                                    Actions.run(()->{
+                                        for (SpiderStack spiderStack : stacks) {
+                                            List<CardModel> cards1 = spiderStack.getCards();
+                                            if (cards1.size()>0){
+                                                CardModel cardModel1 = cards1.get(cards1.size() - 1);
+                                                cardModelCardActorHashMap.get(cardModel1).checkFaceUp();
+                                            }
+                                        }
+                                    })
+                            )
+                        );
+                    }
+                }
+            }
+        }
     }
 
     private void dealNext() {
@@ -318,21 +409,7 @@ public class SpiderScreen extends BaseScreen {
         for (SpiderStack stack : stacks) {
             newlyDealt.add(stack.getCards().get(stack.getCards().size() - 1));
         }
-        refreshLayout(true);
-//        for (int i = 0; i < newlyDealt.size(); i++) {
-//            CardModel card = newlyDealt.get(i);
-//            CardActor actor = findActor(card);
-//            if (actor != null) {
-//                float tx = actor.getX();
-//                float ty = actor.getY();
-//                actor.setPosition(STOCK_X, STOCK_Y);
-//                actor.toFront();
-//                actor.addAction(Actions.sequence(
-//                        Actions.delay(0.02f * i),
-//                        Actions.moveTo(tx, ty, 0.25f, Interpolation.pow2Out)
-//                ));
-//            }
-//        }
+        refreshLayout(true,1);
         statusLabel.setText("Dealt 10 cards. Stock " + stockQueue.size());
     }
 
@@ -411,7 +488,7 @@ public class SpiderScreen extends BaseScreen {
                 // animate top card to foundation slot
                 int slot = completedSuits.size();
                 CardModel top = run.get(run.size() - 1);
-                CardActor actor = findActor(top);
+                CardActor actor = cardModelCardActorHashMap.get(top);
                 float fx = FOUNDATION_X + slot * (CARD_W + FOUNDATION_GAP);
                 float fy = FOUNDATION_Y;
                 if (actor != null) {
@@ -550,7 +627,7 @@ public class SpiderScreen extends BaseScreen {
             Vector2 vector2 = new Vector2(x,y);
             if (target instanceof CardActor){
 //                根据target找下标
-                rootView.localToStageCoordinates(vector2);
+                gamePanel.localToStageCoordinates(vector2);
                 target.stageToLocalCoordinates(vector2);
                 TouchInfo touchInfo = findTarget(target);
                 if (touchInfo!=null){
@@ -636,63 +713,7 @@ public class SpiderScreen extends BaseScreen {
                 drag = null;
                 refreshLayout();
             }
-
-//            System.out.println(hit);
-//
-//            TouchInfo touchInfo = findTargetOver(hit);
-//            System.out.println("=--------------------------");
-//            Vector2 world = new Vector2(event.getStageX(), event.getStageY());
-//            int targetCol = columnAt(world.x, world.y);
-//            if (targetCol >= 0 && canDrop(targetCol, drag.getMoving())) {
-//                moveCards(drag.getFromCol(), targetCol, drag.getMoving().size());
-//                statusLabel.setText("Moved " + drag.getMoving().size() + " card(s)");
-//            } else {
-//                statusLabel.setText("Illegal move");
-//            }
-//            drag = null;
-//            refreshLayout();
         }
-
-        private boolean isMovableRun(List<CardModel> run) {
-            if (run.isEmpty()) return false;
-            for (int i = 0; i < run.size() - 1; i++) {
-                CardModel a = run.get(i);
-                CardModel b = run.get(i + 1);
-                if (a.getRank() != b.getRank() + 1 || a.getSuit() != b.getSuit()) {
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        private boolean canDrop(int targetCol, List<CardModel> run) {
-            SpiderStack dest = stacks.get(targetCol);
-            if (dest.getCards().isEmpty()) return true;
-            CardModel top = dest.getCards().get(dest.getCards().size() - 1);
-            CardModel bottom = run.get(0);
-            return top.getRank() == bottom.getRank() + 1;
-        }
-
-        private void moveCards(int fromCol, int toCol, int count) {
-            SpiderStack source = stacks.get(fromCol);
-            SpiderStack dest = stacks.get(toCol);
-            int start = source.getCards().size() - count;
-            List<CardModel> moving = new ArrayList<>(source.getCards().subList(start, source.getCards().size()));
-            source.getCards().subList(start, source.getCards().size()).clear();
-            dest.getCards().addAll(moving);
-            flipTop(source);
-            checkCompleted(source);
-            checkCompleted(dest);
-        }
-
-        private int columnAt(float x, float y) {
-            for (int col = 0; col < COLS; col++) {
-                float cx = LEFT_X + col * (CARD_W + COL_GAP);
-                if (x >= cx && x <= cx + CARD_W) return col;
-            }
-            return -1;
-        }
-
     }
 
     private TouchUpBean findMoveTarget(CardActor hit, List<CardModel> moving) {
@@ -754,7 +775,7 @@ public class SpiderScreen extends BaseScreen {
     }
 
     private CardActor findActor(CardModel card) {
-        for (Actor actor : rootView.getChildren()) {
+        for (Actor actor : gamePanel.getChildren()) {
             if (actor instanceof CardActor) {
                 if (((CardActor) actor).getCard() == card) {
                     return (CardActor) actor;
@@ -766,7 +787,7 @@ public class SpiderScreen extends BaseScreen {
 
     private void bringToFront(List<CardModel> cards) {
         for (CardModel card : cards) {
-            CardActor actor = findActor(card);
+            CardActor actor = cardModelCardActorHashMap.get(card);
             if (actor != null) {
                 actor.toFront();
             }

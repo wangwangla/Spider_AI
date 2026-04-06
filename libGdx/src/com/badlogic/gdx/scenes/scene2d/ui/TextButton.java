@@ -142,6 +142,10 @@ public class TextButton extends Button {
 		public TextButtonStyle () {
 		}
 
+		public TextButtonStyle(BitmapFont font){
+			this.font = font;
+		}
+
 		public TextButtonStyle (@Null Drawable up, @Null Drawable down, @Null Drawable checked, @Null BitmapFont font) {
 			super(up, down, checked);
 			this.font = font;
