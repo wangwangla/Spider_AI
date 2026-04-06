@@ -23,8 +23,8 @@ import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.utils.Align;
-import com.badlogic.gdx.utils.Array;
 import com.bean.TouchInfo;
+import com.bean.TouchUpBean;
 import com.constant.CardConstant;
 import com.kw.gdx.BaseBaseGame;
 import com.kw.gdx.asset.Asset;
@@ -44,7 +44,6 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
 
 import static com.constant.CardConstant.*;
@@ -56,10 +55,8 @@ import static com.constant.CardConstant.*;
  * - SOLVE runs the bundled solver and steps/auto-plays the moves.
  */
 public class SpiderScreen extends BaseScreen {
-
     private BitmapFont font;
     private Texture background;
-    private Map<Integer, Texture> cardFaces;
     private List<SpiderStack> stacks;
     private Deque<CardModel> stockQueue;
     private List<List<CardModel>> completedSuits;
@@ -69,8 +66,10 @@ public class SpiderScreen extends BaseScreen {
     private boolean autoPlay = false;
     private float autoTimer = 0f;
     private Label statusLabel;
-    private Image stockPlaceholder;
+    private Group stockPlaceholder;
     private List<Image> foundationSlots = new ArrayList<>(8);
+    private ArrayList<Image> holderImgs = new ArrayList<>(4);
+    private ArrayList<Image> deckImgs = new ArrayList<>(10);
     private HashMap<CardModel,CardActor> cardModelCardActorHashMap;
 
     public SpiderScreen(BaseBaseGame baseBaseGame) {
@@ -81,7 +80,6 @@ public class SpiderScreen extends BaseScreen {
     public void initView() {
         super.initView();
         this.cardModelCardActorHashMap = new HashMap<>(104);
-        this.cardFaces = new HashMap<>();
         this.stacks = new ArrayList<>();
         this.stockQueue = new ArrayDeque<>();
         this.completedSuits = new ArrayList<>();
@@ -89,7 +87,7 @@ public class SpiderScreen extends BaseScreen {
         this.solutionSteps = new ArrayList<>();
         this.font = Asset.getAsset().loadBitFont("bitfont/ntcb_40.fnt");
         this.background = new Texture(Gdx.files.internal("background.png"));
-
+        background.setWrap(Texture.TextureWrap.Repeat,Texture.TextureWrap.Repeat);
         //10 列
         for (int i = 0; i < CardConstant.COLS; i++) {
             stacks.add(new SpiderStack());
@@ -97,20 +95,47 @@ public class SpiderScreen extends BaseScreen {
         Table topBar = buildUi();
         topBar.pack();
         topBar.setPosition(1300,1080,Align.topLeft);
-        Image bg = new Image(background);
-        bg.setFillParent(true);
+        TextureRegion region = new TextureRegion(background);
+        region.setRegionWidth((int) (Constant.GAMEWIDTH+0.5f));
+        region.setRegionHeight((int) (Constant.GAMEHIGHT+0.5f));
+        Image bg = new Image(region);
+        bg.setPosition(960,540,Align.center);
         rootView.addActor(bg);
-        stockPlaceholder = new Image(new TextureRegionDrawable(new TextureRegion(makeColorTexture(0x37474f))));
+
+        stockPlaceholder = new Group();
         stockPlaceholder.setSize(CARD_W, CARD_H);
-        stockPlaceholder.setPosition(STOCK_X, STOCK_Y);
+        stockPlaceholder.setPosition(1920-730 + 50, 1080-150,Align.bottomRight);
         rootView.addActor(stockPlaceholder);
+
+
+        for (int i = 0; i < 4; i++) {
+            Image holdImg = new Image(Asset.getAsset().getTexture("cardback.png"));
+            stockPlaceholder.addActor(holdImg);
+            holdImg.setX(i* 10);
+            holderImgs.add(holdImg);
+        }
+
         for (int i = 0; i < 8; i++) {
             Image slot = new Image(new TextureRegionDrawable(new TextureRegion(makeColorTexture(0x263238))));
             slot.setSize(CARD_W, CARD_H);
-            slot.setPosition(FOUNDATION_X + i * 10, FOUNDATION_Y);
+            slot.setPosition(40 + i * 20, 1080-150);
             foundationSlots.add(slot);
             rootView.addActor(slot);
+            slot.setVisible(false);
         }
+
+        float gap = (Constant.GAMEWIDTH - 700) / 10.f;
+        float y = TOP_Y;
+        for (int col = 0; col < COLS; col++) {
+            float x = LEFT_X + col * gap + gap/2f;
+            Image deckCard = new Image(new TextureRegionDrawable(new TextureRegion(makeColorTexture(0x263238))));
+            deckCard.setSize(CARD_W,CARD_H);
+            deckCard.setPosition(x, y,Align.bottom);
+            rootView.addActor(deckCard);
+            deckImgs.add(deckCard);
+        }
+
+
         rootView.addActor(topBar);
 
         statusLabel = new Label("Ready", new Label.LabelStyle(font, Color.WHITE));
@@ -120,12 +145,6 @@ public class SpiderScreen extends BaseScreen {
         rootView.addListener(cardInput);
         newGame();
         printMove();
-        initTouchPanel();
-    }
-
-    private void initTouchPanel() {
-
-
     }
 
     public void printMove(){
@@ -216,7 +235,7 @@ public class SpiderScreen extends BaseScreen {
         while (idx < deck.length) {
             stockQueue.addLast(toModel(deck[idx++], false));
         }
-        refreshLayout();
+        refreshLayout(true);
         statusLabel.setText("New game - stock " + stockQueue.size());
     }
 
@@ -231,24 +250,31 @@ public class SpiderScreen extends BaseScreen {
     }
 
     private void refreshLayout() {
-        Array<Actor> actors = new Array<>(rootView.getChildren());
-        for (Actor actor : actors) {
-            if (actor instanceof CardActor) {
-                actor.remove();
-            }
-        }
+        refreshLayout(false);
+    }
 
+    private void refreshLayout(boolean create) {
+        float gap = (Constant.GAMEWIDTH - 700) / 10.f;
         for (int col = 0; col < COLS; col++) {
             SpiderStack stack = stacks.get(col);
-            float x = LEFT_X + col * (CARD_W + COL_GAP);
+            float x = LEFT_X + col * gap + gap/2f;
             float y = TOP_Y;
             for (int i = 0; i < stack.getCards().size(); i++) {
                 CardModel card = stack.getCards().get(i);
-                CardActor actor = new CardActor(card);
-                cardModelCardActorHashMap.put(card,actor);
-                actor.setOwnStack(stack);
-                actor.setPosition(x, y - i * ROW_GAP);
-                rootView.addActor(actor);
+                CardActor cardActor;
+                if (create){
+                    cardActor = new CardActor(card);
+                    if (!cardModelCardActorHashMap.containsKey(card)) {
+                        cardModelCardActorHashMap.put(card,cardActor);
+                        rootView.addActor(cardActor);
+                    }
+                }else {
+                    cardActor = cardModelCardActorHashMap.get(card);
+                }
+                cardActor.checkFaceUp();
+//                cardActor.setPosition(x, y - i * ROW_GAP,Align.bottom);
+                cardActor.clearActions();
+                cardActor.addAction(Actions.moveToAligned(x, y - i * ROW_GAP,Align.bottom,0.3f));
             }
         }
 
@@ -257,12 +283,12 @@ public class SpiderScreen extends BaseScreen {
             List<CardModel> run = completedSuits.get(i);
             if (run.isEmpty()) continue;
             CardModel top = run.get(run.size() - 1);
-            CardActor actor = new CardActor(top);
-            cardModelCardActorHashMap.put(top,actor);
-            actor.setPosition(FOUNDATION_X + i * (CARD_W + FOUNDATION_GAP), FOUNDATION_Y);
-            rootView.addActor(actor);
-        }
+            CardActor cardActor;
 
+            cardActor = cardModelCardActorHashMap.get(top);
+
+            cardActor.setPosition(FOUNDATION_X + i * (CARD_W + FOUNDATION_GAP), FOUNDATION_Y);
+        }
         // stock indicator
         stockPlaceholder.setVisible(!stockQueue.isEmpty());
     }
@@ -292,21 +318,21 @@ public class SpiderScreen extends BaseScreen {
         for (SpiderStack stack : stacks) {
             newlyDealt.add(stack.getCards().get(stack.getCards().size() - 1));
         }
-        refreshLayout();
-        for (int i = 0; i < newlyDealt.size(); i++) {
-            CardModel card = newlyDealt.get(i);
-            CardActor actor = findActor(card);
-            if (actor != null) {
-                float tx = actor.getX();
-                float ty = actor.getY();
-                actor.setPosition(STOCK_X, STOCK_Y);
-                actor.toFront();
-                actor.addAction(Actions.sequence(
-                        Actions.delay(0.02f * i),
-                        Actions.moveTo(tx, ty, 0.25f, Interpolation.pow2Out)
-                ));
-            }
-        }
+        refreshLayout(true);
+//        for (int i = 0; i < newlyDealt.size(); i++) {
+//            CardModel card = newlyDealt.get(i);
+//            CardActor actor = findActor(card);
+//            if (actor != null) {
+//                float tx = actor.getX();
+//                float ty = actor.getY();
+//                actor.setPosition(STOCK_X, STOCK_Y);
+//                actor.toFront();
+//                actor.addAction(Actions.sequence(
+//                        Actions.delay(0.02f * i),
+//                        Actions.moveTo(tx, ty, 0.25f, Interpolation.pow2Out)
+//                ));
+//            }
+//        }
         statusLabel.setText("Dealt 10 cards. Stock " + stockQueue.size());
     }
 
@@ -540,10 +566,11 @@ public class SpiderScreen extends BaseScreen {
                             CardActor cardActor = cardModelCardActorHashMap.get(cardModel);
                             runCard.add(cardActor);
                         }
-                        drag = new CardDrag(touchInfo.getCardIndex(),
+                        drag = new CardDrag(touchInfo.getStackIndex(),
                                 new ArrayList<CardModel>(run),
                                 new ArrayList<CardActor>(runCard),
                                 vector2);
+                        drag.setTouchTarget(target);
                         bringToFront(drag.getMoving());
                     }
                 }
@@ -565,8 +592,51 @@ public class SpiderScreen extends BaseScreen {
             super.touchUp(event, x, y, pointer, button);
             if (drag == null) return;
             //找目标
-            Actor hit = rootView.hit(x, y, true);
-            hit.get
+            Actor hit = drag.getTarget();
+            if (hit instanceof CardActor) {
+                TouchUpBean moveTarget = findMoveTarget((CardActor) hit,drag.getMoving());
+                if (moveTarget.getCardActor()!=null){
+                    List<CardModel> moving = drag.getMoving();
+                    List<CardModel> targetCards = stacks.get(moveTarget.getTargetStackIndex()).getCards();
+                    List<CardModel> sourceCards = stacks.get(drag.getFromCol()).getCards();
+                    CardModel cardModel = moving.get(0);
+                    if (targetCards.size()>0) {
+                        CardModel temp = targetCards.get(targetCards.size()-1);
+                        if (temp.getRank() - 1 == cardModel.getRank() && temp.getSuit() == cardModel.getSuit()) {
+                            for (CardModel model : moving) {
+                                sourceCards.remove(model);
+                                targetCards.add(model);
+                            }
+                            if (sourceCards.size()>0) {
+                                CardModel cardModel1 = sourceCards.get(sourceCards.size() - 1);
+                                cardModel1.setFaceUp(true);
+                            }
+                        }
+                    }else {
+                        for (CardModel model : moving) {
+                            sourceCards.remove(model);
+                            targetCards.add(model);
+                        }
+                    }
+                }else {
+                    if (moveTarget.getDistance()!=Integer.MAX_VALUE) {
+                        List<CardModel> moving = drag.getMoving();
+                        List<CardModel> targetCards = stacks.get(moveTarget.getTargetStackIndex()).getCards();
+                        List<CardModel> sourceCards = stacks.get(drag.getFromCol()).getCards();
+                        for (CardModel model : moving) {
+                            sourceCards.remove(model);
+                            targetCards.add(model);
+                        }
+                        if (sourceCards.size()>0) {
+                            CardModel cardModel1 = sourceCards.get(sourceCards.size() - 1);
+                            cardModel1.setFaceUp(true);
+                        }
+                    }
+                }
+                drag = null;
+                refreshLayout();
+            }
+
 //            System.out.println(hit);
 //
 //            TouchInfo touchInfo = findTargetOver(hit);
@@ -625,14 +695,47 @@ public class SpiderScreen extends BaseScreen {
 
     }
 
-    private TouchInfo findTargetOver(Actor hit) {
-        if (hit instanceof CardActor) {
-            CardActor cardActor = (CardActor) (hit);
-            CardModel cardModel = cardActor.getCard();
-            return findTochInfoByCardModel(cardModel);
+    private TouchUpBean findMoveTarget(CardActor hit, List<CardModel> moving) {
+        TouchUpBean touchUpBean = new TouchUpBean();
+        touchUpBean.setDistance(Integer.MAX_VALUE);
+        for (int i = 0; i < stacks.size(); i++) {
+            SpiderStack stack = stacks.get(i);
+            if (stack.getCards().size()>0) {
+                CardModel cardModel = stack.getCards().get(stack.getCards().size() - 1);
+                if (!moving.contains(cardModel)) {
+                    CardActor cardActor = cardModelCardActorHashMap.get(cardModel);
+                    float x = cardActor.getX(Align.center);
+                    float y = cardActor.getY(Align.center);
+                    float x1 = hit.getX(Align.center);
+                    float y1 = hit.getY(Align.center);
+                    if (Math.abs(x - x1)< CardConstant.CARD_W&&Math.abs(y - y1)< CARD_H) {
+                        float currentMinDistance = Math.abs(x - x1) * Math.abs(y - y1);
+                        if (currentMinDistance<touchUpBean.getDistance()){
+                            touchUpBean.setDistance(currentMinDistance);
+                            touchUpBean.setCardActor(cardModel);
+                            touchUpBean.setTargetStackIndex(i);
+                        }
+                    }
+                }
+            }else {
+                Image image = deckImgs.get(i);
+                float x = image.getX(Align.center);
+                float y = image.getY(Align.center);
+                float x1 = hit.getX(Align.center);
+                float y1 = hit.getY(Align.center);
+                if (Math.abs(x - x1)< CardConstant.CARD_W&&Math.abs(y - y1)< CARD_H) {
+                    float currentMinDistance = Math.abs(x - x1) * Math.abs(y - y1);
+                    if (currentMinDistance<touchUpBean.getDistance()){
+                        touchUpBean.setDistance(currentMinDistance);
+                        touchUpBean.setCardActor(null);
+                        touchUpBean.setTargetStackIndex(i);
+                    }
+                }
+            }
         }
-        return null;
+        return touchUpBean;
     }
+
 
     private boolean checkValid(TouchInfo touchInfo) {
         SpiderStack stack = stacks.get(touchInfo.getStackIndex());
@@ -641,11 +744,10 @@ public class SpiderScreen extends BaseScreen {
         for (int i = touchInfo.getCardIndex(); i < stack.getCards().size() - 1; i++) {
             CardModel temp1 = stack.getCards().get(i);
             CardModel temp2 = stack.getCards().get(i+1);
-            if (temp1.getSuit() != temp2.getSuit()) {
+            if (temp1.getSuit() == temp2.getSuit()) {
                 if (temp1.getRank() != temp2.getRank()+1) {
                     return false;
                 }
-                return false;
             }
         }
         return true;
@@ -671,23 +773,6 @@ public class SpiderScreen extends BaseScreen {
         }
     }
 
-    private CardHit findTopCard(float x, float y) {
-        CardHit hit = null;
-        for (int col = 0; col < COLS; col++) {
-            SpiderStack stack = stacks.get(col);
-            for (int i = stack.getCards().size() - 1; i >= 0; i--) {
-                float cx = LEFT_X + col * (CARD_W + COL_GAP);
-                float cy = TOP_Y - i * ROW_GAP;
-                Rectangle rect = new Rectangle(cx, cy, CARD_W, CARD_H);
-                if (rect.contains(x, y)) {
-                    hit = new CardHit(col, stack, i, stack.getCards().get(i));
-                    return hit;
-                }
-            }
-        }
-        return hit;
-    }
-
     @Override
     public void render(float delta) {
         Gdx.gl.glClearColor(0, 0, 0, 1f);
@@ -708,13 +793,4 @@ public class SpiderScreen extends BaseScreen {
     public void resize(int width, int height) {
         stage.getViewport().update(width, height, true);
     }
-
-    @Override
-    public void dispose() {
-        super.dispose();
-        font.dispose();
-        background.dispose();
-        cardFaces.values().forEach(Texture::dispose);
-    }
-
 }
