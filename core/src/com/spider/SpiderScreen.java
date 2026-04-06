@@ -113,16 +113,15 @@ public class SpiderScreen extends BaseScreen {
         statusLabel.setAlignment(Align.left);
         statusLabel.setPosition(LEFT_X, 860f);
         rootView.addActor(statusLabel);
-
+        rootView.addListener(cardInput);
         newGame();
         printMove();
         initTouchPanel();
     }
 
     private void initTouchPanel() {
-        Group group = new Group();
-        addActor(group);
-        group.setSize();
+
+
     }
 
     public void printMove(){
@@ -490,18 +489,28 @@ public class SpiderScreen extends BaseScreen {
         private CardDrag drag;
 
         @Override public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
-            CardHit hit = findTopCard(x, y);
-            if (hit == null || !hit.getCard().isFaceUp()) {
-                return false;
-            }
-            List<CardModel> run = hit.getStack().getCards().subList(hit.getIndex(), hit.getStack().getCards().size());
-            if (!isMovableRun(run)) {
-                if (run.size() > 1) {
-                    run = run.subList(run.size() - 1, run.size());
+            Actor target = event.getTarget();
+            if (target == null)return super.touchDown(event,x,y,pointer,button);
+            if (target instanceof CardActor){
+                CardActor cardActor = (CardActor) (target);
+                SpiderStack ownStack = cardActor.getOwnStack();
+                int cardIndex = ownStack.findCardIndex(cardActor);
+                if (cardIndex>0){
+                    List<CardModel> run = ownStack.getCards().subList(cardIndex, ownStack.getCards().size());
+                    if (!isMovableRun(run)) {
+                        if (run.size() > 1) {
+                            run = run.subList(run.size() - 1, run.size());
+                        }
+                    }
+                    Vector2 vector2 = new Vector2(x, y);
+                    rootView.localToStageCoordinates(vector2);
+                    target.stageToLocalCoordinates(vector2);
+                    drag = new CardDrag(cardIndex, new ArrayList<>(run),vector2);
+                    bringToFront(drag.getMoving());
+                }else {
+                    return super.touchDown(event,x,y,pointer,button);
                 }
             }
-            drag = new CardDrag(hit.getStackIndex(), new ArrayList<>(run));
-            bringToFront(drag.getMoving());
             return true;
         }
 

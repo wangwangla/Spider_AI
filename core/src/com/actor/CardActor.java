@@ -17,7 +17,7 @@ public class CardActor extends Image {
                 : Asset.getAsset().getTexture("cardback.png"));
         this.card = card;
         setSize(CardConstant.CARD_W, CardConstant.CARD_H);
-        setTouchable(Touchable.disabled);
+//        setTouchable(Touchable.disabled);
          // we handle input centrally
     }
 
