@@ -11,8 +11,8 @@ public class CardConstant {
     public static float TOP_Y = 720f;
     public static float STOCK_X = LEFT_X;
     public static float STOCK_Y = 860f;
-    public static float FOUNDATION_X = 1050f;
-    public static float FOUNDATION_Y = 820f;
-    public static float FOUNDATION_GAP = 32f;
+    public static float FOUNDATION_X = 870f;
+    public static float FOUNDATION_Y = 900f;
+    public static float FOUNDATION_GAP = 12f;
 
 }

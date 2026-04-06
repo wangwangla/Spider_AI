@@ -12,6 +12,7 @@ import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Interpolation;
 import com.badlogic.gdx.scenes.scene2d.Actor;
+import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
@@ -25,6 +26,7 @@ import com.badlogic.gdx.utils.Array;
 import com.constant.CardConstant;
 import com.kw.gdx.BaseBaseGame;
 import com.kw.gdx.asset.Asset;
+import com.kw.gdx.constant.Constant;
 import com.kw.gdx.screen.BaseScreen;
 import com.solvitaire.app.DealShuffler;
 import com.solvitaire.app.SpiderSolutionStep;
@@ -53,23 +55,28 @@ import static com.constant.CardConstant.*;
  */
 public class SpiderScreen extends BaseScreen {
 
-    private final BitmapFont font;
-    private final Texture background;
-    private final Map<Integer, Texture> cardFaces;
-    private final List<SpiderStack> stacks;
-    private final Deque<CardModel> stockQueue;
-    private final List<List<CardModel>> completedSuits;
-    private final SpiderSolverService solverService;
+    private BitmapFont font;
+    private Texture background;
+    private Map<Integer, Texture> cardFaces;
+    private List<SpiderStack> stacks;
+    private Deque<CardModel> stockQueue;
+    private List<List<CardModel>> completedSuits;
+    private SpiderSolverService solverService;
     private List<SpiderSolutionStep> solutionSteps;
     private int currentStepIndex = 0;
     private boolean autoPlay = false;
     private float autoTimer = 0f;
-    private final Label statusLabel;
-    private final Image stockPlaceholder;
-    private final List<Image> foundationSlots = new ArrayList<>(8);
+    private Label statusLabel;
+    private Image stockPlaceholder;
+    private List<Image> foundationSlots = new ArrayList<>(8);
 
     public SpiderScreen(BaseBaseGame baseBaseGame) {
         super(baseBaseGame);
+    }
+
+    @Override
+    public void initView() {
+        super.initView();
         this.cardFaces = new HashMap<>();
         this.stacks = new ArrayList<>();
         this.stockQueue = new ArrayDeque<>();
@@ -83,34 +90,46 @@ public class SpiderScreen extends BaseScreen {
         for (int i = 0; i < CardConstant.COLS; i++) {
             stacks.add(new SpiderStack());
         }
-
-        stage.setDebugAll(true);
-
         Table topBar = buildUi();
-        topBar.setFillParent(true);
+        topBar.pack();
+        topBar.setPosition(1300,1080,Align.topLeft);
         Image bg = new Image(background);
         bg.setFillParent(true);
-        stage.addActor(bg);
+        rootView.addActor(bg);
         stockPlaceholder = new Image(new TextureRegionDrawable(new TextureRegion(makeColorTexture(0x37474f))));
         stockPlaceholder.setSize(CARD_W, CARD_H);
         stockPlaceholder.setPosition(STOCK_X, STOCK_Y);
-        stage.addActor(stockPlaceholder);
+        rootView.addActor(stockPlaceholder);
         for (int i = 0; i < 8; i++) {
             Image slot = new Image(new TextureRegionDrawable(new TextureRegion(makeColorTexture(0x263238))));
             slot.setSize(CARD_W, CARD_H);
-            slot.setPosition(FOUNDATION_X + i * (CARD_W + FOUNDATION_GAP), FOUNDATION_Y);
+            slot.setPosition(FOUNDATION_X + i * 10, FOUNDATION_Y);
             foundationSlots.add(slot);
-            stage.addActor(slot);
+            rootView.addActor(slot);
         }
-        stage.addActor(topBar);
+        rootView.addActor(topBar);
 
         statusLabel = new Label("Ready", new Label.LabelStyle(font, Color.WHITE));
         statusLabel.setAlignment(Align.left);
         statusLabel.setPosition(LEFT_X, 860f);
-        stage.addActor(statusLabel);
+        rootView.addActor(statusLabel);
 
-        stage.addListener(cardInput);
         newGame();
+        printMove();
+        initTouchPanel();
+    }
+
+    private void initTouchPanel() {
+        Group group = new Group();
+        addActor(group);
+        group.setSize();
+    }
+
+    public void printMove(){
+        Image slot = new Image(new TextureRegionDrawable(new TextureRegion(makeColorTexture(0x263238))));
+        rootView.addActor(slot);
+        slot.setSize(500,900);
+        slot.setPosition(1920-100,540,Align.right);
     }
 
     private Table buildUi() {
@@ -209,8 +228,8 @@ public class SpiderScreen extends BaseScreen {
     }
 
     private void refreshLayout() {
-        Array<Actor> actors = new Array<>(stage.getActors());
-        for (com.badlogic.gdx.scenes.scene2d.Actor actor : actors) {
+        Array<Actor> actors = new Array<>(rootView.getChildren());
+        for (Actor actor : actors) {
             if (actor instanceof CardActor) {
                 actor.remove();
             }
@@ -223,8 +242,9 @@ public class SpiderScreen extends BaseScreen {
             for (int i = 0; i < stack.getCards().size(); i++) {
                 CardModel card = stack.getCards().get(i);
                 CardActor actor = new CardActor(card);
+                actor.setOwnStack(stack);
                 actor.setPosition(x, y - i * ROW_GAP);
-                stage.addActor(actor);
+                rootView.addActor(actor);
             }
         }
 
@@ -235,7 +255,7 @@ public class SpiderScreen extends BaseScreen {
             CardModel top = run.get(run.size() - 1);
             CardActor actor = new CardActor(top);
             actor.setPosition(FOUNDATION_X + i * (CARD_W + FOUNDATION_GAP), FOUNDATION_Y);
-            stage.addActor(actor);
+            rootView.addActor(actor);
         }
 
         // stock indicator
@@ -464,7 +484,7 @@ public class SpiderScreen extends BaseScreen {
         return "";
     }
 
-    private final InputListener cardInput = new CardInputListener();
+    private InputListener cardInput = new CardInputListener();
 
     private class CardInputListener extends InputListener {
         private CardDrag drag;
@@ -552,7 +572,7 @@ public class SpiderScreen extends BaseScreen {
     }
 
     private CardActor findActor(CardModel card) {
-        for (com.badlogic.gdx.scenes.scene2d.Actor actor : stage.getActors()) {
+        for (Actor actor : rootView.getChildren()) {
             if (actor instanceof CardActor) {
                 if (((CardActor) actor).getCard() == card) {
                     return (CardActor) actor;
