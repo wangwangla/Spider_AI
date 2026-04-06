@@ -19,10 +19,12 @@ import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
+import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
+import com.bean.TouchInfo;
 import com.constant.CardConstant;
 import com.kw.gdx.BaseBaseGame;
 import com.kw.gdx.asset.Asset;
@@ -69,6 +71,7 @@ public class SpiderScreen extends BaseScreen {
     private Label statusLabel;
     private Image stockPlaceholder;
     private List<Image> foundationSlots = new ArrayList<>(8);
+    private HashMap<CardModel,CardActor> cardModelCardActorHashMap;
 
     public SpiderScreen(BaseBaseGame baseBaseGame) {
         super(baseBaseGame);
@@ -77,6 +80,7 @@ public class SpiderScreen extends BaseScreen {
     @Override
     public void initView() {
         super.initView();
+        this.cardModelCardActorHashMap = new HashMap<>(104);
         this.cardFaces = new HashMap<>();
         this.stacks = new ArrayList<>();
         this.stockQueue = new ArrayDeque<>();
@@ -241,6 +245,7 @@ public class SpiderScreen extends BaseScreen {
             for (int i = 0; i < stack.getCards().size(); i++) {
                 CardModel card = stack.getCards().get(i);
                 CardActor actor = new CardActor(card);
+                cardModelCardActorHashMap.put(card,actor);
                 actor.setOwnStack(stack);
                 actor.setPosition(x, y - i * ROW_GAP);
                 rootView.addActor(actor);
@@ -253,6 +258,7 @@ public class SpiderScreen extends BaseScreen {
             if (run.isEmpty()) continue;
             CardModel top = run.get(run.size() - 1);
             CardActor actor = new CardActor(top);
+            cardModelCardActorHashMap.put(top,actor);
             actor.setPosition(FOUNDATION_X + i * (CARD_W + FOUNDATION_GAP), FOUNDATION_Y);
             rootView.addActor(actor);
         }
@@ -485,57 +491,96 @@ public class SpiderScreen extends BaseScreen {
 
     private InputListener cardInput = new CardInputListener();
 
-    private class CardInputListener extends InputListener {
+    public TouchInfo findTarget(Actor actor){
+        if (actor instanceof CardActor) {
+            CardActor cardActor = (CardActor) (actor);
+            CardModel cardModel = cardActor.getCard();
+            return findTochInfoByCardModel(cardModel);
+        }
+        return null;
+    }
+
+    private TouchInfo findTochInfoByCardModel(CardModel cardModel) {
+        for (int i = 0; i < stacks.size(); i++) {
+            SpiderStack stack = stacks.get(i);
+            for (int i1 = 0; i1 < stack.getCards().size(); i1++) {
+                CardModel card = stack.getCards().get(i1);
+                if (card == cardModel) {
+                    TouchInfo touchInfo = new TouchInfo();
+                    touchInfo.setStackIndex(i);
+                    touchInfo.setCardIndex(i1);
+                    return touchInfo;
+                }
+            }
+        }
+        return null;
+    }
+
+    private class CardInputListener extends ClickListener {
         private CardDrag drag;
 
         @Override public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
             Actor target = event.getTarget();
-            if (target == null)return super.touchDown(event,x,y,pointer,button);
+            Vector2 vector2 = new Vector2(x,y);
             if (target instanceof CardActor){
-                CardActor cardActor = (CardActor) (target);
-                SpiderStack ownStack = cardActor.getOwnStack();
-                int cardIndex = ownStack.findCardIndex(cardActor);
-                if (cardIndex>0){
-                    List<CardModel> run = ownStack.getCards().subList(cardIndex, ownStack.getCards().size());
-                    if (!isMovableRun(run)) {
-                        if (run.size() > 1) {
-                            run = run.subList(run.size() - 1, run.size());
+//                根据target找下标
+                rootView.localToStageCoordinates(vector2);
+                target.stageToLocalCoordinates(vector2);
+                TouchInfo touchInfo = findTarget(target);
+                if (touchInfo!=null){
+                    if (checkValid(touchInfo)) {
+                        List<CardModel> run =
+                                stacks.get(touchInfo.getStackIndex())
+                                        .getCards()
+                                        .subList(touchInfo.getCardIndex(),
+                                                stacks.get(touchInfo.getStackIndex())
+                                                        .getCards().size());
+                        List<CardActor> runCard = new ArrayList<>();
+                        for (CardModel cardModel : run) {
+                            CardActor cardActor = cardModelCardActorHashMap.get(cardModel);
+                            runCard.add(cardActor);
                         }
+                        drag = new CardDrag(touchInfo.getCardIndex(),
+                                new ArrayList<CardModel>(run),
+                                new ArrayList<CardActor>(runCard),
+                                vector2);
+                        bringToFront(drag.getMoving());
                     }
-                    Vector2 vector2 = new Vector2(x, y);
-                    rootView.localToStageCoordinates(vector2);
-                    target.stageToLocalCoordinates(vector2);
-                    drag = new CardDrag(cardIndex, new ArrayList<>(run),vector2);
-                    bringToFront(drag.getMoving());
-                }else {
-                    return super.touchDown(event,x,y,pointer,button);
                 }
             }
-            return true;
+            return super.touchDown(event,x,y,pointer,button);
         }
 
         @Override public void touchDragged(InputEvent event, float x, float y, int pointer) {
+            super.touchDragged(event,x,y,pointer);
             if (drag == null) return;
-            for (CardModel card : drag.getMoving()) {
-                CardActor actor = findActor(card);
-                if (actor != null) {
-                    actor.setPosition(x,y);
-                }
+            for (int i = 0; i < drag.getMovingActor().size(); i++) {
+                CardActor cardActor = drag.getMovingActor().get(i);
+                cardActor.setPosition(x - drag.getTouchDownV2().x,y - drag.getTouchDownV2().y - i*20);
             }
         }
 
-        @Override public void touchUp(InputEvent event, float x, float y, int pointer, int button) {
+        @Override
+        public void touchUp(InputEvent event, float x, float y, int pointer, int button) {
+            super.touchUp(event, x, y, pointer, button);
             if (drag == null) return;
-            Vector2 world = new Vector2(event.getStageX(), event.getStageY());
-            int targetCol = columnAt(world.x, world.y);
-            if (targetCol >= 0 && canDrop(targetCol, drag.getMoving())) {
-                moveCards(drag.getFromCol(), targetCol, drag.getMoving().size());
-                statusLabel.setText("Moved " + drag.getMoving().size() + " card(s)");
-            } else {
-                statusLabel.setText("Illegal move");
-            }
-            drag = null;
-            refreshLayout();
+            //找目标
+            Actor hit = rootView.hit(x, y, true);
+            hit.get
+//            System.out.println(hit);
+//
+//            TouchInfo touchInfo = findTargetOver(hit);
+//            System.out.println("=--------------------------");
+//            Vector2 world = new Vector2(event.getStageX(), event.getStageY());
+//            int targetCol = columnAt(world.x, world.y);
+//            if (targetCol >= 0 && canDrop(targetCol, drag.getMoving())) {
+//                moveCards(drag.getFromCol(), targetCol, drag.getMoving().size());
+//                statusLabel.setText("Moved " + drag.getMoving().size() + " card(s)");
+//            } else {
+//                statusLabel.setText("Illegal move");
+//            }
+//            drag = null;
+//            refreshLayout();
         }
 
         private boolean isMovableRun(List<CardModel> run) {
@@ -578,6 +623,32 @@ public class SpiderScreen extends BaseScreen {
             return -1;
         }
 
+    }
+
+    private TouchInfo findTargetOver(Actor hit) {
+        if (hit instanceof CardActor) {
+            CardActor cardActor = (CardActor) (hit);
+            CardModel cardModel = cardActor.getCard();
+            return findTochInfoByCardModel(cardModel);
+        }
+        return null;
+    }
+
+    private boolean checkValid(TouchInfo touchInfo) {
+        SpiderStack stack = stacks.get(touchInfo.getStackIndex());
+        CardModel cardModel = stack.getCards().get(touchInfo.getCardIndex());
+        cardModelCardActorHashMap.get(cardModel);
+        for (int i = touchInfo.getCardIndex(); i < stack.getCards().size() - 1; i++) {
+            CardModel temp1 = stack.getCards().get(i);
+            CardModel temp2 = stack.getCards().get(i+1);
+            if (temp1.getSuit() != temp2.getSuit()) {
+                if (temp1.getRank() != temp2.getRank()+1) {
+                    return false;
+                }
+                return false;
+            }
+        }
+        return true;
     }
 
     private CardActor findActor(CardModel card) {
