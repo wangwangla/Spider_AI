@@ -274,6 +274,7 @@ public class SpiderScreen extends BaseScreen {
 
     private void refreshLayout(boolean create,int mode) {
         float gap = (Constant.GAMEWIDTH - 700) / 10.f;
+        int index = 0;
         for (int col = 0; col < COLS; col++) {
             SpiderStack stack = stacks.get(col);
             float x = LEFT_X + col * gap + gap/2f;
@@ -288,7 +289,9 @@ public class SpiderScreen extends BaseScreen {
                         cardModelCardActorHashMap.put(card,cardActor);
                         gamePanel.addActor(cardActor);
                         if (mode == 2){
-
+                            cardActor.setPosition(gamePanel.getWidth()/2f,-100,Align.center);
+                        }else if (mode == 1){
+                            cardActor.setPosition(stockPlaceholder.getX(Align.center),stockPlaceholder.getY(Align.center),Align.center);
                         }
                     }
                 }else {
@@ -298,7 +301,21 @@ public class SpiderScreen extends BaseScreen {
                 cardActor.clearActions();
                 float v = y - i * ROW_GAP;
                 if (cardActor.getX() != x || cardActor.getY() != v) {
-                    cardActor.addAction(Actions.moveToAligned(x, v, Align.bottom, 0.3f));
+                    if (mode == 2) {
+                        cardActor.addAction(
+                                Actions.sequence(
+                                        Actions.delay(col*0.02f+0.2f*i),
+                                        Actions.moveToAligned(x, v, Align.bottom, 0.3f)
+                                ));
+                    }else if (mode == 1){
+                        cardActor.addAction(
+                                Actions.sequence(
+                                        Actions.delay(col*0.1f),
+                                        Actions.moveToAligned(x, v, Align.bottom, 0.3f)
+                                ));
+                    }else {
+                        cardActor.addAction(Actions.moveToAligned(x, v, Align.bottom, 0.3f));
+                    }
                 }
             }
         }
@@ -357,11 +374,13 @@ public class SpiderScreen extends BaseScreen {
                         CardModel cardModel1 = cards.get(cards.size() - 1);
                         cardModel1.setFaceUp(true);
                     }
-                    for (CardModel model : cardModels) {
+                    int index = 0;
+                    for (int i1 = 0; i1 < cardModels.size(); i1++) {
+                        CardModel model = cardModels.get(cardModels.size() - 1 - i1);
                         CardActor cardActor = cardModelCardActorHashMap.get(model);
                         cardActor.addAction(
                             Actions.sequence(
-                                Actions.delay(0.3f),
+                                Actions.delay(0.3f+index++*0.1f),
                                 Actions.moveToAligned(
                                         image.getX(Align.center),
                                         image.getY(Align.center),
@@ -509,23 +528,17 @@ public class SpiderScreen extends BaseScreen {
     }
 
     private String buildBoardState() {
-        int[] totals = new int[COLS];
-        int[] faceDown = new int[COLS];
+        // Output the board in the same layout the solver expects:
+        // header line "spider"
+        // tableau rows, bottom-up, 10 comma-separated columns (empty = "")
+        // final line: 50 stock cards, top of stock first (empty tokens allowed)
         int max = 0;
-        for (int c = 0; c < COLS; c++) {
-            SpiderStack stack = stacks.get(c);
-            totals[c] = stack.getCards().size();
-            faceDown[c] = (int) stack.getCards().stream().filter(card -> !card.isFaceUp()).count();
-            max = Math.max(max, totals[c]);
+        for (SpiderStack stack : stacks) {
+            max = Math.max(max, stack.getCards().size());
         }
-        int dealsRemaining = stockQueue.size();
         StringBuilder sb = new StringBuilder();
-        sb.append("Spider,").append(dealsRemaining);
-        for (int c = 0; c < COLS; c++) {
-            sb.append(":").append(faceDown[c] * 100 + totals[c]);
-        }
-        sb.append("\n");
-        // Rows are output bottom-up to match solver format.
+        sb.append("spider\n");
+        // tableau rows (bottom to top)
         for (int row = 0; row < max; row++) {
             for (int col = 0; col < COLS; col++) {
                 SpiderStack stack = stacks.get(col);
@@ -538,21 +551,16 @@ public class SpiderScreen extends BaseScreen {
             }
             sb.append("\n");
         }
-        sb.append("# Deck:\n");
-        // Deck: top of stock first. Fill exactly 50 entries.
+        // stock row: top of stock first, exactly 50 entries (blank if missing)
         List<CardModel> stockList = new ArrayList<>(stockQueue);
         for (int i = 0; i < STOCK_DEALS * COLS; i++) {
             String token = i < stockList.size() ? safeCode(stockList.get(i)) : "";
             sb.append(token).append(",");
         }
         sb.append("\n");
-        for (int i = 0; i < 8; i++) {
-            if (i < completedSuits.size()) {
-                CardModel top = completedSuits.get(i).get(0);
-                sb.append(safeCode(top));
-            }
-            sb.append(",");
-        }
+        System.out.println(
+                sb
+        );
         return sb.toString();
     }
 
