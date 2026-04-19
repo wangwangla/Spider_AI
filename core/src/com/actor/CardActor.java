@@ -1,7 +1,9 @@
 package com.actor;
 
+import com.badlogic.gdx.math.Interpolation;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
+import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.utils.Align;
 import com.constant.CardConstant;
@@ -47,5 +49,17 @@ public class CardActor extends Image {
 
     public SpiderStack getOwnStack() {
         return ownStack;
+    }
+
+    public void zhuan() {
+        setOrigin(Align.center);
+        addAction(Actions.sequence(
+                Actions.scaleTo(0,1,0.2f, Interpolation.circle),
+                Actions.run(()->{
+                    card.setFaceUp(true);
+                    checkFaceUp();
+                }),
+                Actions.scaleTo(1,1,0.2f,Interpolation.circle)
+        ));
     }
 }

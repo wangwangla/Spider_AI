@@ -29,6 +29,7 @@ import com.constant.CardConstant;
 import com.kw.gdx.BaseBaseGame;
 import com.kw.gdx.asset.Asset;
 import com.kw.gdx.constant.Constant;
+import com.kw.gdx.listener.OrdinaryButtonListener;
 import com.kw.gdx.screen.BaseScreen;
 import com.solvitaire.app.DealShuffler;
 import com.solvitaire.app.SpiderSolutionStep;
@@ -65,6 +66,7 @@ public class SpiderScreen extends BaseScreen {
     private float autoTimer = 0f;
     private Label statusLabel;
     private Group stockPlaceholder;
+    private int foundationSlotIndex = 0;
     private List<Image> foundationSlots = new ArrayList<>(8);
     private ArrayList<Image> holderImgs = new ArrayList<>(4);
     private ArrayList<Image> deckImgs = new ArrayList<>(10);
@@ -109,6 +111,13 @@ public class SpiderScreen extends BaseScreen {
         stockPlaceholder.setSize(CARD_W, CARD_H);
         stockPlaceholder.setPosition(gamePanel.getWidth()-100, Constant.GAMEHIGHT-150,Align.bottomRight);
         gamePanel.addActor(stockPlaceholder);
+        stockPlaceholder.addListener(new OrdinaryButtonListener(){
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                super.clicked(event, x, y);
+                dealNext();
+            }
+        });
 
         for (int i = 0; i < 4; i++) {
             Image holdImg = new Image(Asset.getAsset().getTexture("cardback.png"));
@@ -291,6 +300,7 @@ public class SpiderScreen extends BaseScreen {
                         if (mode == 2){
                             cardActor.setPosition(gamePanel.getWidth()/2f,-100,Align.center);
                         }else if (mode == 1){
+                            cardActor.zhuan();
                             cardActor.setPosition(stockPlaceholder.getX(Align.center),stockPlaceholder.getY(Align.center),Align.center);
                         }
                     }
@@ -311,7 +321,10 @@ public class SpiderScreen extends BaseScreen {
                         cardActor.addAction(
                                 Actions.sequence(
                                         Actions.delay(col*0.1f),
-                                        Actions.moveToAligned(x, v, Align.bottom, 0.3f)
+                                        Actions.moveToAligned(x, v, Align.bottom, 0.3f),
+                                        Actions.run(()->{
+                                            cardActor.zhuan();
+                                        })
                                 ));
                     }else {
                         cardActor.addAction(Actions.moveToAligned(x, v, Align.bottom, 0.3f));
@@ -321,48 +334,45 @@ public class SpiderScreen extends BaseScreen {
         }
         autoSp();
 
-//        // foundation display: show top card of each completed suit
-//        for (int i = 0; i < completedSuits.size(); i++) {
-//            List<CardModel> run = completedSuits.get(i);
-//            if (run.isEmpty()) continue;
-//            CardModel top = run.get(run.size() - 1);
-//            CardActor cardActor;
-//            cardActor = cardModelCardActorHashMap.get(top);
-//            cardActor.setPosition(FOUNDATION_X + i * (CARD_W + FOUNDATION_GAP), FOUNDATION_Y);
-//        }
-        // stock indicator
         stockPlaceholder.setVisible(!stockQueue.isEmpty());
     }
 
+    int index = 0;
+
     private void autoSp() {
+        int xx = 8;
         for (SpiderStack stack : stacks) {
             List<CardModel> cards = stack.getCards();
-            if (cards.size()>=13){
-                CardModel cardModel = cards.get(cards.size() - 13);
-                if (!cardModel.isFaceUp()){
-                    break;
-                }
-                if (cardModel.getRank() != 13) {
-                    break;
-                }
+            if (cards.size()>=xx){
+//                CardModel cardModel = cards.get(cards.size() - 13);
+//                if (!cardModel.isFaceUp()){
+//                    break;
+//                }
+//                if (cardModel.getRank() != 13) {
+//                    break;
+//                }
                 boolean auto = true;
-                for (int i = cards.size()-13; i < cards.size() - 1; i++) {
-                    CardModel cardModel1 = cards.get(i);
-                    CardModel cardModel2 = cards.get(i+1);
-                    if (cardModel1.getSuit() !=cardModel2.getSuit()){
-                        auto = false;
-                        break;
-                    }
-                    if (cardModel1.getRank() - 1!=cardModel2.getRank()){
-                        auto = false;
-                        break;
-                    }
-                }
+//                for (int i = cards.size()-13; i < cards.size() - 1; i++) {
+//                    CardModel cardModel1 = cards.get(i);
+//                    CardModel cardModel2 = cards.get(i+1);
+//                    if (cardModel1.getSuit() !=cardModel2.getSuit()){
+//                        auto = false;
+//                        break;
+//                    }
+//                    if (cardModel1.getRank() - 1!=cardModel2.getRank()){
+//                        auto = false;
+//                        break;
+//                    }
+//                }
+//                if (cards.size()>13){
+//                    auto = true;
+//                }
                 if (auto){
-                    Image image = foundationSlots.get(0);
+                    Image image = foundationSlots.get(foundationSlotIndex);
+                    foundationSlotIndex ++;
                     ArrayList<CardModel> cardModels =new ArrayList<>();
                     completedSuits.add(cardModels);
-                    int i = cards.size() - 13;
+                    int i = cards.size() - xx;
 
                     for (int i1 = i; i1 < cards.size(); i1++) {
                         cardModels.add(cards.get(i1));
@@ -375,12 +385,21 @@ public class SpiderScreen extends BaseScreen {
                         cardModel1.setFaceUp(true);
                     }
                     int index = 0;
-                    for (int i1 = 0; i1 < cardModels.size(); i1++) {
-                        CardModel model = cardModels.get(cardModels.size() - 1 - i1);
-                        CardActor cardActor = cardModelCardActorHashMap.get(model);
-                        cardActor.addAction(
+                    moveAnimation(cardModels, index, image);
+                }
+            }
+        }
+    }
+
+    private void moveAnimation(ArrayList<CardModel> cardModels, int index, Image image) {
+        for (int i1 = 0; i1 < cardModels.size(); i1++) {
+            CardModel model = cardModels.get(cardModels.size() - 1 - i1);
+            CardActor cardActor = cardModelCardActorHashMap.get(model);
+            cardActor.addAction(
+                Actions.sequence(
+                    Actions.delay(0.3f+ index++*0.1f),
+                    Actions.parallel(
                             Actions.sequence(
-                                Actions.delay(0.3f+index++*0.1f),
                                 Actions.moveToAligned(
                                         image.getX(Align.center),
                                         image.getY(Align.center),
@@ -395,11 +414,13 @@ public class SpiderScreen extends BaseScreen {
                                             }
                                         }
                                     })
-                            )
-                        );
-                    }
-                }
-            }
+                            ),
+                            Actions.delay(0.17f,Actions.run(()->{
+                                cardActor.toFront();
+                            }))
+                        )
+                )
+            );
         }
     }
 
@@ -416,7 +437,7 @@ public class SpiderScreen extends BaseScreen {
         }
         for (SpiderStack stack : stacks) {
             CardModel card = stockQueue.removeFirst();
-            card.setFaceUp(true);
+            card.setFaceUp(false);
             stack.getCards().add(card);
         }
         // A fresh deal might complete a run (rare but possible); auto-collect.
