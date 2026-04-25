@@ -189,6 +189,11 @@ public class SpiderScreen extends BaseScreen {
         TextButton.TextButtonStyle style = new TextButton.TextButtonStyle(Asset.getAsset().loadBitFont("bitfont/ntcb_40.fnt"));
         style.fontColor = Color.WHITE;
 
+        TextButton menuBtn = new TextButton("MENU", style);
+        menuBtn.addListener(simpleClick(() -> {
+            setScreen(MainMenuScreen.class);
+        }));
+
         TextButton newBtn = new TextButton("NEW", style);
         newBtn.addListener(simpleClick(() -> {
             setScreen(SpiderScreen.class);
@@ -211,6 +216,7 @@ public class SpiderScreen extends BaseScreen {
 
         Table bar = new Table();
         bar.top().right().pad(10);
+        bar.add(menuBtn).pad(4);
         bar.add(newBtn).pad(4);
         bar.add(dealBtn).pad(4);
         bar.add(solveBtn).pad(4);
@@ -249,7 +255,7 @@ public class SpiderScreen extends BaseScreen {
         }
         stockQueue.clear();
 
-        int[] deck = DealShuffler.shuffleSpiderDeck(new Random().nextLong(), 1); // single suit
+        int[] deck = DealShuffler.shuffleSpiderDeck(new Random().nextLong(), SpiderGame.suitMode);
         int idx = 0;
         for (int col = 0; col < CardConstant.COLS; col++) {
             int cardsInCol = col < 4 ? 6 : 5;
@@ -264,7 +270,7 @@ public class SpiderScreen extends BaseScreen {
             stockQueue.addLast(toModel(deck[idx++], false));
         }
         refreshLayout(true,2);
-        statusLabel.setText("New game - stock " + stockQueue.size());
+        statusLabel.setText(SpiderGame.suitMode + " suit - stock " + stockQueue.size());
     }
 
     private void addCardToStack(SpiderStack stack, int code, boolean faceUp) {
@@ -708,7 +714,8 @@ public class SpiderScreen extends BaseScreen {
                     CardModel cardModel = moving.get(0);
                     if (targetCards.size()>0) {
                         CardModel temp = targetCards.get(targetCards.size()-1);
-                        if (temp.getRank() - 1 == cardModel.getRank() && temp.getSuit() == cardModel.getSuit()) {
+                        // 放置只要求rank递减1，不要求同花色（多色模式可跨花色放置）
+                        if (temp.getRank() - 1 == cardModel.getRank()) {
                             for (CardModel model : moving) {
                                 sourceCards.remove(model);
                                 targetCards.add(model);
@@ -790,14 +797,13 @@ public class SpiderScreen extends BaseScreen {
     private boolean checkValid(TouchInfo touchInfo) {
         SpiderStack stack = stacks.get(touchInfo.getStackIndex());
         CardModel cardModel = stack.getCards().get(touchInfo.getCardIndex());
-        cardModelCardActorHashMap.get(cardModel);
+        if (!cardModel.isFaceUp()) return false;
         for (int i = touchInfo.getCardIndex(); i < stack.getCards().size() - 1; i++) {
             CardModel temp1 = stack.getCards().get(i);
             CardModel temp2 = stack.getCards().get(i+1);
-            if (temp1.getSuit() == temp2.getSuit()) {
-                if (temp1.getRank() != temp2.getRank()+1) {
-                    return false;
-                }
+            // 只有同花色且递减的序列才能一起拖动
+            if (temp1.getSuit() != temp2.getSuit() || temp1.getRank() != temp2.getRank() + 1) {
+                return false;
             }
         }
         return true;
