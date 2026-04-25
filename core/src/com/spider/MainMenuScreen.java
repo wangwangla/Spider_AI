@@ -90,6 +90,14 @@ public class MainMenuScreen extends BaseScreen {
 
         Label descPY = new Label("Remove pairs summing to 13", descStyle);
 
+        // ---- Klondike 部分 ----
+        Label klondikeTitle = new Label("-- Klondike --", titleStyle);
+
+        TextButton btnKlondike = new TextButton("Play Klondike", style);
+        btnKlondike.addListener(startKlondike());
+
+        Label descKL = new Label("Classic draw-1 Solitaire", descStyle);
+
         // ---- 布局 ----
         Table table = new Table();
         table.setFillParent(true);
@@ -117,6 +125,11 @@ public class MainMenuScreen extends BaseScreen {
 
         table.add(btnPyramid).width(400).height(70).padBottom(8);
         table.add(descPY).padLeft(20).padBottom(8).row();
+
+        table.add(klondikeTitle).colspan(2).padTop(30).padBottom(15).row();
+
+        table.add(btnKlondike).width(400).height(70).padBottom(8);
+        table.add(descKL).padLeft(20).padBottom(8).row();
 
         rootView.addActor(table);
     }
@@ -160,6 +173,20 @@ public class MainMenuScreen extends BaseScreen {
             @Override
             public void touchUp(InputEvent event, float x, float y, int pointer, int button) {
                 setScreen(PyramidScreen.class);
+            }
+        };
+    }
+
+    private InputListener startKlondike() {
+        return new InputListener() {
+            @Override
+            public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
+                return true;
+            }
+
+            @Override
+            public void touchUp(InputEvent event, float x, float y, int pointer, int button) {
+                setScreen(KlondikeScreen.class);
             }
         };
     }
