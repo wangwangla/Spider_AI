@@ -17,6 +17,7 @@ import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
+import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
@@ -64,6 +65,7 @@ public class SpiderScreen extends BaseScreen {
     private int currentStepIndex = 0;
     private boolean autoPlay = false;
     private float autoTimer = 0f;
+    private float autoDelay = 0.5f;
     private Label statusLabel;
     private Group stockPlaceholder;
     private int foundationSlotIndex = 0;
@@ -73,6 +75,33 @@ public class SpiderScreen extends BaseScreen {
     private HashMap<CardModel,CardActor> cardModelCardActorHashMap;
     private Group gamePanel;
     private Group solverPanel;
+    private Table stepListTable;
+    private ScrollPane stepScrollPane;
+    private List<Label> stepLabels = new ArrayList<>();
+    private Deque<BoardSnapshot> undoStack = new ArrayDeque<>();
+
+    /** 棋盘快照，用于撤销 */
+    private static class BoardSnapshot {
+        final List<List<int[]>> stackCards;  // [suit, rank, faceUp?]
+        final List<int[]> stockCards;
+        final int stepIndex;
+
+        BoardSnapshot(List<SpiderStack> stacks, Deque<CardModel> stock, int stepIndex) {
+            this.stepIndex = stepIndex;
+            this.stackCards = new ArrayList<>();
+            for (SpiderStack s : stacks) {
+                List<int[]> col = new ArrayList<>();
+                for (CardModel c : s.getCards()) {
+                    col.add(new int[]{c.getCode(), c.getSuit(), c.getRank(), c.isFaceUp() ? 1 : 0});
+                }
+                stackCards.add(col);
+            }
+            this.stockCards = new ArrayList<>();
+            for (CardModel c : stock) {
+                stockCards.add(new int[]{c.getCode(), c.getSuit(), c.getRank(), c.isFaceUp() ? 1 : 0});
+            }
+        }
+    }
 
     public SpiderScreen(BaseBaseGame baseBaseGame) {
         super(baseBaseGame);
@@ -100,9 +129,9 @@ public class SpiderScreen extends BaseScreen {
         rootView.addActor(gamePanel);
 
         solverPanel.setSize(600,Constant.GAMEHIGHT);
-        solverPanel.setDebug(true);
         rootView.addActor(solverPanel);
         solverPanel.setPosition(Constant.GAMEWIDTH,Constant.GAMEHIGHT/2f,Align.right);
+        buildSolverPanel();
 
         rootView.addActor(topBar);
         topBar.pack();
@@ -179,10 +208,6 @@ public class SpiderScreen extends BaseScreen {
     }
 
     public void printMove(){
-        Image slot = makeColorTexture(0x263238);;
-        rootView.addActor(slot);
-        slot.setSize(500,900);
-        slot.setPosition(1920-100,540,Align.right);
     }
 
     private Table buildUi() {
@@ -202,27 +227,166 @@ public class SpiderScreen extends BaseScreen {
         TextButton dealBtn = new TextButton("DEAL", style);
         dealBtn.addListener(simpleClick(this::dealNext));
 
-        TextButton solveBtn = new TextButton("SOLVE", style);
-        solveBtn.addListener(simpleClick(this::solveCurrent));
-
-        TextButton stepBtn = new TextButton("STEP", style);
-        stepBtn.addListener(simpleClick(this::playOneStep));
-
-        TextButton autoBtn = new TextButton("AUTO", style);
-        autoBtn.addListener(simpleClick(() -> {
-            autoPlay = !autoPlay;
-            statusLabel.setText(autoPlay ? "Auto play on" : "Auto play off");
-        }));
-
         Table bar = new Table();
         bar.top().right().pad(10);
         bar.add(menuBtn).pad(4);
         bar.add(newBtn).pad(4);
         bar.add(dealBtn).pad(4);
-        bar.add(solveBtn).pad(4);
-        bar.add(stepBtn).pad(4);
-        bar.add(autoBtn).pad(4);
         return bar;
+    }
+
+    private void buildSolverPanel() {
+        TextButton.TextButtonStyle btnStyle = new TextButton.TextButtonStyle(
+                Asset.getAsset().loadBitFont("bitfont/ntcb_40.fnt"));
+        btnStyle.fontColor = Color.WHITE;
+
+        Label.LabelStyle labelStyle = new Label.LabelStyle(
+                Asset.getAsset().loadBitFont("bitfont/ntcb_40.fnt"), Color.WHITE);
+
+        // 标题
+        Label title = new Label("Solver", labelStyle);
+        title.setPosition(300, Constant.GAMEHIGHT - 30, Align.top);
+        solverPanel.addActor(title);
+
+        // 按钮行
+        TextButton solveBtn = new TextButton("SOLVE", btnStyle);
+        solveBtn.addListener(simpleClick(this::solveCurrent));
+
+        TextButton stepBtn = new TextButton("STEP", btnStyle);
+        stepBtn.addListener(simpleClick(this::playOneStep));
+
+        TextButton undoBtn = new TextButton("UNDO", btnStyle);
+        undoBtn.addListener(simpleClick(this::undoOneStep));
+
+        TextButton autoBtn = new TextButton("AUTO", btnStyle);
+        autoBtn.addListener(simpleClick(() -> {
+            autoPlay = !autoPlay;
+            statusLabel.setText(autoPlay ? "Auto play on" : "Auto play off");
+        }));
+
+        Table btnBar = new Table();
+        btnBar.add(solveBtn).pad(4);
+        btnBar.add(stepBtn).pad(4);
+        btnBar.add(undoBtn).pad(4);
+        btnBar.add(autoBtn).pad(4);
+        btnBar.pack();
+        btnBar.setPosition(300, Constant.GAMEHIGHT - 80, Align.top);
+        solverPanel.addActor(btnBar);
+
+        // 步骤列表（可滚动）
+        stepListTable = new Table();
+        stepListTable.top().left().pad(8);
+
+        stepScrollPane = new ScrollPane(stepListTable);
+        stepScrollPane.setSize(580, Constant.GAMEHIGHT - 140);
+        stepScrollPane.setPosition(10, 10);
+        stepScrollPane.setScrollingDisabled(true, false);
+        solverPanel.addActor(stepScrollPane);
+    }
+
+    /** 刷新步骤列表UI */
+    private void refreshStepList() {
+        stepListTable.clearChildren();
+        stepLabels.clear();
+
+        Label.LabelStyle normalStyle = new Label.LabelStyle(
+                Asset.getAsset().loadBitFont("bitfont/ntcb_40.fnt"), Color.LIGHT_GRAY);
+        Label.LabelStyle doneStyle = new Label.LabelStyle(
+                Asset.getAsset().loadBitFont("bitfont/ntcb_40.fnt"), Color.GREEN);
+        Label.LabelStyle currentStyle = new Label.LabelStyle(
+                Asset.getAsset().loadBitFont("bitfont/ntcb_40.fnt"), Color.YELLOW);
+
+        for (int i = 0; i < solutionSteps.size(); i++) {
+            SpiderSolutionStep step = solutionSteps.get(i);
+            String text = (i + 1) + ". " + step.getDescription();
+            Label label;
+            if (i < currentStepIndex) {
+                label = new Label(text, doneStyle);
+            } else if (i == currentStepIndex) {
+                label = new Label(text, currentStyle);
+            } else {
+                label = new Label(text, normalStyle);
+            }
+            label.setScale(0.6f);
+            stepLabels.add(label);
+            stepListTable.add(label).width(560).height(label.getPrefHeight()).padBottom(4).left().row();
+        }
+
+        // 滚动到当前步骤附近
+        stepListTable.layout();
+        if (currentStepIndex > 0 && currentStepIndex <= stepLabels.size()) {
+            Label target = stepLabels.get(Math.min(currentStepIndex, stepLabels.size() - 1));
+            stepScrollPane.layout();
+            stepScrollPane.scrollTo(0, target.getY(), target.getWidth(), target.getHeight(), true, true);
+        }
+    }
+
+    /** 高亮更新（不重建整个列表，只改颜色）*/
+    private void updateStepHighlight() {
+        Color gray = Color.LIGHT_GRAY;
+        Color green = Color.GREEN;
+        Color yellow = Color.YELLOW;
+        for (int i = 0; i < stepLabels.size(); i++) {
+            Label label = stepLabels.get(i);
+            if (i < currentStepIndex) {
+                label.getStyle().fontColor = green;
+            } else if (i == currentStepIndex) {
+                label.getStyle().fontColor = yellow;
+            } else {
+                label.getStyle().fontColor = gray;
+            }
+        }
+        // 自动滚动到当前
+        if (currentStepIndex > 0 && currentStepIndex <= stepLabels.size()) {
+            Label target = stepLabels.get(Math.min(currentStepIndex, stepLabels.size() - 1));
+            stepScrollPane.scrollTo(0, target.getY(), target.getWidth(), target.getHeight(), true, true);
+        }
+    }
+
+    /** 保存当前棋盘快照到undo栈 */
+    private void saveSnapshot() {
+        undoStack.push(new BoardSnapshot(stacks, stockQueue, currentStepIndex));
+    }
+
+    /** 从快照恢复棋盘状态 */
+    private void restoreSnapshot(BoardSnapshot snapshot) {
+        // 清除现有卡片Actor
+        for (CardModel key : cardModelCardActorHashMap.keySet()) {
+            CardActor actor = cardModelCardActorHashMap.get(key);
+            if (actor != null) actor.remove();
+        }
+        cardModelCardActorHashMap.clear();
+
+        // 恢复stacks
+        for (int i = 0; i < stacks.size(); i++) {
+            stacks.get(i).getCards().clear();
+            for (int[] data : snapshot.stackCards.get(i)) {
+                CardModel card = new CardModel(data[0], data[1], data[2], data[3] == 1);
+                stacks.get(i).getCards().add(card);
+            }
+        }
+
+        // 恢复stock
+        stockQueue.clear();
+        for (int[] data : snapshot.stockCards) {
+            stockQueue.addLast(new CardModel(data[0], data[1], data[2], data[3] == 1));
+        }
+
+        currentStepIndex = snapshot.stepIndex;
+        refreshLayout(true, 0);
+        updateStepHighlight();
+    }
+
+    /** 撤销一步 */
+    private void undoOneStep() {
+        if (undoStack.isEmpty()) {
+            statusLabel.setText("No more undo");
+            return;
+        }
+        autoPlay = false;
+        BoardSnapshot snapshot = undoStack.pop();
+        restoreSnapshot(snapshot);
+        statusLabel.setText("Undo -> step " + currentStepIndex);
     }
 
     private Image makeColorTexture(int rgb) {
@@ -297,6 +461,7 @@ public class SpiderScreen extends BaseScreen {
             for (int i = 0; i < stack.getCards().size(); i++) {
                 CardModel card = stack.getCards().get(i);
                 CardActor cardActor;
+                boolean isNewDealCard = false;
                 if (create){
                     cardActor = new CardActor(card);
 
@@ -306,15 +471,19 @@ public class SpiderScreen extends BaseScreen {
                         if (mode == 2){
                             cardActor.setPosition(gamePanel.getWidth()/2f,-100,Align.center);
                         }else if (mode == 1){
-                            cardActor.zhuan();
+                            // 发牌：先显示牌背，从stock位置出发
+                            cardActor.showBack();
                             cardActor.setPosition(stockPlaceholder.getX(Align.center),stockPlaceholder.getY(Align.center),Align.center);
+                            isNewDealCard = true;
                         }
                     }
                 }else {
                     cardActor = cardModelCardActorHashMap.get(card);
                 }
-                cardActor.checkFaceUp();
                 cardActor.clearActions();
+                if (!isNewDealCard) {
+                    cardActor.checkFaceUp();
+                }
                 float v = y - i * ROW_GAP;
                 if (cardActor.getX() != x || cardActor.getY() != v) {
                     if (mode == 2) {
@@ -329,16 +498,21 @@ public class SpiderScreen extends BaseScreen {
                                         Actions.delay(col*0.1f),
                                         Actions.moveToAligned(x, v, Align.bottom, 0.3f),
                                         Actions.run(()->{
-                                            cardActor.zhuan();
+                                            cardActor.flipToFace();
                                         })
                                 ));
                     }else {
+                        cardActor.toFront();
                         cardActor.addAction(Actions.moveToAligned(x, v, Align.bottom, 0.3f));
                     }
                 }
             }
         }
-        autoSp();
+        // 延迟收牌，等移动动画完成后再检查
+        gamePanel.addAction(Actions.sequence(
+                Actions.delay(0.4f),
+                Actions.run(this::autoSp)
+        ));
 
         stockPlaceholder.setVisible(!stockQueue.isEmpty());
     }
@@ -346,85 +520,99 @@ public class SpiderScreen extends BaseScreen {
     int index = 0;
 
     private void autoSp() {
-        int xx = 13;
-        for (SpiderStack stack : stacks) {
-            List<CardModel> cards = stack.getCards();
-            if (cards.size()>=xx){
+        boolean found;
+        float gap = (Constant.GAMEWIDTH - 700) / 10.f;
+        do {
+            found = false;
+            for (int col = 0; col < stacks.size(); col++) {
+                SpiderStack stack = stacks.get(col);
+                List<CardModel> cards = stack.getCards();
+                if (cards.size() < 13) {
+                    continue;
+                }
                 CardModel cardModel = cards.get(cards.size() - 13);
-                if (!cardModel.isFaceUp()){
-                    break;
+                if (!cardModel.isFaceUp()) {
+                    continue;
                 }
                 if (cardModel.getRank() != 13) {
-                    break;
+                    continue;
                 }
                 boolean auto = true;
-                for (int i = cards.size()-13; i < cards.size() - 1; i++) {
+                for (int i = cards.size() - 13; i < cards.size() - 1; i++) {
                     CardModel cardModel1 = cards.get(i);
-                    CardModel cardModel2 = cards.get(i+1);
-                    if (cardModel1.getSuit() !=cardModel2.getSuit()){
+                    CardModel cardModel2 = cards.get(i + 1);
+                    if (cardModel1.getSuit() != cardModel2.getSuit()) {
                         auto = false;
                         break;
                     }
-                    if (cardModel1.getRank() - 1!=cardModel2.getRank()){
+                    if (cardModel1.getRank() - 1 != cardModel2.getRank()) {
                         auto = false;
                         break;
                     }
                 }
-                if (cards.size()>13){
-                    auto = true;
-                }
-                if (auto){
+                if (auto) {
                     Image image = foundationSlots.get(foundationSlotIndex);
-                    foundationSlotIndex ++;
-                    ArrayList<CardModel> cardModels =new ArrayList<>();
+                    foundationSlotIndex++;
+                    ArrayList<CardModel> cardModels = new ArrayList<>();
                     completedSuits.add(cardModels);
-                    int i = cards.size() - xx;
+                    int startIdx = cards.size() - 13;
 
-                    for (int i1 = i; i1 < cards.size(); i1++) {
+                    for (int i1 = startIdx; i1 < cards.size(); i1++) {
                         cardModels.add(cards.get(i1));
                     }
                     for (CardModel model : cardModels) {
                         cards.remove(model);
                     }
-                    if (cards.size()>0) {
+                    if (cards.size() > 0) {
                         CardModel cardModel1 = cards.get(cards.size() - 1);
                         cardModel1.setFaceUp(true);
                     }
                     int index = 0;
                     moveAnimation(cardModels, index, image);
+
+                    // 重新定位该列剩余的牌
+                    float x = LEFT_X + col * gap + gap / 2f;
+                    for (int ri = 0; ri < cards.size(); ri++) {
+                        CardActor actor = cardModelCardActorHashMap.get(cards.get(ri));
+                        if (actor != null) {
+                            actor.checkFaceUp();
+                            actor.clearActions();
+                            float v = TOP_Y - ri * ROW_GAP;
+                            actor.addAction(Actions.delay(0.3f,
+                                    Actions.moveToAligned(x, v, Align.bottom, 0.3f)));
+                        }
+                    }
+                    found = true;
                 }
             }
-        }
+        } while (found);
     }
 
     private void moveAnimation(ArrayList<CardModel> cardModels, int index, Image image) {
         for (int i1 = 0; i1 < cardModels.size(); i1++) {
             CardModel model = cardModels.get(cardModels.size() - 1 - i1);
             CardActor cardActor = cardModelCardActorHashMap.get(model);
+            // 清除之前refreshLayout设置的移动动画
+            cardActor.clearActions();
+            cardActor.toFront();
             cardActor.addAction(
                 Actions.sequence(
                     Actions.delay(0.3f+ index++*0.1f),
-                    Actions.parallel(
-                            Actions.sequence(
-                                Actions.moveToAligned(
-                                        image.getX(Align.center),
-                                        image.getY(Align.center),
-                                        Align.center,
-                                        0.2f),
-                                    Actions.run(()->{
-                                        for (SpiderStack spiderStack : stacks) {
-                                            List<CardModel> cards1 = spiderStack.getCards();
-                                            if (cards1.size()>0){
-                                                CardModel cardModel1 = cards1.get(cards1.size() - 1);
-                                                cardModelCardActorHashMap.get(cardModel1).checkFaceUp();
-                                            }
-                                        }
-                                    })
-                            ),
-                            Actions.delay(0.17f,Actions.run(()->{
-                                cardActor.toFront();
-                            }))
-                        )
+                    Actions.moveToAligned(
+                            image.getX(Align.center),
+                            image.getY(Align.center),
+                            Align.center,
+                            0.2f),
+                    Actions.run(()->{
+                        for (SpiderStack spiderStack : stacks) {
+                            List<CardModel> cards1 = spiderStack.getCards();
+                            if (cards1.size()>0){
+                                CardModel cardModel1 = cards1.get(cards1.size() - 1);
+                                CardActor a = cardModelCardActorHashMap.get(cardModel1);
+                                if (a != null) a.checkFaceUp();
+                            }
+                        }
+                    })
                 )
             );
         }
@@ -443,13 +631,10 @@ public class SpiderScreen extends BaseScreen {
         }
         for (SpiderStack stack : stacks) {
             CardModel card = stockQueue.removeFirst();
-            card.setFaceUp(false);
+            card.setFaceUp(true);
             stack.getCards().add(card);
         }
-        // A fresh deal might complete a run (rare but possible); auto-collect.
-        for (SpiderStack stack : stacks) {
-            checkCompleted(stack);
-        }
+        // 收牌由refreshLayout末尾的autoSp统一处理
         // animate from stock to targets
         List<CardModel> newlyDealt = new ArrayList<>();
         for (SpiderStack stack : stacks) {
@@ -466,7 +651,9 @@ public class SpiderScreen extends BaseScreen {
             solutionSteps = result.getSteps();
             currentStepIndex = 0;
             autoPlay = false;
+            undoStack.clear();
             statusLabel.setText(result.getSummary());
+            refreshStepList();
         } catch (Exception ex) {
             statusLabel.setText("Solver error: " + ex.getMessage());
         }
@@ -478,14 +665,26 @@ public class SpiderScreen extends BaseScreen {
             autoPlay = false;
             return;
         }
+        saveSnapshot();
         SpiderSolutionStep step = solutionSteps.get(currentStepIndex++);
         if (step.isDealMove()) {
             dealNext();
+            autoDelay = 2.0f; // 发牌后等翻牌动画完成
         } else {
+            // 移牌前记录目标列的牌数，移完后提升新牌层级
+            SpiderStack dest = stacks.get(step.getDestinationStackIndex());
+            int destSizeBefore = dest.getCards().size();
             applyMove(step.getSourceStackIndex(), step.getDestinationStackIndex(), step.getCardCount());
+            // 提升移动后的牌到最上层
+            for (int i = destSizeBefore; i < dest.getCards().size(); i++) {
+                CardActor actor = cardModelCardActorHashMap.get(dest.getCards().get(i));
+                if (actor != null) actor.toFront();
+            }
+            autoDelay = 0.5f;
         }
         refreshLayout();
         statusLabel.setText(step.getDescription());
+        updateStepHighlight();
     }
 
     private void applyMove(int from, int to, int count) {
@@ -499,8 +698,7 @@ public class SpiderScreen extends BaseScreen {
         source.getCards().subList(start, source.getCards().size()).clear();
         dest.getCards().addAll(moving);
         flipTop(source);
-        checkCompleted(source);
-        checkCompleted(dest);
+        // 不在这里checkCompleted，由refreshLayout末尾的autoSp统一处理收牌
     }
 
     private void flipTop(SpiderStack stack) {
@@ -836,7 +1034,7 @@ public class SpiderScreen extends BaseScreen {
 
         if (autoPlay) {
             autoTimer += delta;
-            if (autoTimer > 0.35f) {
+            if (autoTimer > autoDelay) {
                 autoTimer = 0f;
                 playOneStep();
             }
