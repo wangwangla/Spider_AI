@@ -18,7 +18,7 @@ import com.kw.gdx.constant.Constant;
 import com.kw.gdx.screen.BaseScreen;
 
 /**
- * 主菜单 - 选择花色数（1色/2色/4色）
+ * 主菜单 - 选择游戏类型
  */
 public class MainMenuScreen extends BaseScreen {
 
@@ -52,31 +52,44 @@ public class MainMenuScreen extends BaseScreen {
         Label.LabelStyle titleStyle = new Label.LabelStyle(
                 Asset.getAsset().loadBitFont("bitfont/ntcb_40.fnt"), Color.WHITE);
 
-        Label title = new Label("Spider Solitaire", titleStyle);
-        title.setFontScale(1.5f);
-
-        TextButton btn1Suit = new TextButton("1 Suit  (Easy)", style);
-        btn1Suit.addListener(startGame(1));
-
-        TextButton btn2Suit = new TextButton("2 Suits (Medium)", style);
-        btn2Suit.addListener(startGame(2));
-
-        TextButton btn4Suit = new TextButton("4 Suits (Hard)", style);
-        btn4Suit.addListener(startGame(4));
-
-        // 花色预览标签
         Label.LabelStyle descStyle = new Label.LabelStyle(
                 Asset.getAsset().loadBitFont("bitfont/ntcb_40.fnt"), Color.LIGHT_GRAY);
+
+        Label title = new Label("Solitaire Collection", titleStyle);
+        title.setFontScale(1.5f);
+
+        // ---- Spider 部分 ----
+        Label spiderTitle = new Label("-- Spider --", titleStyle);
+
+        TextButton btn1Suit = new TextButton("1 Suit  (Easy)", style);
+        btn1Suit.addListener(startSpider(1));
+
+        TextButton btn2Suit = new TextButton("2 Suits (Medium)", style);
+        btn2Suit.addListener(startSpider(2));
+
+        TextButton btn4Suit = new TextButton("4 Suits (Hard)", style);
+        btn4Suit.addListener(startSpider(4));
 
         Label desc1 = new Label("All Spades", descStyle);
         Label desc2 = new Label("Spades + Hearts", descStyle);
         Label desc4 = new Label("All Four Suits", descStyle);
 
+        // ---- Freecell 部分 ----
+        Label freecellTitle = new Label("-- Freecell --", titleStyle);
+
+        TextButton btnFreecell = new TextButton("Play Freecell", style);
+        btnFreecell.addListener(startFreecell());
+
+        Label descFC = new Label("Classic 52-card Freecell", descStyle);
+
+        // ---- 布局 ----
         Table table = new Table();
         table.setFillParent(true);
         table.center();
 
-        table.add(title).colspan(2).padBottom(80).row();
+        table.add(title).colspan(2).padBottom(60).row();
+
+        table.add(spiderTitle).colspan(2).padBottom(20).row();
 
         table.add(btn1Suit).width(400).height(80).padBottom(10);
         table.add(desc1).padLeft(20).padBottom(10).row();
@@ -87,10 +100,15 @@ public class MainMenuScreen extends BaseScreen {
         table.add(btn4Suit).width(400).height(80).padBottom(10);
         table.add(desc4).padLeft(20).padBottom(10).row();
 
+        table.add(freecellTitle).colspan(2).padTop(40).padBottom(20).row();
+
+        table.add(btnFreecell).width(400).height(80).padBottom(10);
+        table.add(descFC).padLeft(20).padBottom(10).row();
+
         rootView.addActor(table);
     }
 
-    private InputListener startGame(final int suitMode) {
+    private InputListener startSpider(final int suitMode) {
         return new InputListener() {
             @Override
             public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
@@ -101,6 +119,20 @@ public class MainMenuScreen extends BaseScreen {
             public void touchUp(InputEvent event, float x, float y, int pointer, int button) {
                 SpiderGame.suitMode = suitMode;
                 setScreen(SpiderScreen.class);
+            }
+        };
+    }
+
+    private InputListener startFreecell() {
+        return new InputListener() {
+            @Override
+            public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
+                return true;
+            }
+
+            @Override
+            public void touchUp(InputEvent event, float x, float y, int pointer, int button) {
+                setScreen(FreecellScreen.class);
             }
         };
     }
