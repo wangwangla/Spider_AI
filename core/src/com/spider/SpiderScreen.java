@@ -346,33 +346,33 @@ public class SpiderScreen extends BaseScreen {
     int index = 0;
 
     private void autoSp() {
-        int xx = 8;
+        int xx = 13;
         for (SpiderStack stack : stacks) {
             List<CardModel> cards = stack.getCards();
             if (cards.size()>=xx){
-//                CardModel cardModel = cards.get(cards.size() - 13);
-//                if (!cardModel.isFaceUp()){
-//                    break;
-//                }
-//                if (cardModel.getRank() != 13) {
-//                    break;
-//                }
+                CardModel cardModel = cards.get(cards.size() - 13);
+                if (!cardModel.isFaceUp()){
+                    break;
+                }
+                if (cardModel.getRank() != 13) {
+                    break;
+                }
                 boolean auto = true;
-//                for (int i = cards.size()-13; i < cards.size() - 1; i++) {
-//                    CardModel cardModel1 = cards.get(i);
-//                    CardModel cardModel2 = cards.get(i+1);
-//                    if (cardModel1.getSuit() !=cardModel2.getSuit()){
-//                        auto = false;
-//                        break;
-//                    }
-//                    if (cardModel1.getRank() - 1!=cardModel2.getRank()){
-//                        auto = false;
-//                        break;
-//                    }
-//                }
-//                if (cards.size()>13){
-//                    auto = true;
-//                }
+                for (int i = cards.size()-13; i < cards.size() - 1; i++) {
+                    CardModel cardModel1 = cards.get(i);
+                    CardModel cardModel2 = cards.get(i+1);
+                    if (cardModel1.getSuit() !=cardModel2.getSuit()){
+                        auto = false;
+                        break;
+                    }
+                    if (cardModel1.getRank() - 1!=cardModel2.getRank()){
+                        auto = false;
+                        break;
+                    }
+                }
+                if (cards.size()>13){
+                    auto = true;
+                }
                 if (auto){
                     Image image = foundationSlots.get(foundationSlotIndex);
                     foundationSlotIndex ++;
