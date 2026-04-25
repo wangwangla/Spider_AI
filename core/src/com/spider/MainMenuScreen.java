@@ -82,28 +82,41 @@ public class MainMenuScreen extends BaseScreen {
 
         Label descFC = new Label("Classic 52-card Freecell", descStyle);
 
+        // ---- Pyramid 部分 ----
+        Label pyramidTitle = new Label("-- Pyramid --", titleStyle);
+
+        TextButton btnPyramid = new TextButton("Play Pyramid", style);
+        btnPyramid.addListener(startPyramid());
+
+        Label descPY = new Label("Remove pairs summing to 13", descStyle);
+
         // ---- 布局 ----
         Table table = new Table();
         table.setFillParent(true);
         table.center();
 
-        table.add(title).colspan(2).padBottom(60).row();
+        table.add(title).colspan(2).padBottom(50).row();
 
-        table.add(spiderTitle).colspan(2).padBottom(20).row();
+        table.add(spiderTitle).colspan(2).padBottom(15).row();
 
-        table.add(btn1Suit).width(400).height(80).padBottom(10);
-        table.add(desc1).padLeft(20).padBottom(10).row();
+        table.add(btn1Suit).width(400).height(70).padBottom(8);
+        table.add(desc1).padLeft(20).padBottom(8).row();
 
-        table.add(btn2Suit).width(400).height(80).padBottom(10);
-        table.add(desc2).padLeft(20).padBottom(10).row();
+        table.add(btn2Suit).width(400).height(70).padBottom(8);
+        table.add(desc2).padLeft(20).padBottom(8).row();
 
-        table.add(btn4Suit).width(400).height(80).padBottom(10);
-        table.add(desc4).padLeft(20).padBottom(10).row();
+        table.add(btn4Suit).width(400).height(70).padBottom(8);
+        table.add(desc4).padLeft(20).padBottom(8).row();
 
-        table.add(freecellTitle).colspan(2).padTop(40).padBottom(20).row();
+        table.add(freecellTitle).colspan(2).padTop(30).padBottom(15).row();
 
-        table.add(btnFreecell).width(400).height(80).padBottom(10);
-        table.add(descFC).padLeft(20).padBottom(10).row();
+        table.add(btnFreecell).width(400).height(70).padBottom(8);
+        table.add(descFC).padLeft(20).padBottom(8).row();
+
+        table.add(pyramidTitle).colspan(2).padTop(30).padBottom(15).row();
+
+        table.add(btnPyramid).width(400).height(70).padBottom(8);
+        table.add(descPY).padLeft(20).padBottom(8).row();
 
         rootView.addActor(table);
     }
@@ -133,6 +146,20 @@ public class MainMenuScreen extends BaseScreen {
             @Override
             public void touchUp(InputEvent event, float x, float y, int pointer, int button) {
                 setScreen(FreecellScreen.class);
+            }
+        };
+    }
+
+    private InputListener startPyramid() {
+        return new InputListener() {
+            @Override
+            public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
+                return true;
+            }
+
+            @Override
+            public void touchUp(InputEvent event, float x, float y, int pointer, int button) {
+                setScreen(PyramidScreen.class);
             }
         };
     }
