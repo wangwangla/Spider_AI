@@ -14,6 +14,7 @@ import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
+import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
@@ -23,12 +24,18 @@ import com.kw.gdx.BaseBaseGame;
 import com.kw.gdx.asset.Asset;
 import com.kw.gdx.constant.Constant;
 import com.kw.gdx.screen.BaseScreen;
+import com.solvitaire.app.DealCardCodec;
 import com.solvitaire.app.DealShuffler;
+import com.solvitaire.app.KlondikeSolutionStep;
+import com.solvitaire.app.KlondikeSolveResult;
+import com.solvitaire.app.KlondikeSolverService;
 import com.utils.CardDrag;
 import com.utils.CardModel;
 import com.utils.SpiderStack;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
@@ -59,6 +66,7 @@ public class KlondikeScreen extends BaseScreen {
 
     private HashMap<CardModel, CardActor> cardActorMap;
     private Group gamePanel;
+    private Group solverPanel;
     private Label statusLabel;
 
     // slot images
@@ -77,6 +85,59 @@ public class KlondikeScreen extends BaseScreen {
     // recycle
     private int recycleCount;
     private static final int MAX_RECYCLE = -1; // unlimited
+
+    // solver
+    private KlondikeSolverService solverService;
+    private List<KlondikeSolutionStep> solutionSteps;
+    private int currentStepIndex = 0;
+    private boolean autoPlay = false;
+    private float autoTimer = 0f;
+    private float autoDelay = 0.5f;
+    private Table stepListTable;
+    private ScrollPane stepScrollPane;
+    private List<Label> stepLabels = new ArrayList<>();
+    private Deque<BoardSnapshot> undoStack = new ArrayDeque<>();
+
+    // 保存发牌种子以便solver重建
+    private long currentSeed;
+
+    /** 棋盘快照 */
+    private static class BoardSnapshot {
+        final List<List<int[]>> tableauCards;
+        final List<List<int[]>> foundationCards;
+        final List<int[]> stockCards;
+        final List<int[]> wasteCards;
+        final int stepIndex;
+
+        BoardSnapshot(List<SpiderStack> tableau, List<List<CardModel>> foundations,
+                      List<CardModel> stock, List<CardModel> waste, int stepIndex) {
+            this.stepIndex = stepIndex;
+            this.tableauCards = new ArrayList<>();
+            for (SpiderStack s : tableau) {
+                List<int[]> col = new ArrayList<>();
+                for (CardModel c : s.getCards()) {
+                    col.add(new int[]{c.getCode(), c.getSuit(), c.getRank(), c.isFaceUp() ? 1 : 0});
+                }
+                tableauCards.add(col);
+            }
+            this.foundationCards = new ArrayList<>();
+            for (List<CardModel> pile : foundations) {
+                List<int[]> f = new ArrayList<>();
+                for (CardModel c : pile) {
+                    f.add(new int[]{c.getCode(), c.getSuit(), c.getRank(), 1});
+                }
+                foundationCards.add(f);
+            }
+            this.stockCards = new ArrayList<>();
+            for (CardModel c : stock) {
+                stockCards.add(new int[]{c.getCode(), c.getSuit(), c.getRank(), c.isFaceUp() ? 1 : 0});
+            }
+            this.wasteCards = new ArrayList<>();
+            for (CardModel c : waste) {
+                wasteCards.add(new int[]{c.getCode(), c.getSuit(), c.getRank(), c.isFaceUp() ? 1 : 0});
+            }
+        }
+    }
 
     public KlondikeScreen(BaseBaseGame baseBaseGame) {
         super(baseBaseGame);
@@ -97,6 +158,8 @@ public class KlondikeScreen extends BaseScreen {
         cardActorMap = new HashMap<>(52);
         foundationSlots = new Image[FOUNDATION_COUNT];
         tableauSlots = new Image[TABLEAU_COUNT];
+        solverService = new KlondikeSolverService();
+        solutionSteps = new ArrayList<>();
     }
 
     @Override
@@ -120,10 +183,17 @@ public class KlondikeScreen extends BaseScreen {
 
     private void initLayout() {
         gamePanel = new Group();
-        gamePanel.setSize(Constant.GAMEWIDTH, Constant.GAMEHIGHT);
+        gamePanel.setSize(Constant.GAMEWIDTH - 600, Constant.GAMEHIGHT);
         rootView.addActor(gamePanel);
 
-        colGap = (Constant.GAMEWIDTH - 80) / 7f;
+        solverPanel = new Group();
+        solverPanel.setSize(600, Constant.GAMEHIGHT);
+        solverPanel.setPosition(Constant.GAMEWIDTH, Constant.GAMEHIGHT / 2f, Align.right);
+        rootView.addActor(solverPanel);
+        buildSolverPanel();
+
+        float panelW = gamePanel.getWidth();
+        colGap = (panelW - 80) / 7f;
         leftX = 40 + colGap / 2f;
         topY = Constant.GAMEHIGHT - 60;
         tableauTopY = topY - CARD_H - 40;
@@ -182,7 +252,7 @@ public class KlondikeScreen extends BaseScreen {
         bar.add(menuBtn).pad(4);
         bar.add(newBtn).pad(4);
         bar.pack();
-        bar.setPosition(Constant.GAMEWIDTH - 20, Constant.GAMEHIGHT, Align.topRight);
+        bar.setPosition(panelW - 20, Constant.GAMEHIGHT, Align.topRight);
         rootView.addActor(bar);
 
         gamePanel.addListener(new KlondikeInputListener());
@@ -212,6 +282,11 @@ public class KlondikeScreen extends BaseScreen {
     // ==================== Game Logic ====================
 
     private void newGame() {
+        solutionSteps = new ArrayList<>();
+        currentStepIndex = 0;
+        autoPlay = false;
+        undoStack.clear();
+
         for (SpiderStack s : tableau) s.getCards().clear();
         for (List<CardModel> f : foundations) f.clear();
         stock.clear();
@@ -223,7 +298,8 @@ public class KlondikeScreen extends BaseScreen {
         }
         cardActorMap.clear();
 
-        int[] deck = DealShuffler.shuffleSingleDeck(new Random().nextLong());
+        currentSeed = new Random().nextLong();
+        int[] deck = DealShuffler.shuffleSingleDeck(currentSeed);
         int idx = 0;
 
         // Deal tableau: col i gets i+1 cards, only top face up
@@ -758,11 +834,321 @@ public class KlondikeScreen extends BaseScreen {
         }
     }
 
+    // ==================== Solver Panel ====================
+
+    private void buildSolverPanel() {
+        TextButton.TextButtonStyle btnStyle = new TextButton.TextButtonStyle(
+                Asset.getAsset().loadBitFont("bitfont/ntcb_40.fnt"));
+        btnStyle.fontColor = Color.WHITE;
+
+        Label.LabelStyle labelStyle = new Label.LabelStyle(
+                Asset.getAsset().loadBitFont("bitfont/ntcb_40.fnt"), Color.WHITE);
+
+        Label title = new Label("Solver", labelStyle);
+        title.setPosition(300, Constant.GAMEHIGHT - 30, Align.top);
+        solverPanel.addActor(title);
+
+        TextButton solveBtn = new TextButton("SOLVE", btnStyle);
+        solveBtn.addListener(simpleClick(this::solveCurrent));
+
+        TextButton stepBtn = new TextButton("STEP", btnStyle);
+        stepBtn.addListener(simpleClick(this::playOneStep));
+
+        TextButton undoBtn = new TextButton("UNDO", btnStyle);
+        undoBtn.addListener(simpleClick(this::undoOneStep));
+
+        TextButton autoBtn = new TextButton("AUTO", btnStyle);
+        autoBtn.addListener(simpleClick(() -> {
+            autoPlay = !autoPlay;
+            statusLabel.setText(autoPlay ? "Auto play on" : "Auto play off");
+        }));
+
+        Table btnBar = new Table();
+        btnBar.add(solveBtn).pad(4);
+        btnBar.add(stepBtn).pad(4);
+        btnBar.add(undoBtn).pad(4);
+        btnBar.add(autoBtn).pad(4);
+        btnBar.pack();
+        btnBar.setPosition(300, Constant.GAMEHIGHT - 80, Align.top);
+        solverPanel.addActor(btnBar);
+
+        stepListTable = new Table();
+        stepListTable.top().left().pad(8);
+
+        stepScrollPane = new ScrollPane(stepListTable);
+        stepScrollPane.setSize(580, Constant.GAMEHIGHT - 140);
+        stepScrollPane.setPosition(10, 10);
+        stepScrollPane.setScrollingDisabled(true, false);
+        solverPanel.addActor(stepScrollPane);
+    }
+
+    private void refreshStepList() {
+        stepListTable.clearChildren();
+        stepLabels.clear();
+
+        Label.LabelStyle normalStyle = new Label.LabelStyle(
+                Asset.getAsset().loadBitFont("bitfont/ntcb_40.fnt"), Color.LIGHT_GRAY);
+        Label.LabelStyle doneStyle = new Label.LabelStyle(
+                Asset.getAsset().loadBitFont("bitfont/ntcb_40.fnt"), Color.GREEN);
+        Label.LabelStyle currentStyle = new Label.LabelStyle(
+                Asset.getAsset().loadBitFont("bitfont/ntcb_40.fnt"), Color.YELLOW);
+
+        for (int i = 0; i < solutionSteps.size(); i++) {
+            KlondikeSolutionStep step = solutionSteps.get(i);
+            String text = (i + 1) + ". " + step.getDescription();
+            Label label;
+            if (i < currentStepIndex) {
+                label = new Label(text, doneStyle);
+            } else if (i == currentStepIndex) {
+                label = new Label(text, currentStyle);
+            } else {
+                label = new Label(text, normalStyle);
+            }
+            label.setScale(0.6f);
+            stepLabels.add(label);
+            stepListTable.add(label).width(560).height(label.getPrefHeight()).padBottom(4).left().row();
+        }
+
+        stepListTable.layout();
+        if (currentStepIndex > 0 && currentStepIndex <= stepLabels.size()) {
+            Label target = stepLabels.get(Math.min(currentStepIndex, stepLabels.size() - 1));
+            stepScrollPane.layout();
+            stepScrollPane.scrollTo(0, target.getY(), target.getWidth(), target.getHeight(), true, true);
+        }
+    }
+
+    private void updateStepHighlight() {
+        for (int i = 0; i < stepLabels.size(); i++) {
+            Label label = stepLabels.get(i);
+            if (i < currentStepIndex) {
+                label.getStyle().fontColor = Color.GREEN;
+            } else if (i == currentStepIndex) {
+                label.getStyle().fontColor = Color.YELLOW;
+            } else {
+                label.getStyle().fontColor = Color.LIGHT_GRAY;
+            }
+        }
+        if (currentStepIndex > 0 && currentStepIndex <= stepLabels.size()) {
+            Label target = stepLabels.get(Math.min(currentStepIndex, stepLabels.size() - 1));
+            stepScrollPane.scrollTo(0, target.getY(), target.getWidth(), target.getHeight(), true, true);
+        }
+    }
+
+    private void saveSnapshot() {
+        undoStack.push(new BoardSnapshot(tableau, foundations, stock, waste, currentStepIndex));
+    }
+
+    private void restoreSnapshot(BoardSnapshot snapshot) {
+        for (CardModel key : cardActorMap.keySet()) {
+            CardActor actor = cardActorMap.get(key);
+            if (actor != null) actor.remove();
+        }
+        cardActorMap.clear();
+
+        for (int i = 0; i < tableau.size(); i++) {
+            tableau.get(i).getCards().clear();
+            for (int[] data : snapshot.tableauCards.get(i)) {
+                CardModel card = new CardModel(data[0], data[1], data[2], data[3] == 1);
+                tableau.get(i).getCards().add(card);
+            }
+        }
+        for (int i = 0; i < foundations.size(); i++) {
+            foundations.get(i).clear();
+            for (int[] data : snapshot.foundationCards.get(i)) {
+                CardModel card = new CardModel(data[0], data[1], data[2], data[3] == 1);
+                foundations.get(i).add(card);
+            }
+        }
+        stock.clear();
+        for (int[] data : snapshot.stockCards) {
+            stock.add(new CardModel(data[0], data[1], data[2], data[3] == 1));
+        }
+        waste.clear();
+        for (int[] data : snapshot.wasteCards) {
+            waste.add(new CardModel(data[0], data[1], data[2], data[3] == 1));
+        }
+
+        currentStepIndex = snapshot.stepIndex;
+        createAllActors();
+        // Also create actors for waste and foundation cards
+        for (CardModel card : waste) {
+            if (!cardActorMap.containsKey(card)) {
+                CardActor actor = new CardActor(card);
+                cardActorMap.put(card, actor);
+                gamePanel.addActor(actor);
+            }
+        }
+        for (List<CardModel> pile : foundations) {
+            for (CardModel card : pile) {
+                if (!cardActorMap.containsKey(card)) {
+                    CardActor actor = new CardActor(card);
+                    cardActorMap.put(card, actor);
+                    gamePanel.addActor(actor);
+                }
+            }
+        }
+        refreshLayout(true);
+        updateStepHighlight();
+    }
+
+    private void undoOneStep() {
+        if (undoStack.isEmpty()) {
+            statusLabel.setText("No more undo");
+            return;
+        }
+        autoPlay = false;
+        BoardSnapshot snapshot = undoStack.pop();
+        restoreSnapshot(snapshot);
+        statusLabel.setText("Undo -> step " + currentStepIndex);
+    }
+
+    private void solveCurrent() {
+        try {
+            String board = buildBoardState();
+            KlondikeSolveResult result = solverService.solveBoard(board);
+            solutionSteps = result.getSteps();
+            currentStepIndex = 0;
+            autoPlay = false;
+            undoStack.clear();
+            statusLabel.setText(result.getSummary());
+            refreshStepList();
+        } catch (Exception ex) {
+            statusLabel.setText("Solver error: " + ex.getMessage());
+            ex.printStackTrace();
+        }
+    }
+
+    private void playOneStep() {
+        if (currentStepIndex >= solutionSteps.size()) {
+            statusLabel.setText("No more steps");
+            autoPlay = false;
+            return;
+        }
+        saveSnapshot();
+        KlondikeSolutionStep step = solutionSteps.get(currentStepIndex++);
+
+        if (step.isDealMove()) {
+            // Deal move: draw from stock to waste, possibly with recycle
+            drawFromStock();
+            autoDelay = 0.5f;
+        } else if (step.isFromWaste() && step.isToTableau()) {
+            // Waste -> Tableau
+            int destCol = step.getDestStackIndex();
+            if (!waste.isEmpty()) {
+                CardModel card = waste.remove(waste.size() - 1);
+                tableau.get(destCol).getCards().add(card);
+                flipTopCards();
+            }
+            autoDelay = 0.5f;
+        } else if (step.isFromWaste() && step.isToFoundation()) {
+            // Waste -> Foundation
+            int destSlot = step.getDestStackIndex();
+            if (!waste.isEmpty()) {
+                CardModel card = waste.remove(waste.size() - 1);
+                foundations.get(destSlot).add(card);
+            }
+            autoDelay = 0.5f;
+        } else if (step.isFromTableau() && step.isToTableau()) {
+            // Tableau -> Tableau
+            int srcCol = step.getSourceStackIndex();
+            int destCol = step.getDestStackIndex();
+            int count = step.getCardCount();
+            applyTableauMove(srcCol, destCol, count);
+            autoDelay = 0.5f;
+        } else if (step.isFromTableau() && step.isToFoundation()) {
+            // Tableau -> Foundation
+            int srcCol = step.getSourceStackIndex();
+            int destSlot = step.getDestStackIndex();
+            List<CardModel> cards = tableau.get(srcCol).getCards();
+            if (!cards.isEmpty()) {
+                CardModel card = cards.remove(cards.size() - 1);
+                foundations.get(destSlot).add(card);
+                flipTopCards();
+            }
+            autoDelay = 0.5f;
+        } else {
+            // Other moves (foundation->tableau, etc.)
+            autoDelay = 0.5f;
+        }
+
+        refreshLayout();
+        statusLabel.setText(step.getDescription());
+        updateStepHighlight();
+    }
+
+    private void applyTableauMove(int from, int to, int count) {
+        List<CardModel> source = tableau.get(from).getCards();
+        if (source.isEmpty()) return;
+        int start = Math.max(source.size() - count, 0);
+        List<CardModel> moving = new ArrayList<>(source.subList(start, source.size()));
+        source.subList(start, source.size()).clear();
+        tableau.get(to).getCards().addAll(moving);
+        flipTopCards();
+    }
+
+    /** Build board state string for the Klondike solver */
+    private String buildBoardState() {
+        // Format: "klondike,1\n" + tableau rows + stock row
+        // Tableau: row i has cards for columns >= i
+        // Row 0 = bottom card of each column
+        // Row 1 = 2nd card from bottom, columns 1-6
+        // etc.
+        int maxHeight = 0;
+        for (SpiderStack s : tableau) {
+            maxHeight = Math.max(maxHeight, s.getCards().size());
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("klondike,1\n");
+
+        for (int row = 0; row < maxHeight; row++) {
+            for (int col = 0; col < TABLEAU_COUNT; col++) {
+                List<CardModel> cards = tableau.get(col).getCards();
+                if (row < cards.size()) {
+                    sb.append(DealCardCodec.format(cards.get(row).getCode()));
+                }
+                sb.append(",");
+            }
+            sb.append("\n");
+        }
+
+        // Stock + waste: the solver expects the "feed" line
+        // Feed order: waste (bottom to top) then stock (top to bottom)
+        // All as one comma-separated line
+        for (int i = 0; i < waste.size(); i++) {
+            sb.append(DealCardCodec.format(waste.get(i).getCode())).append(",");
+        }
+        for (int i = stock.size() - 1; i >= 0; i--) {
+            sb.append(DealCardCodec.format(stock.get(i).getCode())).append(",");
+        }
+        sb.append("\n");
+
+        // Foundation state (aces line)
+        for (int i = 0; i < FOUNDATION_COUNT; i++) {
+            List<CardModel> pile = foundations.get(i);
+            for (CardModel card : pile) {
+                sb.append(DealCardCodec.format(card.getCode())).append(",");
+            }
+        }
+        sb.append("\n");
+
+        System.out.println(sb);
+        return sb.toString();
+    }
+
     @Override
     public void render(float delta) {
         Gdx.gl.glClearColor(0, 0, 0, 1f);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
         super.render(delta);
+
+        if (autoPlay && currentStepIndex < solutionSteps.size()) {
+            autoTimer += delta;
+            if (autoTimer >= autoDelay) {
+                autoTimer = 0f;
+                playOneStep();
+            }
+        }
     }
 
     @Override
